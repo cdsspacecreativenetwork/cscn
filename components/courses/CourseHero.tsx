@@ -20,7 +20,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
   instructorImage,
   publishDate,
   videoThumbnail,
-  videoUrl = "/assets/CDS Space Branding Agency.mp4"
+  videoUrl = "https://res.cloudinary.com/emediong/video/upload/v1778071570/CDS_Space_Branding_Agency_hhhxkq.mp4"
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -119,7 +119,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
             {[
               { icon: 'volume.svg', action: toggleMute, active: isMuted },
               { icon: 'fullscreen.svg', action: toggleFullscreen },
-              { icon: 'settings.svg', action: () => {} }
+              { icon: 'settings.svg', action: () => { } }
             ].map((ctrl, i) => (
               <button
                 key={i}

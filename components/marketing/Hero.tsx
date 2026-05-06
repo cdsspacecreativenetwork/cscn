@@ -22,7 +22,7 @@ export default function Hero() {
 
     const handleLoadedMetadata = () => setDuration(video.duration);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    
+
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
@@ -75,10 +75,10 @@ export default function Hero() {
     <section className="relative pt-[10.5rem] pb-[8.25rem] bg-[#EFF3FF] overflow-hidden flex flex-col items-center text-center">
       {/* Curve Background */}
       <div className="absolute top-[-2.375rem] left-1/2 -translate-x-1/2 w-[111rem] h-[47.625rem] z-0 pointer-events-none">
-        <Image 
-          src="/assets/hero-curve.svg" 
-          alt="Curve Background" 
-          fill 
+        <Image
+          src="/assets/hero-curve.svg"
+          alt="Curve Background"
+          fill
           priority
           className="object-contain"
         />
@@ -89,8 +89,8 @@ export default function Hero() {
         <div className="bg-white px-3 py-1.5 md:px-4 md:py-2 rounded-full inline-flex items-center gap-2 md:gap-2.5 mb-10 shadow-md border border-stroke max-w-[95%] md:max-w-none">
           <div className="flex items-center ml-1">
             {[1, 2, 3, 4].map((i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className={`w-6 h-6 md:w-8 md:h-8 rounded-full border border-[#F4F6FB] overflow-hidden relative bg-[#eee] ${i === 1 ? '' : '-ml-2 md:-ml-3'}`}
               >
                 <Image src={`/assets/avatars/avatar${i}.png`} alt={`Instructor ${i}`} fill />
@@ -125,22 +125,22 @@ export default function Hero() {
 
         {/* Video Frame */}
         <div className="relative w-full max-w-[68.875rem] aspect-[1102/640] bg-navy rounded-3xl border-[8px] border-white shadow-2xl overflow-hidden">
-          <video 
+          <video
             ref={videoRef}
-            src="/assets/CDS Space Branding Agency.mp4" 
+            src="https://res.cloudinary.com/emediong/video/upload/v1778071570/CDS_Space_Branding_Agency_hhhxkq.mp4"
             className="w-full h-full object-cover cursor-pointer"
             onTimeUpdate={handleTimeUpdate}
             onEnded={() => setIsPlaying(false)}
             onClick={() => togglePlay()}
           />
-          
+
           {/* Custom Controls Overlay */}
-          <div 
-            onClick={(e) => e.stopPropagation()} 
+          <div
+            onClick={(e) => e.stopPropagation()}
             className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-[55rem] bg-black/50 backdrop-blur-xl rounded-full p-1 flex items-center gap-2.5 z-10"
           >
             {/* Watch Demo / Play Button */}
-            <div 
+            <div
               onClick={togglePlay}
               className={`p-1 rounded-full flex items-center gap-3 cursor-pointer transition-all duration-300 ${isPlaying ? 'bg-transparent' : 'bg-primary'}`}
             >
@@ -158,7 +158,7 @@ export default function Hero() {
 
             {/* Progress Slider */}
             <div className="flex-1 flex items-center px-2">
-              <input 
+              <input
                 type="range"
                 min={0}
                 max={duration || 100}
