@@ -1,0 +1,15 @@
+
+
+    
+
+    
+    "figma-dev-mode-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@figma/mcp-server"
+      ],
+      "env": {
+        "FIGMA_PERSONAL_ACCESS_TOKEN": "figd_cteBnzb3tf9CZied71xYRGi0bu9oQAGaOZbIeUQM"
+      }
+    }

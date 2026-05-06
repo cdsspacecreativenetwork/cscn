@@ -1,26 +1,121 @@
 @import "tailwindcss";
 
+@theme {
+  --breakpoint-mlg: 1190px;
+  --color-primary: #1C4ED1;
+  --color-navy: #040B37;
+  --color-background: #F4F6FB;
+  --color-card-bg: #FFFFFF;
+  --color-text-title: #040B37;
+  --color-text-body: #4B5563;
+  --color-text-mute: #9CA3AF;
+  --color-stroke: #E3E8F4;
+  --color-stroke-ii: #C8D1E0;
+  
+  --font-inter: "Inter", sans-serif;
+  --font-outfit: "Outfit", sans-serif;
+  
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.5rem;
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+}
+
+@utility animate-shimmer {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent
+    );
+    animation: shimmer 1.5s infinite;
+  }
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Design Base - Using 1728px as the source of truth */
+  --design-width: 1728;
+  
+  /* Colors from Figma */
+  --primary: #1C4ED1;
+  --navy: #040B37;
+  --background: #F4F6FB;
+  --card-bg: #FFFFFF;
+  --text-title: #040B37;
+  --text-body: #4B5563;
+  --text-mute: #9CA3AF;
+  --stroke: #E3E8F4;
+  --stroke-ii: #C8D1E0;
+  
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.5rem;
+  --radius-full: 9999px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@media (min-width: 1024px) {
+  html {
+    font-size: calc(100vw / var(--design-width) * 16);
+  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Ensure the layout doesn't scale up infinitely on massive screens */
+@media (min-width: 1729px) {
+  html {
+    font-size: 16px;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-text-body font-inter;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+  max-width: 1400px;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    padding-inline: 4rem;
+  }
+
+  @media (min-width: 1024px) {
+    padding-inline: 8rem;
+  }
+
+  @media (min-width: 1280px) {
+    padding-inline: 12rem;
+  }
+
+  @media (min-width: 1536px) {
+    padding-inline: 16rem;
+  }
+}
+
+.grid-stack {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+}
+
+@utility btn-primary {
+  @apply inline-flex items-center justify-center rounded-full font-semibold cursor-pointer transition-all duration-200 border-none font-inter active:scale-95;
+  @apply bg-primary text-white border border-[#648EFC] shadow-sm hover:brightness-110;
+  @apply px-6 py-3 text-base leading-tight;
 }

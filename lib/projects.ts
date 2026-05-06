@@ -1,0 +1,135 @@
+export interface Project {
+  id: string;
+  title: string;
+  student: string;
+  course: string;
+  instructor: string;
+  image: string;
+  description: string;
+  tools: string[];
+  tags: string[];
+  outcomes: string[];
+}
+
+export const PROJECTS_DETAILS: Record<string, Project> = {
+  '1': {
+    id: '1',
+    title: 'Nexus - Modern Banking Interface',
+    student: 'Alex Rivera',
+    course: 'Figma UIUX Design for beginners',
+    instructor: 'Honest Ernest',
+    image: '/assets/projects/start from zero.svg',
+    description: 'Nexus is a comprehensive banking dashboard designed to simplify complex financial data. The project focuses on clear information hierarchy and an intuitive user flow for managing multiple accounts and investments.',
+    tools: ['Figma', 'FigJam', 'Adobe Illustrator'],
+    tags: ['FinTech', 'Dashboard', 'UI/UX'],
+    outcomes: ['30% faster transaction flow', 'Clean Dark Mode implementation', 'Reusable Design System'],
+  },
+  '2': {
+    id: '2',
+    title: 'EcoTrack - Sustainability App',
+    student: 'Sarah Chen',
+    course: 'Figma UIUX Design for beginners',
+    instructor: 'Honest Ernest',
+    image: '/assets/projects/start from zero-1.svg',
+    description: 'EcoTrack helps users monitor their carbon footprint through gamified interactions and real-time data tracking. The visual design uses a soothing earth-tone palette to align with the sustainability theme.',
+    tools: ['Figma', 'Adobe Photoshop'],
+    tags: ['Sustainability', 'Mobile App', 'Gamification'],
+    outcomes: ['User engagement increased by 25%', 'Custom Icon library', 'Accessibility-first design'],
+  },
+  '3': {
+    id: '3',
+    title: 'Voyage - Travel Booking Concept',
+    student: 'Jordan Smith',
+    course: 'Brand Identity Essentials with Ai & Ps',
+    instructor: 'Ayomide Ajayi',
+    image: '/assets/projects/start from zero-2.svg',
+    description: 'Voyage is a high-end travel booking platform that focuses on personalized itineraries. The brand identity reflects luxury and exploration, using bold typography and vibrant imagery.',
+    tools: ['Adobe Illustrator', 'Photoshop', 'Figma'],
+    tags: ['Travel', 'Branding', 'Web Design'],
+    outcomes: ['Premium brand identity', 'High-conversion booking flow', 'Responsive design patterns'],
+  },
+  '4': {
+    id: '4',
+    title: 'Pulse - Health & Fitness Monitor',
+    student: 'Maria Garcia',
+    course: 'Figma UIUX Design for beginners',
+    instructor: 'Honest Ernest',
+    image: '/assets/projects/start from zero-3.svg',
+    description: 'Pulse is a wearable integration app that provides holistic health insights. The design focuses on readability and quick-access data for users on the move.',
+    tools: ['Figma', 'Protopie'],
+    tags: ['Health', 'Wearables', 'Mobile'],
+    outcomes: ['Seamless Apple Health integration', 'Data visualization system', 'Minimalist UI'],
+  },
+  '5': {
+    id: '5',
+    title: 'Aura - Minimalist E-commerce',
+    student: 'Liam Wilson',
+    course: 'Figma UIUX Design for beginners',
+    instructor: 'Honest Ernest',
+    image: '/assets/projects/start from zero-4.svg',
+    description: 'Aura is a minimalist e-commerce platform for high-end furniture. The project explores whitespace and high-quality photography to create a premium shopping experience.',
+    tools: ['Figma', 'After Effects'],
+    tags: ['E-commerce', 'Minimalism', 'Web'],
+    outcomes: ['Elegant micro-interactions', 'Grid-based layout system', 'Optimized mobile checkout'],
+  },
+  '6': {
+    id: '6',
+    title: 'Lumina - Smart Home Control',
+    student: 'Emma Thompson',
+    course: 'Learn how to Build with AI. Launch Real Products',
+    instructor: 'Barry Dubor',
+    image: '/assets/projects/start from zero-5.svg',
+    description: 'Lumina is an AI-powered smart home dashboard that predicts user needs based on time of day and habits. The UI is adaptive and changes based on active devices.',
+    tools: ['Figma', 'AI Prompting', 'React'],
+    tags: ['Smart Home', 'AI', 'IoT'],
+    outcomes: ['Adaptive UI system', 'AI-driven automation flows', 'Voice control interface'],
+  },
+  '7': {
+    id: '7',
+    title: 'Vertex - Creative Portfolio',
+    student: 'Noah Brown',
+    course: 'Figma UIUX Design for beginners',
+    instructor: 'Honest Ernest',
+    image: '/assets/projects/start from zero-6.svg',
+    description: 'Vertex is a portfolio template for creative professionals. It features unique layout transitions and a focus on storytelling through project presentation.',
+    tools: ['Figma', 'Spline'],
+    tags: ['Portfolio', 'Creatives', 'Web'],
+    outcomes: ['3D element integration', 'Unique navigation concept', 'Dark/Light mode toggle'],
+  },
+  '8': {
+    id: '8',
+    title: 'Bloom - Plant Care Assistant',
+    student: 'Sophia Davis',
+    course: 'Brand Identity Essentials with Ai & Ps',
+    instructor: 'Ayomide Ajayi',
+    image: '/assets/projects/start from zero-7.svg',
+    description: 'Bloom helps plant owners keep their green friends alive with reminders and species-specific advice. The branding is friendly, approachable, and organic.',
+    tools: ['Illustrator', 'Photoshop'],
+    tags: ['Lifestyle', 'Branding', 'Mobile'],
+    outcomes: ['Organic logo system', 'Custom illustrations', 'Community feature design'],
+  },
+  '9': {
+    id: '9',
+    title: 'Gravity - Space Exploration Hub',
+    student: 'Oliver Martinez',
+    course: 'Figma UIUX Design for beginners',
+    instructor: 'Honest Ernest',
+    image: '/assets/projects/start from zero-8.svg',
+    description: 'Gravity is an educational platform about space exploration. It uses immersive design and interactive timelines to teach users about our solar system.',
+    tools: ['Figma', 'After Effects', 'Cinema 4D'],
+    tags: ['Education', 'Immersive', 'UI'],
+    outcomes: ['Interactive planetary models', 'Immersive dark UI', 'Educational game flow'],
+  },
+  '10': {
+    id: '10',
+    title: 'Zenith - Productivity Suite',
+    student: 'Isabella Taylor',
+    course: 'How to position your brand to attract global audience.',
+    instructor: 'Chris John',
+    image: '/assets/projects/start from zero-9.svg',
+    description: 'Zenith is a brand repositioning project for a struggling productivity startup. The focus was on identifying a global audience and crafting a message that resonates across cultures.',
+    tools: ['Figma', 'Brand Strategy', 'Market Research'],
+    tags: ['Branding', 'Strategy', 'Business'],
+    outcomes: ['Global brand strategy', 'Consistent messaging across regions', 'Refined visual identity'],
+  }
+};
