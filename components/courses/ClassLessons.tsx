@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { PauseCircle } from 'lucide-react';
 
 interface Lesson {
-  id: number;
+  id: string | number;
   title: string;
   duration: string;
   isLocked: boolean;
@@ -28,7 +28,7 @@ export const ClassLessons: React.FC<ClassLessonsProps> = ({
   const displayedLessons = isExpanded ? lessons : lessons.slice(0, INITIAL_VISIBLE_COUNT);
 
   return (
-    <div className="bg-white rounded-[16px] p-[clamp(16px,1.39vw,24px)] border border-[#E3E8F4] flex flex-col gap-4 relative overflow-hidden">
+    <div className="bg-white rounded-[16px] p-4 sm:p-[clamp(16px,1.39vw,24px)] border border-[#E3E8F4] flex flex-col gap-4 relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between w-full mb-2">
         <h2 className="text-[clamp(16px,1.15vw,20px)] font-semibold text-[#040B37] tracking-[-0.4px]">
@@ -49,7 +49,7 @@ export const ClassLessons: React.FC<ClassLessonsProps> = ({
           {displayedLessons.map((lesson, index) => (
             <div 
               key={lesson.id}
-              className={`flex items-center justify-between p-4 rounded-[10px] transition-all cursor-pointer group ${
+              className={`flex items-center justify-between p-3 sm:p-4 rounded-[10px] transition-all cursor-pointer group ${
                 lesson.isActive 
                   ? 'bg-[#E9EFFF] border border-[#1C4ED1]' 
                   : 'bg-transparent border border-transparent hover:bg-[#F4F6FB]'
@@ -69,12 +69,12 @@ export const ClassLessons: React.FC<ClassLessonsProps> = ({
                     />
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 text-[14px] font-medium text-[#4B5563] tracking-[-0.14px]">
+                <div className="flex items-center gap-1.5 text-[13px] sm:text-[14px] font-medium text-[#4B5563] tracking-[-0.14px]">
                   <span>{index + 1}.</span>
-                  <span className="line-clamp-1">{lesson.title}</span>
+                  <span className="leading-tight">{lesson.title}</span>
                 </div>
               </div>
-              <span className="text-[14px] font-medium text-[#4B5563] tracking-[-0.14px] ml-4 shrink-0">
+              <span className="text-[13px] sm:text-[14px] font-medium text-[#4B5563] tracking-[-0.14px] ml-4 shrink-0">
                 {lesson.duration}
               </span>
             </div>

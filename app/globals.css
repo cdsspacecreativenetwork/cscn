@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/assets/fonts/PlusJakartaSans[wght].ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/assets/fonts/PlusJakartaSans-Italic[wght].ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 @theme {
   --breakpoint-mlg: 1190px;
   --color-primary: #1C4ED1;
@@ -13,7 +29,7 @@
   --color-stroke-ii: #C8D1E0;
   
   --font-inter: "Inter", sans-serif;
-  --font-outfit: "Outfit", sans-serif;
+  --font-jakarta: "Plus Jakarta Sans", sans-serif;
   
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
@@ -48,7 +64,7 @@
 :root {
   /* Design Base - Using 1728px as the source of truth */
   --design-width: 1728;
-  
+  color: #dc262629;
   /* Colors from Figma */
   --primary: #1C4ED1;
   --navy: #040B37;
@@ -118,4 +134,30 @@ body {
   @apply inline-flex items-center justify-center rounded-full font-semibold cursor-pointer transition-all duration-200 border-none font-inter active:scale-95;
   @apply bg-primary text-white border border-[#648EFC] shadow-sm hover:brightness-110;
   @apply px-6 py-3 text-base leading-tight;
+}
+
+/* Scrollbar — invisible by default, sky-blue on hover */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.custom-scrollbar:hover {
+  scrollbar-color: #7DD3FC #E0F2FE;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 99px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 99px;
+}
+.custom-scrollbar:hover::-webkit-scrollbar-track {
+  background: #E0F2FE;
+}
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: #7DD3FC;
 }

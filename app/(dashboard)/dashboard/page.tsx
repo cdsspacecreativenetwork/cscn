@@ -5,7 +5,31 @@ import { Plus, MoreHorizontal, ArrowUpRight } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import Image from 'next/image';
 
+import { ResumeCourseModal, GetStartedModal } from '@/components/dashboard/CourseModals';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { Skeleton } from '@/components/ui/Skeleton';
+
 export default function DashboardPage() {
+  const router = useRouter();
+  const [activeModal, setActiveModal] = React.useState<'resume' | 'start' | null>(null);
+  const [selectedCourse, setSelectedCourse] = React.useState<any>(null);
+  const { data: session, status } = useSession();
+  
+  // IDENTITY GUARD: Stay in loading state if authenticated but name is missing
+  const isLoading = status === 'loading' || (status === 'authenticated' && !session?.user?.name);
+  
+  const userName = session?.user?.name?.split(' ')[0] ?? 'Learner';
+
+  const getTimeGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const greeting = getTimeGreeting();
+
   const currentDate = new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -13,14 +37,43 @@ export default function DashboardPage() {
     day: 'numeric'
   }).format(new Date());
 
+  const handleResumeClick = (course: any) => {
+    setSelectedCourse({
+      ...course,
+      lessonInfo: "Lesson 2 of 7",
+      image: "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg", // From Figma/previous turn
+      description: "This is the course player view for the current lesson. You can watch the video, read the transcript, and take notes here."
+    });
+    setActiveModal('resume');
+  };
+
+  const handleStartClick = (course: any) => {
+    setSelectedCourse({
+      ...course,
+      duration: "12h Total",
+      image: "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg",
+      description: "Dive deep into the intricacies of this course. Master the foundational principles, advanced techniques, and practical applications required to excel in this field. Start learning today!"
+    });
+    setActiveModal('start');
+  };
+
+  const navigateToPlayer = () => {
+    router.push(`/dashboard/player/${selectedCourse?.id || '1'}`);
+    setActiveModal(null);
+  };
+
   return (
     <div className="p-[clamp(16px,2.78vw,48px)] space-y-[clamp(32px,4.6vw,80px)] max-w-[1600px] mx-auto">
       {/* Header section - Fluid Scaling */}
       <div className="flex items-center justify-between w-full gap-4">
         <div className="space-y-1">
-          <h1 className="text-[clamp(16px,1.15vw,20px)] font-bold text-[#040B37] leading-tight">
-            Good afternoon, Chris 👋
-          </h1>
+          {isLoading ? (
+            <Skeleton className="h-[clamp(16px,1.15vw,20px)] w-[180px]" />
+          ) : (
+            <h1 className="text-[clamp(16px,1.15vw,20px)] font-bold text-[#040B37] leading-tight">
+              {greeting}, {userName} 👋
+            </h1>
+          )}
           <p className="text-[clamp(11px,0.81vw,14px)] font-medium text-[#9CA3AF]">
             {currentDate}
           </p>
@@ -110,7 +163,12 @@ export default function DashboardPage() {
                   <span>Video (5 minutes)</span>
                 </div>
               </div>
-              <button className="bg-[#1C4ED1] text-white px-4 py-2 rounded-md text-[12px] font-semibold">Resume</button>
+              <button 
+                onClick={() => handleResumeClick({ title: "Activity: Create variations of your paper wireframes", id: "1" })}
+                className="bg-[#1C4ED1] text-white px-4 py-2 rounded-sm text-[12px] font-semibold cursor-pointer hover:bg-[#163fa3] transition-colors"
+              >
+                Resume
+              </button>
             </div>
           </div>
         </div>
@@ -154,18 +212,21 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
+                id: '2',
                 title: 'Build Dynamic User Interfaces (UI) for Websites',
                 activity: 'Activity: Create variations of your paper wireframes',
                 type: 'Video',
                 duration: '5 minutes',
               },
               {
+                id: '3',
                 title: 'Designing for IOS Interfaces (UI) for beginners',
                 activity: 'Activity: Create responsive grids',
                 type: 'Video',
                 duration: '5 minutes',
               },
               {
+                id: '4',
                 title: 'Color Theory 303 (Advanced Lesson For UI Designers)',
                 activity: 'Activity: Understanding Colors and User Needs',
                 type: 'Reading',
@@ -217,7 +278,10 @@ export default function DashboardPage() {
                         <span>{course.type} ({course.duration})</span>
                       </div>
                     </div>
-                    <button className="bg-[#1C4ED1] text-white px-[clamp(8px,0.69vw,12px)] py-[clamp(4px,0.35vw,6px)] rounded-md text-[clamp(9px,0.58vw,10px)] font-semibold whitespace-nowrap hover:bg-[#1C4ED1]/90 transition-all">
+                    <button 
+                      onClick={() => handleStartClick(course)}
+                      className="bg-[#1C4ED1] text-white px-[clamp(8px,0.69vw,12px)] py-[clamp(4px,0.35vw,6px)] rounded-sm text-[clamp(9px,0.58vw,10px)] font-semibold whitespace-nowrap hover:bg-[#163fa3] transition-all cursor-pointer"
+                    >
                       Get started
                     </button>
                   </div>
@@ -260,6 +324,24 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {selectedCourse && (
+        <>
+          <ResumeCourseModal 
+            isOpen={activeModal === 'resume'} 
+            onClose={() => setActiveModal(null)} 
+            course={selectedCourse}
+            onAction={navigateToPlayer}
+          />
+          <GetStartedModal 
+            isOpen={activeModal === 'start'} 
+            onClose={() => setActiveModal(null)} 
+            course={selectedCourse}
+            onAction={navigateToPlayer}
+          />
+        </>
+      )}
     </div>
   );
 }

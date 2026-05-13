@@ -2,7 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import Button from '@/components/ui/Button';
+import { motion } from 'framer-motion';
 
 export default function Hero() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -86,7 +88,12 @@ export default function Hero() {
 
       <div className="container relative z-10 flex flex-col items-center w-full">
         {/* Badge */}
-        <div className="bg-white px-3 py-1.5 md:px-4 md:py-2 rounded-full inline-flex items-center gap-2 md:gap-2.5 mb-10 shadow-md border border-stroke max-w-[95%] md:max-w-none">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="bg-white px-3 py-1.5 md:px-4 md:py-2 rounded-full inline-flex items-center gap-2 md:gap-2.5 mb-10 shadow-md border border-stroke max-w-[95%] md:max-w-none"
+        >
           <div className="flex items-center ml-1">
             {[1, 2, 3, 4].map((i) => (
               <div
@@ -106,25 +113,49 @@ export default function Hero() {
               <span className="text-[10px] md:text-sm font-bold text-primary tracking-tight">more</span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Title */}
-        <h1 className="text-[2.5rem] md:text-[3.5rem] font-semibold leading-[1.2] md:leading-[1.24] text-navy mb-6 md:mb-10 tracking-tight max-w-[49rem]">
+        <motion.h1 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          className="text-[2.5rem] md:text-[3.5rem] font-semibold leading-[1.2] md:leading-[1.24] text-navy mb-6 md:mb-10 tracking-tight max-w-[49rem]"
+        >
           Build Real Skills.<br className="hidden md:block" /> Work Globally.
-        </h1>
+        </motion.h1>
 
         {/* Description */}
-        <p className="text-xl font-medium text-text-body max-w-[36.25rem] mb-10 leading-relaxed tracking-tight">
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          className="text-xl font-medium text-text-body max-w-[36.25rem] mb-10 leading-relaxed tracking-tight"
+        >
           Learn design, product, and digital skills taught by professionals building real companies around the world.
-        </p>
+        </motion.p>
 
         {/* Action Button */}
-        <Button size="lg" className="mb-[5.5rem]">
-          Start Learning
-        </Button>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+          className="mb-[5.5rem]"
+        >
+          <Link href="/courses">
+            <Button size="lg">
+              Start Learning
+            </Button>
+          </Link>
+        </motion.div>
 
         {/* Video Frame */}
-        <div className="relative w-full max-w-[68.875rem] aspect-[1102/640] bg-navy rounded-3xl border-[8px] border-white shadow-2xl overflow-hidden">
+        <motion.div 
+          initial={{ opacity: 0, y: 100, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="relative w-full max-w-[68.875rem] aspect-[1102/640] bg-navy rounded-3xl border-[8px] border-white shadow-2xl overflow-hidden"
+        >
           <video
             ref={videoRef}
             src="https://res.cloudinary.com/emediong/video/upload/v1778071570/CDS_Space_Branding_Agency_hhhxkq.mp4"
@@ -188,7 +219,7 @@ export default function Hero() {
               </button> */}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

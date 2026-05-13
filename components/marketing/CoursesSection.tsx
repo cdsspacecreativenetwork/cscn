@@ -2,21 +2,25 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import CourseCard from '@/components/ui/CourseCard';
-import type { Course } from '@/lib/api';
+import CourseCard, { type CourseCardProps } from '@/components/ui/CourseCard';
 import Button from '@/components/ui/Button';
 
 import { motion } from 'framer-motion';
 
 interface CoursesSectionProps {
-  initialCourses: Course[];
+  initialCourses: CourseCardProps[];
 }
 
-const CATEGORIES = ['All', 'Design', 'Development', 'AI', 'Brand'] as const;
-
 export default function CoursesSection({ initialCourses }: CoursesSectionProps) {
+  const count = initialCourses.length;
+  const gridCols =
+    count === 1 ? 'grid-cols-1 max-w-[300px] mx-auto' :
+    count === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-[640px] mx-auto' :
+    count === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-[960px] mx-auto' :
+    'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4';
+
   return (
-    <motion.section 
+    <motion.section
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true, margin: "-100px" }}
@@ -24,7 +28,7 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
       className="py-25 bg-white overflow-hidden"
     >
       <div className="container">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -34,8 +38,8 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
             Learn. Build. Level Up.
           </h2>
         </motion.div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <div className={`grid gap-6 ${gridCols}`}>
           {initialCourses.map((course, i) => (
             <motion.div 
               key={course.id}

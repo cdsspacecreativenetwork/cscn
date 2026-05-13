@@ -1,5 +1,5 @@
-import React from 'react';
-import { getCourses, getInstructors } from '@/lib/api';
+import { listCourses, listCategories } from '@/lib/services/courses.service';
+import { toCardProps } from '@/lib/course-adapter';
 import CoursesFilter from '@/components/marketing/CoursesFilter';
 
 export const metadata = {
@@ -8,21 +8,28 @@ export const metadata = {
 };
 
 export default async function CoursesPage() {
-  const [courses, instructors] = await Promise.all([
-    getCourses(),
-    getInstructors()
+  const [{ courses: dbCourses }, categories] = await Promise.all([
+    listCourses(1),
+    listCategories(),
   ]);
+
+  const courses = dbCourses.map(toCardProps);
+  const categoryNames = categories.map((c) => c.name);
+  const instructors = [...new Set(courses.map((c) => c.author))];
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Page Header & Catalog */}
       <section className="pt-32 pb-12 md:pb-20">
         <div className="mx-auto max-w-[83rem] px-4">
           <div className="flex flex-col gap-10">
             <h1 className="text-[32px] font-semibold text-navy tracking-[-0.02em] leading-[1.24] font-inter">
               Courses
             </h1>
-            <CoursesFilter courses={courses} instructors={instructors} />
+            <CoursesFilter
+              courses={courses}
+              categories={categoryNames}
+              instructors={instructors}
+            />
           </div>
         </div>
       </section>

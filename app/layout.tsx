@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "CSCN - Build Real Skills. Work Globally.",
   description: "Learn design, product, and digital skills taught by professionals building real companies around the world.",
 };
+
+import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -19,8 +22,12 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet" />
       </head>
       <body>
-        {children}
+        <SessionProvider>
+          <Toaster position="top-center" richColors />
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );
 }
+

@@ -28,7 +28,7 @@ const FOOTER_LINKS = {
 
 export default function Footer() {
   return (
-    <footer className="relative bg-white pt-10 pb-2 md:pb-4 overflow-hidden">
+    <footer className="relative bg-background pt-10 pb-2 md:pb-4 overflow-hidden">
       {/* Design Baseline Container (1688px) */}
       <div className="mx-auto max-w-[1688px] px-2 lg:px-4">
         <div className="relative bg-[#040B37] rounded-[24px] border-t border-[#111B5C] overflow-hidden flex flex-col pt-10">

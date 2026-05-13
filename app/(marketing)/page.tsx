@@ -6,38 +6,58 @@ import InstructorSection from '@/components/marketing/InstructorSection';
 import ReviewsSection from '@/components/marketing/ReviewsSection';
 import CommunitySection from '@/components/marketing/CommunitySection';
 import FAQSection from '@/components/marketing/FAQSection';
-import { getStats, getCourses } from '@/lib/api';
-import Image from 'next/image';
+import { getStats, getMockCourseCards } from '@/lib/api';
+import { listCourses } from '@/lib/services/courses.service';
+import { toCardProps } from '@/lib/course-adapter';
+import { Reveal } from '@/components/ui/Reveal';
 
 export default async function LandingPage() {
   // Fetch data on the server for instant page load (No Flicker)
   const statsData = await getStats();
-  const courses = await getCourses();
+  const { courses: dbCourses } = await listCourses(1);
+  const dbCards = dbCourses.map(toCardProps);
+  const HOMEPAGE_LIMIT = 12;
+  const remaining = Math.max(0, HOMEPAGE_LIMIT - dbCards.length);
+  const courses = [...dbCards, ...getMockCourseCards().slice(0, remaining)];
 
   return (
-    <div className="landing-page">
+    <div className="landing-page overflow-hidden">
       <Hero />
 
-      {/* Stats Section - Passed pre-fetched data to avoid loading flicker */}
-      <StatsSection initialData={statsData} />
+      {/* Stats Section - Fast reveal */}
+      <Reveal delay={0.2}>
+        <StatsSection initialData={statsData} />
+      </Reveal>
 
       {/* Interactive Courses Section */}
-      <CoursesSection initialCourses={courses} />
+      <Reveal delay={0.3}>
+        <CoursesSection initialCourses={courses} />
+      </Reveal>
 
       {/* High-Fidelity Features Section */}
-      <BenefitSection />
+      <Reveal delay={0.3}>
+        <BenefitSection />
+      </Reveal>
 
       {/* High-Fidelity Instructors Section */}
-      <InstructorSection />
+      <Reveal delay={0.4}>
+        <InstructorSection />
+      </Reveal>
 
       {/* High-Fidelity Reviews Section */}
-      <ReviewsSection />
+      <Reveal delay={0.4}>
+        <ReviewsSection />
+      </Reveal>
 
       {/* Community & Student Projects Section */}
-      <CommunitySection />
+      <Reveal delay={0.5}>
+        <CommunitySection />
+      </Reveal>
 
       {/* FAQ Section */}
-      <FAQSection />
+      <Reveal delay={0.5}>
+        <FAQSection />
+      </Reveal>
     </div>
   );
 }

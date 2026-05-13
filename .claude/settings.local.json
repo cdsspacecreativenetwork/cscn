@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem \"c:\\\\Users\\\\user\\\\Documents\\\\Projects\\\\CDS\\\\cscn\\\\prisma\\\\\" | ForEach-Object { Write-Output $_.FullName }; Write-Output \"---\"; Get-Content \"c:\\\\Users\\\\user\\\\Documents\\\\Projects\\\\CDS\\\\cscn\\\\prisma\\\\schema.prisma\" -ErrorAction SilentlyContinue | ForEach-Object { Write-Output $_ })",
+      "PowerShell([System.IO.File]::ReadAllText\\(\"c:\\\\Users\\\\user\\\\Documents\\\\Projects\\\\CDS\\\\cscn\\\\prisma\\\\schema.prisma\"\\))",
+      "PowerShell(\\(Get-Item \"c:\\\\Users\\\\user\\\\Documents\\\\Projects\\\\CDS\\\\cscn\\\\prisma\\\\schema.prisma\"\\).Length)",
+      "PowerShell(Head 20)"
+    ]
+  }
+}

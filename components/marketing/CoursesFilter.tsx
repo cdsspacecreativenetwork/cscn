@@ -3,16 +3,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import CourseCard from '@/components/ui/CourseCard';
+import CourseCard, { type CourseCardProps } from '@/components/ui/CourseCard';
 import CourseCardSkeleton from '@/components/ui/CourseCardSkeleton';
-import type { Course } from '@/lib/api';
 
 interface CoursesFilterProps {
-  courses: Course[];
+  courses: CourseCardProps[];
+  categories?: string[];
   instructors: string[];
 }
-
-const CATEGORIES = ['All Categories', 'Design', 'Development', 'AI', 'Brand'] as const;
 const INITIAL_VISIBLE_COUNT = 8;
 const LOAD_MORE_INCREMENT = 4;
 
@@ -87,7 +85,8 @@ const CustomDropdown = ({ options, selected, onChange }: DropdownProps) => {
   );
 };
 
-export default function CoursesFilter({ courses, instructors }: CoursesFilterProps) {
+export default function CoursesFilter({ courses, categories, instructors }: CoursesFilterProps) {
+  const ALL_CATEGORIES = ['All Categories', ...(categories ?? [])];
   const [activeCategory, setActiveCategory] = useState<string>('All Categories');
   const [activeInstructor, setActiveInstructor] = useState<string>('All Instructors');
   const [searchQuery, setSearchQuery] = useState('');
@@ -195,7 +194,7 @@ export default function CoursesFilter({ courses, instructors }: CoursesFilterPro
           <div className="flex flex-wrap items-center gap-[16px]">
             {/* Category Dropdown */}
             <CustomDropdown
-              options={CATEGORIES}
+              options={ALL_CATEGORIES}
               selected={activeCategory}
               onChange={setActiveCategory}
             />

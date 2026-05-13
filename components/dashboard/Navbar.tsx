@@ -1,52 +1,51 @@
 'use client';
 
 import React from 'react';
-import { Search, Bell, ChevronDown, Menu } from 'lucide-react';
+import { Search, Bell, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
-import { NotificationDropdown, NotificationItem } from './NotificationDropdown';
+import { useSession } from 'next-auth/react';
+import { NotificationDropdown } from './NotificationDropdown';
+import { useNotifications } from '@/hooks/useNotifications';
+import { generateTapbackAvatar } from '@/lib/avatar';
 
 interface NavbarProps {
   onMenuClick?: () => void;
 }
 
+import { Skeleton } from '../ui/Skeleton';
+
 export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
-  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
-  const [notifications, setNotifications] = React.useState<NotificationItem[]>([
-    {
-      id: '1',
-      title: 'New AI Tools module added to the Web Dev course',
-      time: 'Today, 10:00 AM',
-      emoji: '📢',
-      isRead: false,
-    },
-    {
-      id: '2',
-      title: 'Pro members get 30% off on certification exams this week',
-      time: 'Yesterday',
-      emoji: '🎁',
-      isRead: false,
-    },
-    {
-      id: '3',
-      title: 'Live Q&A with Product team April 20 at 3PM GMT',
-      time: '2 days ago',
-      emoji: '📅',
-      isRead: true,
-    },
-    {
-      id: '4',
-      title: 'Assignment deadline: Research Methods for beginners',
-      time: '3 days ago',
-      emoji: '📅',
-      isRead: true,
-    }
-  ]);
+  const { data: session, status, update } = useSession();
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  // Force a session refresh once on mount so role/name are always fresh
+  React.useEffect(() => { update(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  const isLoading = status === 'loading' || (status === 'authenticated' && !session?.user?.name);
+
+  const user = session?.user;
+  const displayName = user?.name ?? 'User';
+
+  const ROLE_LABELS: Record<string, string> = {
+    SUPER_ADMIN: 'Super Admin',
+    ADMIN: 'Admin',
+    INSTRUCTOR: 'Instructor',
+    USER: 'Student',
   };
+  const roleLabel = ROLE_LABELS[(user?.role as string) ?? ''] ?? 'Student';
+  const [imgSrc, setImgSrc] = React.useState(user?.image);
+  
+  // Re-sync if session user image changes
+  React.useEffect(() => {
+    setImgSrc(user?.image);
+  }, [user?.image]);
+
+  const userEmail = user?.email ?? 'user@cscn.edu';
+  const userName = session?.user?.name || userEmail.split('@')[0];
+  const fallbackAvatar = generateTapbackAvatar(userName);
+  const avatarSrc = imgSrc || fallbackAvatar;
+
+  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
 
   return (
     <header className="h-[clamp(72px,5.56vw,96px)] bg-white border-b border-[#E3E8F4] flex items-center justify-between px-[clamp(16px,1.85vw,32px)] sticky top-0 z-40 shrink-0">
@@ -64,7 +63,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           onClick={onMenuClick}
           className="lg:hidden p-2 text-[#4B5563] hover:bg-[#F4F6FB] rounded-lg transition-all shrink-0"
         >
-          <Menu size={24} />
+          <Image 
+            src="/assets/menu.svg" 
+            alt="Menu" 
+            width={24} 
+            height={24} 
+            className="w-6 h-6 brightness-0"
+          />
         </button>
 
         {/* Search Bar - Fluid Width */}
@@ -94,10 +99,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             )}
           </button>
 
-          <NotificationDropdown 
-            notifications={notifications} 
-            isOpen={isNotificationsOpen} 
-            onMarkAllAsRead={markAllAsRead} 
+          <NotificationDropdown
+            notifications={notifications}
+            isOpen={isNotificationsOpen}
+            onMarkAllAsRead={markAllRead}
+            onMarkRead={markRead}
+            onClose={() => setIsNotificationsOpen(false)}
           />
         </div>
 
@@ -107,17 +114,31 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         {/* Profile */}
         <div className="flex items-center gap-[clamp(8px,0.69vw,12px)] pl-[clamp(8px,0.46vw,12px)] cursor-pointer group">
           <div className="w-[clamp(36px,2.55vw,44px)] h-[clamp(36px,2.55vw,44px)] rounded-full overflow-hidden border-2 border-[#1C4ED1] shrink-0">
-            <Image 
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Chris" 
-              alt="User" 
-              width={44} 
-              height={44} 
-              className="w-full h-full object-cover"
-            />
+            {isLoading ? (
+              <Skeleton variant="circle" className="w-full h-full" />
+            ) : (
+              <Image
+                src={avatarSrc}
+                alt={displayName}
+                width={44}
+                height={44}
+                className="w-full h-full object-cover"
+                onError={() => setImgSrc(fallbackAvatar)}
+              />
+            )}
           </div>
           <div className="hidden sm:flex flex-col">
-            <span className="text-[clamp(14px,1.04vw,18px)] font-semibold text-[#040B37] whitespace-nowrap">Chris John</span>
-            <span className="text-[clamp(11px,0.81vw,14px)] text-[#4B5563]">Admin</span>
+            {isLoading ? (
+              <div className="space-y-1">
+                <Skeleton className="h-4 w-[80px]" />
+                <Skeleton className="h-3 w-[50px]" />
+              </div>
+            ) : (
+              <>
+                <span className="text-[clamp(14px,1.04vw,18px)] font-semibold text-[#040B37] whitespace-nowrap">{displayName}</span>
+                <span className="text-[clamp(11px,0.81vw,14px)] text-[#4B5563]">{roleLabel}</span>
+              </>
+            )}
           </div>
           <ChevronDown size={20} className="text-[#9CA3AF] group-hover:text-[#040B37] transition-all" style={{ width: 'clamp(16px, 1.15vw, 20px)', height: 'clamp(16px, 1.15vw, 20px)' }} />
         </div>

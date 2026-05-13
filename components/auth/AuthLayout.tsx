@@ -30,7 +30,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
         {/* Sidebar - Adaptive Growth (starts narrow at 1024px, reaches 49.3% design peak at 1728px) */}
         <div 
-          className="hidden lg:block relative h-full lg:w-[38%] xl:w-[44%] 2xl:w-[49.3%] max-w-[852px] bg-[#1C4ED1] lg:rounded-4xl overflow-hidden z-20 shrink-0"
+          className="hidden lg:block relative h-full lg:w-[50%] xl:w-[44%] 2xl:w-[49.3%] max-w-[852px] bg-[#1C4ED1] lg:rounded-4xl overflow-hidden z-20 shrink-0"
         >
           {/* Grid Pattern Overlay */}
           <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay">

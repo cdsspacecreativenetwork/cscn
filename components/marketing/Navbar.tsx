@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { X } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import Button from '../ui/Button';
 
 const navLinks = [
@@ -16,7 +18,9 @@ const navLinks = [
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session, status } = useSession();
   const pathname = usePathname();
+  const isLoggedIn = status === "authenticated";
 
   return (
     <>
@@ -65,22 +69,29 @@ export default function Navbar() {
             </button>
             
             <div className="hidden lg:block">
-              <Link href="/signin">
+              <Link href={isLoggedIn ? "/dashboard" : "/signin"}>
                 <Button variant="primary" size="md">
-                  Sign in
+                  {isLoggedIn ? "Go to Dashboard" : "Sign in"}
                 </Button>
               </Link>
             </div>
             
-            {/* Mobile Menu Toggle */}
             <button 
-              className="lg:hidden flex flex-col gap-1.5 items-end justify-center w-10 h-10 transition-all active:scale-95"
+              className="lg:hidden flex items-center justify-center w-10 h-10 transition-all active:scale-95 text-navy"
               onClick={() => setIsOpen(!isOpen)}
               aria-label="Toggle Menu"
             >
-              <div className={`h-[2px] bg-navy rounded-full transition-all duration-300 ${isOpen ? 'w-8 rotate-45 translate-y-[8px]' : 'w-8'}`} />
-              <div className={`h-[2px] bg-navy rounded-full transition-all duration-300 ${isOpen ? 'w-0 opacity-0' : 'w-6'}`} />
-              <div className={`h-[2px] bg-navy rounded-full transition-all duration-300 ${isOpen ? 'w-8 -rotate-45 -translate-y-[8px]' : 'w-4'}`} />
+              {isOpen ? (
+                <X size={32} strokeWidth={2} />
+              ) : (
+                <Image 
+                  src="/assets/menu.svg" 
+                  alt="Menu" 
+                  width={32} 
+                  height={32} 
+                  className="w-8 h-8 brightness-0"
+                />
+              )}
             </button>
           </div>
         </div>
@@ -101,12 +112,12 @@ export default function Navbar() {
           ))}
           <hr className="border-none border-t border-stroke" />
           <Link 
-            href="/signin" 
+            href={isLoggedIn ? "/dashboard" : "/signin"} 
             onClick={() => setIsOpen(false)}
             className="w-full"
           >
             <Button variant="primary" size="lg" className="w-full">
-              Sign in
+              {isLoggedIn ? "Go to Dashboard" : "Sign in"}
             </Button>
           </Link>
         </div>
