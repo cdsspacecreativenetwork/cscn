@@ -34,7 +34,9 @@ const defaultError = {
   description: "An unexpected error occurred during sign-in. Please try again.",
 };
 
-export default function AuthErrorPage() {
+import { Suspense } from "react";
+
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const errorCode = searchParams.get("error") ?? "";
   const { title, description } = errorMessages[errorCode] ?? defaultError;
@@ -81,5 +83,13 @@ export default function AuthErrorPage() {
         </div>
       </div>
     </AuthLayout>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthErrorContent />
+    </Suspense>
   );
 }

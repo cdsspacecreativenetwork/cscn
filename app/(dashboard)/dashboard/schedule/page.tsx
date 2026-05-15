@@ -37,7 +37,7 @@ const MOCK_EVENTS: ScheduleEvent[] = [
   },
 ];
 
-export default function SchedulePage() {
+function ScheduleContent() {
   const [activeView, setActiveView] = useState<'Week' | 'Month'>('Week');
   const [selectedDate, setSelectedDate] = useState(new Date(2026, 3, 16));
   const searchParams = useSearchParams();
@@ -158,5 +158,13 @@ export default function SchedulePage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function SchedulePage() {
+  return (
+    <React.Suspense fallback={<div>Loading schedule...</div>}>
+      <ScheduleContent />
+    </React.Suspense>
   );
 }

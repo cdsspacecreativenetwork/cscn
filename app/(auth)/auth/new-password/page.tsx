@@ -7,7 +7,9 @@ import { Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { newPasswordAction } from '@/actions/new-password';
 
-export default function NewPasswordPage() {
+import { Suspense } from 'react';
+
+function NewPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
 
@@ -139,5 +141,13 @@ export default function NewPasswordPage() {
         </form>
       )}
     </AuthLayout>
+  );
+}
+
+export default function NewPasswordPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NewPasswordContent />
+    </Suspense>
   );
 }
