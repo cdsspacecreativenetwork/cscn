@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
+import { Toaster } from "sonner";
+import { UploadProvider } from "@/context/UploadContext";
+import UploadQueuePanel from "@/components/upload/UploadQueuePanel";
 
 export const metadata: Metadata = {
   title: "CSCN - Build Real Skills. Work Globally.",
   description: "Learn design, product, and digital skills taught by professionals building real companies around the world.",
 };
-
-import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -23,8 +24,11 @@ export default function RootLayout({
       </head>
       <body>
         <SessionProvider>
-          <Toaster position="top-center" richColors />
-          {children}
+          <UploadProvider>
+            <Toaster position="top-center" richColors />
+            {children}
+            <UploadQueuePanel />
+          </UploadProvider>
         </SessionProvider>
       </body>
     </html>

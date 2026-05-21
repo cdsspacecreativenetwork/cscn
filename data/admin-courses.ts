@@ -91,18 +91,32 @@ export async function getAllCoursesAdmin(adminId: string) {
   });
 }
 
+import { checkAndAwardAchievements } from "@/lib/services/achievements.service";
+
 export async function adminToggleCoursePublish(courseId: string) {
   const course = await db.course.findUnique({
     where: { id: courseId },
-    select: { status: true },
+    select: { status: true, instructorId: true },
   });
   if (!course) throw new Error("Not found");
   const newStatus = course.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
-  return db.course.update({
+  
+  const updated = await db.course.update({
     where: { id: courseId },
     data: { status: newStatus },
     select: { status: true },
   });
+
+  if (newStatus === "PUBLISHED") {
+    // A: Check lifetime published courses count for this instructor
+    const publishedCount = await db.course.count({
+      where: { instructorId: course.instructorId, status: "PUBLISHED" },
+    });
+    // B: Trigger PUBLISH_COURSE achievements check
+    await checkAndAwardAchievements(course.instructorId, "PUBLISH_COURSE", publishedCount);
+  }
+
+  return updated;
 }
 
 export async function getStudioCourseAdmin(courseId: string) {
@@ -121,6 +135,12 @@ export async function getStudioCourseAdmin(courseId: string) {
       categoryId: true,
       requirements: true,
       includes: true,
+      certificateEnabled: true,
+      examGated: true,
+      metaTitle: true,
+      metaDescription: true,
+      price: true,
+      finalExamId: true,
       modules: {
         orderBy: { position: "asc" },
         select: {
@@ -137,7 +157,10 @@ export async function getStudioCourseAdmin(courseId: string) {
               duration: true,
               isPreview: true,
               transcript: true,
+              bodyContent: true,
               contentType: true,
+              muxStatus: true,
+              muxPlaybackId: true,
               resources: {
                 select: { id: true, title: true, url: true, type: true },
               },

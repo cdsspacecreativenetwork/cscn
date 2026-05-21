@@ -39,7 +39,7 @@ export default async function AdminCoursesPage() {
   }));
 
   return (
-    <div className="p-[clamp(16px,2.78vw,48px)] max-w-[1728px] mx-auto w-full font-jakarta">
+    <div className="p-[clamp(16px,2.78vw,48px)] max-w-[1728px] mx-auto w-full font-jakarta mb-20">
       <AdminCourseList
         courses={courses}
         adminId={adminId}

@@ -37,7 +37,9 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
 
   if (isPreviewMode) {
     if (!session?.user?.id) redirect(`/signin?callbackUrl=/courses/${slug}?preview=true`);
-    const previewCourse = await getCoursePreview(slug, session.user.id);
+    // @ts-ignore
+    const userRole = session.user.role as string | undefined;
+    const previewCourse = await getCoursePreview(slug, session.user.id, userRole);
     if (!previewCourse) notFound();
     course = previewCourse;
     isPreview = true;
@@ -51,18 +53,22 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
   if (!course) notFound();
   const userId = session?.user?.id;
 
-  // Flatten all lessons for the sidebar
-  const allLessons = course.modules.flatMap((mod) =>
-    mod.lessons.map((lesson, idx) => ({
+  const firstLesson = course.modules[0]?.lessons[0];
+
+  const courseModules = course.modules.map((mod, modIdx) => ({
+    id: mod.id,
+    title: mod.title,
+    lessons: mod.lessons.map((lesson, lessonIdx) => ({
       id: lesson.id,
       title: lesson.title,
       duration: lesson.duration ? `${lesson.duration}m` : '—',
       isLocked: !lesson.isPreview && !enrollment,
-      isActive: idx === 0 && mod === course.modules[0],
-    }))
-  );
+      isPreview: lesson.isPreview,
+      isActive: modIdx === 0 && lessonIdx === 0,
+    })),
+  }));
 
-  const totalLessons = allLessons.length;
+  const totalLessons = course.modules.reduce((sum, m) => sum + m.lessons.length, 0);
   const totalMinutes = course.modules
     .flatMap((m) => m.lessons)
     .reduce((sum, l) => sum + (l.duration ?? 0), 0);
@@ -80,7 +86,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
   const enrollCta = enrollment ? (
     <div className="border border-[#648efc] p-[2px] rounded-full w-full mlg:w-auto">
       <Link
-        href={`/courses/${course.slug}/watch/${allLessons[0]?.id}`}
+        href={`/courses/${course.slug}/watch/${firstLesson?.id}`}
         className="flex items-center justify-center w-full mlg:px-6 py-[12.5px] bg-linear-to-r from-[#0035C1] to-[#0575FF] rounded-full transition-all hover:opacity-90 active:scale-[0.98]"
       >
         <span className="text-white font-medium text-[16px] tracking-[-0.16px] whitespace-nowrap leading-normal">
@@ -89,11 +95,11 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
       </Link>
     </div>
   ) : userId ? (
-    <EnrollButton courseSlug={course.slug} firstLessonId={allLessons[0]?.id ?? null} />
+    <EnrollButton courseSlug={course.slug} firstLessonId={firstLesson?.id ?? null} />
   ) : (
     <div className="border border-[#648efc] p-[2px] rounded-full w-full mlg:w-auto">
       <Link
-        href={`/signin?callbackUrl=/courses/${course.slug}${allLessons[0]?.id ? `/watch/${allLessons[0].id}?autoEnroll=true` : ''}`}
+        href={`/signin?callbackUrl=/courses/${course.slug}${firstLesson?.id ? `/watch/${firstLesson.id}?autoEnroll=true` : ''}`}
         className="flex items-center justify-center w-full mlg:px-6 py-[12.5px] bg-linear-to-r from-[#0035C1] to-[#0575FF] rounded-full transition-all hover:opacity-90 active:scale-[0.98]"
       >
         <span className="text-white font-medium text-[16px] tracking-[-0.16px] whitespace-nowrap leading-normal">
@@ -108,7 +114,15 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
       {isPreview && (
         <div className="fixed top-0 inset-x-0 z-50 bg-amber-500 text-white text-center py-2 text-sm font-semibold">
           Preview mode — this course is not yet visible to the public.{' '}
-          <Link href={`/dashboard/instructor/courses/${course!.id}`} className="underline ml-1">
+          <Link
+            href={
+              // @ts-ignore
+              session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN'
+                ? `/dashboard/admin/courses/${course!.id}`
+                : `/dashboard/instructor/courses/${course!.id}`
+            }
+            className="underline ml-1"
+          >
             Back to editor
           </Link>
         </div>
@@ -128,13 +142,15 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
             <ClassLessons
               totalLessons={totalLessons}
               totalDuration={totalDuration}
-              lessons={allLessons}
+              modules={courseModules}
             />
           </div>
 
           <div className="mlg:col-span-8 w-full">
             <CourseDetails
               enrolledCount={course._count.enrollments.toLocaleString()}
+              ratingAverage={course.ratingAverage ?? 0}
+              ratingCount={course.ratingCount ?? 0}
               price="Free"
               description={course.description}
               instructor={{

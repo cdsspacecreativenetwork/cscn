@@ -37,6 +37,18 @@ export default {
       },
     }),
   ],
+  callbacks: {
+    async session({ token, session }) {
+      if (token.sub && session.user) {
+        session.user.id = token.sub;
+      }
+      if (session.user) {
+        // @ts-ignore
+        session.user.role = token.role;
+      }
+      return session;
+    },
+  },
   pages: {
     signIn: "/signin",
     error: "/auth/error",

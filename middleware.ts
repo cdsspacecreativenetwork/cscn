@@ -25,6 +25,9 @@ export default auth((req) => {
 
   if (isApiAuthRoute) return;
 
+  // Webhooks from third-party services are unauthenticated by design (they carry their own signatures)
+  if (nextUrl.pathname.startsWith("/api/webhooks/")) return;
+
   // Invite links are public — anyone can view them
   if (isInviteRoute) return;
 

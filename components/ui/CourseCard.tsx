@@ -17,6 +17,7 @@ export interface CourseCardProps {
   authorAvatar: string;
   image: string;
   rating?: number;
+  reviews?: number;
   students?: string;
   level?: string;
   view?: 'grid' | 'list';
@@ -61,6 +62,7 @@ export default function CourseCard({
   authorAvatar,
   image,
   rating = 4.8,
+  reviews = 0,
   students = '1.2k',
   level = 'Beginner',
   view = 'grid',
@@ -181,8 +183,8 @@ export default function CourseCard({
             {isList && (
               <div className="flex items-center gap-4 md:gap-6 ml-auto md:ml-0">
                 <div className="hidden sm:flex items-center gap-1 font-jakarta">
-                  <span className="text-[13px] font-bold text-navy">★ {rating}</span>
-                  <span className="text-[11px] text-text-body">({students})</span>
+                  <span className="text-[13px] font-bold text-navy">★ {rating > 0 ? rating.toFixed(1) : 'New'}</span>
+                  <span className="text-[11px] text-text-body">({reviews} reviews)</span>
                 </div>
                 <div className="flex items-center gap-2 font-inter">
                   <span className="hidden md:inline px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider rounded-sm">

@@ -17,6 +17,8 @@ type DbPublicCourse = {
   };
   _count: { enrollments: number };
   modules: { _count: { lessons: number } }[];
+  ratingAverage?: number;
+  ratingCount?: number;
 };
 
 export function toCardProps(course: DbPublicCourse): CourseCardProps {
@@ -37,6 +39,8 @@ export function toCardProps(course: DbPublicCourse): CourseCardProps {
     authorAvatar: course.instructor.image ?? "/assets/default-avatar.svg",
     image: course.thumbnail ?? "/assets/default-course.jpg",
     students: course._count.enrollments.toLocaleString(),
+    rating: course.ratingAverage && course.ratingAverage > 0 ? course.ratingAverage : 0,
+    reviews: course.ratingCount ?? 0,
     level: course.difficulty.charAt(0) + course.difficulty.slice(1).toLowerCase(),
   };
 }

@@ -71,11 +71,13 @@ function CopyButton({ text }: { text: string }) {
 
 interface Props {
   courseId: string;
+  isAdmin?: boolean;
+  initialData?: RosterData;
 }
 
-export default function InstructorRosterTab({ courseId }: Props) {
-  const [data, setData] = useState<RosterData | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function InstructorRosterTab({ courseId, isAdmin = false, initialData }: Props) {
+  const [data, setData] = useState<RosterData | null>(initialData ?? null);
+  const [loading, setLoading] = useState(!initialData);
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'CO_INSTRUCTOR' | 'TEACHING_ASSISTANT'>('CO_INSTRUCTOR');
@@ -102,7 +104,11 @@ export default function InstructorRosterTab({ courseId }: Props) {
     }
   }, [courseId]);
 
-  useEffect(() => { fetchRoster(); }, [fetchRoster]);
+  useEffect(() => {
+    if (!initialData) {
+      fetchRoster();
+    }
+  }, [fetchRoster, initialData]);
 
   const handleEmailChange = (value: string) => {
     setInviteEmail(value);
@@ -178,13 +184,28 @@ export default function InstructorRosterTab({ courseId }: Props) {
     }
   };
 
-  const isOwner = data?.myRole === 'OWNER';
+  // Admins see the full roster but cannot invite, change roles, or remove members
+  const isOwner = !isAdmin && data?.myRole === 'OWNER';
   const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="max-w-3xl mx-auto space-y-8 animate-pulse">
+        <section>
+          <div className="h-5 w-32 rounded-lg bg-background mb-4" />
+          <div className="bg-white border border-stroke rounded-2xl divide-y divide-stroke overflow-hidden">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-4">
+                <div className="w-9 h-9 rounded-full bg-background shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 w-36 rounded bg-background" />
+                  <div className="h-2.5 w-28 rounded bg-background" />
+                </div>
+                <div className="h-6 w-20 rounded-full bg-background" />
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     );
   }

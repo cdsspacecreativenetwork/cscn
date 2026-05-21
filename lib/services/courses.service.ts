@@ -12,6 +12,9 @@ import {
 } from "@/data/courses";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { recordUserActivity } from "./streaks.service";
+import { checkAndAwardAchievements } from "./achievements.service";
+import { incrementQuestProgress } from "./quests.service";
 
 export { COURSES_PAGE_SIZE };
 
@@ -42,17 +45,19 @@ export async function getCourseDetailWithEnrollment(slug: string, userId: string
   return { course, enrollment };
 }
 
-// Preview: bypass PUBLISHED status check for instructors/admins
-export async function getCoursePreview(slug: string, userId: string) {
+// Preview: bypass PUBLISHED status check — accessible only to course instructors and admins
+export async function getCoursePreview(slug: string, userId: string, userRole?: string) {
+  const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
   const course = await db.course.findFirst({
-    where: {
-      slug,
-      OR: [
-        { instructorId: userId },
-        { instructors: { some: { userId } } },
-        { instructor: { role: { in: ["ADMIN", "SUPER_ADMIN"] } } },
-      ],
-    },
+    where: isAdmin
+      ? { slug }
+      : {
+          slug,
+          OR: [
+            { instructorId: userId },
+            { instructors: { some: { userId } } },
+          ],
+        },
     select: {
       id: true, title: true, slug: true, description: true, shortDesc: true,
       thumbnail: true, status: true, previewCount: true, includes: true,
@@ -71,7 +76,20 @@ export async function getCoursePreview(slug: string, userId: string) {
       },
     },
   });
-  return course;
+
+  if (!course) return null;
+
+  const rating = await db.courseRating.aggregate({
+    where: { courseId: course.id },
+    _avg: { rating: true },
+    _count: { rating: true },
+  });
+
+  return {
+    ...course,
+    ratingAverage: rating._avg.rating ? Number(rating._avg.rating.toFixed(1)) : 0,
+    ratingCount: rating._count.rating,
+  };
 }
 
 // ── Enrollment ────────────────────────────────────────────────────────────────
@@ -121,7 +139,7 @@ export async function getLessonAccess(lessonId: string, userId: string | undefin
 export async function completeLessonForUser(
   userId: string,
   lessonId: string
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; newlyUnlockedAchievements?: any[] }> {
   const lesson = await db.lesson.findUnique({
     where: { id: lessonId },
     select: {
@@ -144,10 +162,29 @@ export async function completeLessonForUser(
     where: { userId_lessonId: { userId, lessonId } },
   });
 
+  const newlyUnlockedAchievements = [];
+
   if (!existing) {
     await db.lessonProgress.create({
       data: { userId, lessonId },
     });
+
+    // A: Record Daily Activity and Streak calculations
+    const streakInfo = await recordUserActivity(userId);
+    if (streakInfo.streakIncreased) {
+      const activeUnlocks = await checkAndAwardAchievements(userId, "STREAK_DAYS", streakInfo.newStreak);
+      newlyUnlockedAchievements.push(...activeUnlocks);
+    }
+
+    // B: Check platform-wide LESSON_COUNT achievements
+    const totalLessonsCompleted = await db.lessonProgress.count({
+      where: { userId },
+    });
+    const lessonUnlocks = await checkAndAwardAchievements(userId, "LESSON_COUNT", totalLessonsCompleted);
+    newlyUnlockedAchievements.push(...lessonUnlocks);
+
+    // C: Increment Daily & Weekly LESSON_WATCH Quests
+    await incrementQuestProgress(userId, "LESSON_WATCH", 1);
   }
 
   // Auto-complete enrollment when all lessons are done
@@ -163,11 +200,18 @@ export async function completeLessonForUser(
       where: { userId, courseId, status: "ACTIVE" },
       data: { status: "COMPLETED", completedAt: new Date() },
     });
+
+    // C: Check COURSE_COMPLETE achievements
+    const completedCoursesCount = await db.enrollment.count({
+      where: { userId, status: "COMPLETED" },
+    });
+    const courseUnlocks = await checkAndAwardAchievements(userId, "COURSE_COMPLETE", completedCoursesCount);
+    newlyUnlockedAchievements.push(...courseUnlocks);
   }
 
   revalidatePath(`/courses/${courseSlug}/watch/${lessonId}`);
 
-  return {};
+  return { newlyUnlockedAchievements };
 }
 
 // ── Course player ─────────────────────────────────────────────────────────────

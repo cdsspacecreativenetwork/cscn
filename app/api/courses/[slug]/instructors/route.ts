@@ -6,6 +6,7 @@ import {
   getPendingCourseInvites,
   createCourseInvite,
 } from "@/data/instructor";
+import { db } from "@/lib/db";
 import type { CourseInstructorRole } from "@prisma/client";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -18,10 +19,32 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { slug: courseId } = await params;
   const userId = session.user.id;
+  // @ts-ignore
+  const userRole = session.user.role as string | undefined;
+  const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 
   try {
-    const myRole = await getCourseRole(courseId, userId);
+    // Admins can view any course roster — bypass the membership check
+    if (isAdmin) {
+      const [instructors, pendingInvites] = await Promise.all([
+        db.courseInstructor.findMany({
+          where: { courseId },
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true, role: true, createdAt: true,
+            user: { select: { id: true, name: true, email: true, image: true } },
+          },
+        }),
+        db.courseInvite.findMany({
+          where: { courseId, usedAt: null, expiresAt: { gt: new Date() } },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, token: true, email: true, role: true, expiresAt: true, createdAt: true },
+        }),
+      ]);
+      return NextResponse.json({ myRole: "OWNER", instructors, pendingInvites, isAdmin: true });
+    }
 
+    const myRole = await getCourseRole(courseId, userId);
     if (!myRole) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -33,7 +56,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         : Promise.resolve([]),
     ]);
 
-    return NextResponse.json({ myRole, instructors, pendingInvites });
+    return NextResponse.json({ myRole, instructors, pendingInvites, isAdmin: false });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     const status = message === "Forbidden" ? 403 : message === "Course not found" ? 404 : 500;

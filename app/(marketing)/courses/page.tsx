@@ -2,6 +2,8 @@ import { listCourses, listCategories } from '@/lib/services/courses.service';
 import { toCardProps } from '@/lib/course-adapter';
 import CoursesFilter from '@/components/marketing/CoursesFilter';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Courses | CSCN Learning Platform',
   description: 'Explore our catalog of industry-vetted courses in Design, Development, AI, and Brand Strategy.',

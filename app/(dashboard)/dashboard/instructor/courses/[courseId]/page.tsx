@@ -1,8 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { getStudioCourse, getCourseAnalytics, getCourseRole } from '@/data/instructor';
+import { getStudioCourse, getCourseAnalytics, getCourseRole, getCourseInstructors, getPendingCourseInvites } from '@/data/instructor';
 import { getCategories } from '@/data/courses';
 import { getLatestCourseReview } from '@/data/course-reviews';
+import { getUnresolvedFeedbackCount, getCourseFeedback } from '@/data/course-feedback';
 import CourseStudio from '@/components/dashboard/instructor/CourseStudio';
 
 interface Props {
@@ -20,15 +21,32 @@ export default async function CourseStudioPage({ params, searchParams }: Props) 
   const [course, categories, analytics] = await Promise.all([
     getStudioCourse(courseId, session.user.id),
     getCategories(),
-    tab === 'analytics' ? getCourseAnalytics(courseId, session.user.id) : Promise.resolve(null),
+    getCourseAnalytics(courseId, session.user.id),
   ]);
 
   if (!course) notFound();
 
-  const [callerRole, latestReview] = await Promise.all([
+  const [callerRole, latestReview, openFeedbackCount, feedbackData] = await Promise.all([
     getCourseRole(courseId, session.user.id),
     getLatestCourseReview(courseId),
+    getUnresolvedFeedbackCount(courseId),
+    getCourseFeedback(courseId),
   ]);
+
+  if (!callerRole) notFound();
+
+  const [instructors, pendingInvites] = await Promise.all([
+    getCourseInstructors(courseId, session.user.id),
+    callerRole === 'OWNER'
+      ? getPendingCourseInvites(courseId, session.user.id)
+      : Promise.resolve([]),
+  ]);
+
+  const rosterData = {
+    myRole: callerRole,
+    instructors,
+    pendingInvites,
+  };
 
   const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SUPER_ADMIN';
 
@@ -41,6 +59,10 @@ export default async function CourseStudioPage({ params, searchParams }: Props) 
       isAdmin={isAdmin}
       callerRole={callerRole}
       latestReview={latestReview}
+      currentUserId={session.user.id}
+      openFeedbackCount={openFeedbackCount}
+      initialRosterData={JSON.parse(JSON.stringify(rosterData))}
+      initialFeedbackData={JSON.parse(JSON.stringify(feedbackData))}
     />
   );
 }

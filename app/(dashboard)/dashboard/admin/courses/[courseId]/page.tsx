@@ -3,7 +3,9 @@ import { auth } from '@/auth';
 import { getStudioCourseAdmin, getCourseAnalyticsAdmin } from '@/data/admin-courses';
 import { getCategories } from '@/data/courses';
 import { getLatestCourseReview } from '@/data/course-reviews';
+import { getUnresolvedFeedbackCount, getCourseFeedback } from '@/data/course-feedback';
 import CourseStudio from '@/components/dashboard/instructor/CourseStudio';
+import { db } from '@/lib/db';
 
 interface Props {
   params: Promise<{ courseId: string }>;
@@ -19,14 +21,38 @@ export default async function AdminCourseDetailPage({ params, searchParams }: Pr
   const { role } = session.user;
   if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') redirect('/dashboard');
 
-  const [course, categories, latestReview, analytics] = await Promise.all([
+  const [course, categories, latestReview, analytics, openFeedbackCount, feedbackData] = await Promise.all([
     getStudioCourseAdmin(courseId),
     getCategories(),
     getLatestCourseReview(courseId),
-    tab === 'analytics' ? getCourseAnalyticsAdmin(courseId) : Promise.resolve(null),
+    getCourseAnalyticsAdmin(courseId),
+    getUnresolvedFeedbackCount(courseId),
+    getCourseFeedback(courseId),
   ]);
 
   if (!course) notFound();
+
+  const [instructors, pendingInvites] = await Promise.all([
+    db.courseInstructor.findMany({
+      where: { courseId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true, role: true, createdAt: true,
+        user: { select: { id: true, name: true, email: true, image: true } },
+      },
+    }),
+    db.courseInvite.findMany({
+      where: { courseId, usedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, token: true, email: true, role: true, expiresAt: true, createdAt: true },
+    }),
+  ]);
+
+  const rosterData = {
+    myRole: "OWNER",
+    instructors,
+    pendingInvites,
+  };
 
   return (
     <CourseStudio
@@ -37,6 +63,10 @@ export default async function AdminCourseDetailPage({ params, searchParams }: Pr
       isAdmin={true}
       callerRole="OWNER"
       latestReview={latestReview}
+      currentUserId={session.user.id}
+      openFeedbackCount={openFeedbackCount}
+      initialRosterData={JSON.parse(JSON.stringify(rosterData))}
+      initialFeedbackData={JSON.parse(JSON.stringify(feedbackData))}
     />
   );
 }

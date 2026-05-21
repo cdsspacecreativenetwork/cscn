@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import MuxPlayer from '@mux/mux-player-react';
 
 function extractYouTubeId(url: string): string | null {
   const patterns = [
@@ -16,6 +17,8 @@ function extractYouTubeId(url: string): string | null {
 
 interface VideoPlayerProps {
   videoUrl: string | null;
+  muxPlaybackId: string | null;
+  muxToken: string | null;
   canWatch: boolean;
   isAuthenticated: boolean;
   isEnrolled: boolean;
@@ -25,14 +28,32 @@ interface VideoPlayerProps {
 
 export const VideoPlayer = ({
   videoUrl,
+  muxPlaybackId,
+  muxToken,
   canWatch,
   isAuthenticated,
   isEnrolled,
   courseSlug,
   lessonTitle,
 }: VideoPlayerProps) => {
-  const youtubeId = videoUrl ? extractYouTubeId(videoUrl) : null;
+  // Mux (preferred)
+  if (canWatch && muxPlaybackId) {
+    return (
+      <div className="relative w-full aspect-video max-h-[472px] h-full bg-black rounded-2xl overflow-hidden shadow-lg">
+        <MuxPlayer
+          playbackId={muxPlaybackId}
+          tokens={{ playback: muxToken ?? undefined }}
+          streamType="on-demand"
+          title={lessonTitle}
+          style={{ width: '100%', height: '100%', aspectRatio: '16/9' }}
+          className="absolute inset-0 w-full h-full"
+        />
+      </div>
+    );
+  }
 
+  // YouTube fallback (legacy lessons)
+  const youtubeId = videoUrl ? extractYouTubeId(videoUrl) : null;
   if (canWatch && youtubeId) {
     return (
       <div className="relative w-full aspect-video max-h-[472px] h-full bg-black rounded-2xl overflow-hidden shadow-lg">
@@ -63,9 +84,7 @@ export const VideoPlayer = ({
 
   return (
     <div className="relative w-full aspect-video max-h-[472px] h-full bg-[#0A0E1A] rounded-2xl overflow-hidden shadow-lg flex items-center justify-center">
-      {/* Blurred thumbnail hint */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0035C1]/40 to-[#0575FF]/20" />
-
+      <div className="absolute inset-0 bg-linear-to-br from-[#0035C1]/40 to-[#0575FF]/20" />
       <div className="relative z-10 flex flex-col items-center gap-6 text-center px-8">
         {lockIcon}
         <div className="flex flex-col gap-2">
@@ -78,7 +97,7 @@ export const VideoPlayer = ({
         </div>
         <Link
           href={ctaHref}
-          className="px-8 py-3 bg-gradient-to-r from-[#0035C1] to-[#0575FF] text-white font-semibold rounded-full hover:opacity-90 transition-opacity text-sm font-jakarta"
+          className="px-8 py-3 bg-linear-to-r from-[#0035C1] to-[#0575FF] text-white font-semibold rounded-full hover:opacity-90 transition-opacity text-sm font-jakarta"
         >
           {ctaLabel}
         </Link>

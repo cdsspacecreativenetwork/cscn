@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { submitCourseReview } from "@/data/course-reviews";
 import { adminToggleCoursePublish } from "@/data/admin-courses";
+import { postFeedback } from "@/data/course-feedback";
 import type { ReviewStatus } from "@prisma/client";
 
 async function requireAdmin() {
@@ -92,5 +93,17 @@ export async function adminRestoreCourseAction(courseId: string) {
     return { success: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to restore course" };
+  }
+}
+
+export async function postFeedbackAction(courseId: string, body: string) {
+  try {
+    const adminId = await requireAdmin();
+    const item = await postFeedback(courseId, adminId, body.trim());
+    revalidatePath(`/dashboard/admin/courses/${courseId}`);
+    revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+    return { success: true, item };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to post feedback" };
   }
 }

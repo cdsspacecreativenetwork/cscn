@@ -37,8 +37,45 @@ export const {
     }),
   ],
   callbacks: {
-    async signIn({ account }) {
+    async signIn({ user, account, profile }) {
       if (account?.type === "credentials") return true;
+
+      try {
+        const { cookies } = await import("next/headers");
+        const cookieStore = await cookies();
+        
+        const sessionToken = 
+          cookieStore.get("authjs.session-token")?.value ||
+          cookieStore.get("__Secure-authjs.session-token")?.value ||
+          cookieStore.get("next-auth.session-token")?.value ||
+          cookieStore.get("__Secure-next-auth.session-token")?.value;
+
+        if (sessionToken) {
+          const { decode } = await import("next-auth/jwt");
+          let cookieName = "authjs.session-token";
+          if (cookieStore.get("__Secure-authjs.session-token")) cookieName = "__Secure-authjs.session-token";
+          else if (cookieStore.get("next-auth.session-token")) cookieName = "next-auth.session-token";
+          else if (cookieStore.get("__Secure-next-auth.session-token")) cookieName = "__Secure-next-auth.session-token";
+
+          const decoded = await decode({
+            token: sessionToken,
+            secret: process.env.AUTH_SECRET || "",
+            salt: cookieName,
+          });
+
+          if (decoded && decoded.email) {
+            const loggedInEmail = decoded.email.toLowerCase();
+            const oauthEmail = profile?.email?.toLowerCase();
+            
+            if (oauthEmail && loggedInEmail !== oauthEmail) {
+              return `/dashboard/settings?error=OAuthEmailMismatch`;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error checking OAuth email mismatch:", error);
+      }
+
       return true;
     },
     async session({ token, session }) {

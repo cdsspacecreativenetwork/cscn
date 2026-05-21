@@ -17,14 +17,14 @@ import {
   updateLesson,
   deleteLesson,
   reorderLessons,
+  moveAndReorderLessons,
   getCourseAnalytics,
   getCourseInstructors,
   createCourseInvite,
   removeCourseInstructor,
   updateCourseInstructorRole,
 } from "@/data/instructor";
-import type { CourseInstructorRole } from "@prisma/client";
-import type { Difficulty } from "@prisma/client";
+import type { CourseInstructorRole, Difficulty, ContentType } from "@prisma/client";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,6 +66,12 @@ export async function updateCourseSettingsAction(
     previewCount?: number;
     requirements?: string[];
     includes?: string[];
+    certificateEnabled?: boolean;
+    examGated?: boolean;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    price?: number | null;
+    finalExamId?: string | null;
   }
 ) {
   const userId = await requireInstructor();
@@ -96,12 +102,36 @@ export async function submitForReviewAction(courseId: string) {
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
 
+export async function withdrawFromReviewAction(courseId: string) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error("Unauthorized");
+  await import("@/data/instructor").then(({ requireCourseAccess }) =>
+    requireCourseAccess(courseId, userId, "OWNER")
+  );
+  await import("@/lib/db").then(({ db }) =>
+    db.course.update({ where: { id: courseId }, data: { status: "DRAFT" } })
+  );
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+}
+
 export async function markFeedbackAddressedAction(reviewId: string, courseId: string) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) throw new Error("Unauthorized");
   const { markReviewAddressed } = await import("@/data/course-reviews");
   await markReviewAddressed(reviewId, userId);
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  revalidatePath(`/dashboard/admin/courses/${courseId}`);
+  return { success: true };
+}
+
+export async function resolveFeedbackAction(itemId: string, courseId: string) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error("Unauthorized");
+  const { resolveFeedback } = await import("@/data/course-feedback");
+  await resolveFeedback(itemId, userId);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
   revalidatePath(`/dashboard/admin/courses/${courseId}`);
   return { success: true };
@@ -188,6 +218,8 @@ export async function updateLessonAction(
     duration?: number | null;
     isPreview?: boolean;
     transcript?: string | null;
+    bodyContent?: string | null;
+    contentType?: ContentType;
   }
 ) {
   const userId = await requireInstructor();
@@ -208,6 +240,18 @@ export async function reorderLessonsAction(
 ) {
   const userId = await requireInstructor();
   await reorderLessons(moduleId, userId, orderedIds);
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+}
+
+export async function moveAndReorderLessonsAction(
+  lessonId: string,
+  sourceModuleId: string,
+  targetModuleId: string,
+  targetOrderedIds: string[],
+  courseId: string
+) {
+  const userId = await requireInstructor();
+  await moveAndReorderLessons(lessonId, sourceModuleId, targetModuleId, targetOrderedIds, userId);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
 
@@ -251,4 +295,13 @@ export async function updateCourseInstructorRoleAction(
   const userId = await requireInstructor();
   await updateCourseInstructorRole(courseId, userId, targetUserId, role);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+}
+
+export async function getAvailableExamsAction() {
+  await requireInstructor();
+  const { db } = await import("@/lib/db");
+  return db.exam.findMany({
+    orderBy: { title: "asc" },
+    select: { id: true, title: true, duration: true },
+  });
 }

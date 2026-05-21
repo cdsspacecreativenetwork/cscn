@@ -19,6 +19,8 @@ export interface MyCourseCardProps {
   progress: number;
   status: CourseStatus;
   firstLessonId: string | null;
+  rating?: number;
+  reviews?: number;
 }
 
 export default function MyCourseCard({
@@ -33,6 +35,8 @@ export default function MyCourseCard({
   progress,
   status,
   firstLessonId,
+  rating = 0,
+  reviews = 0,
 }: MyCourseCardProps) {
   const statusConfig: Record<CourseStatus, { bg: string; label: string }> = {
     'In Progress': { bg: 'bg-[#1C4ED1]', label: 'In Progress' },
@@ -66,6 +70,9 @@ export default function MyCourseCard({
             </h3>
             <span className="text-[14px] font-medium text-text-mute font-jakarta tracking-[-0.14px]">
               {lessons} lessons / {duration}
+            </span>
+            <span className="text-[13px] font-semibold text-navy font-jakarta">
+              {rating > 0 ? `★ ${rating.toFixed(1)}` : '★ New'} <span className="text-text-mute font-medium">({reviews})</span>
             </span>
 
             <div className="flex flex-col gap-[8px]">

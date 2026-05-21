@@ -131,9 +131,127 @@ body {
 }
 
 @utility btn-primary {
-  @apply inline-flex items-center justify-center rounded-full font-semibold cursor-pointer transition-all duration-200 border-none font-inter active:scale-95;
+  @apply inline-flex items-center justify-center rounded-[8px] font-semibold cursor-pointer transition-all duration-200 border-none font-inter active:scale-95;
   @apply bg-primary text-white border border-[#648EFC] shadow-sm hover:brightness-110;
   @apply px-6 py-3 text-base leading-tight;
+}
+
+.article-content,
+.article-editor-canvas {
+  color: #4B5563;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.85;
+}
+
+.article-content > * + *,
+.article-editor-canvas > * + * {
+  margin-top: 1rem;
+}
+
+.article-content h1,
+.article-editor-canvas h1 {
+  color: #040B37;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin-top: 1.75rem;
+}
+
+.article-content h2,
+.article-editor-canvas h2 {
+  color: #040B37;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 750;
+  line-height: 1.25;
+  margin-top: 1.5rem;
+}
+
+.article-content h3,
+.article-editor-canvas h3 {
+  color: #040B37;
+  font-size: 1.125rem;
+  font-weight: 750;
+  line-height: 1.35;
+  margin-top: 1.25rem;
+}
+
+.article-content p,
+.article-editor-canvas p {
+  min-height: 1.85em;
+}
+
+.article-content a,
+.article-editor-canvas a {
+  color: #1C4ED1;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.article-content ul,
+.article-editor-canvas ul,
+.article-content ol,
+.article-editor-canvas ol {
+  padding-left: 1.25rem;
+}
+
+.article-content ul,
+.article-editor-canvas ul {
+  list-style: disc;
+}
+
+.article-content ol,
+.article-editor-canvas ol {
+  list-style: decimal;
+}
+
+.article-content li + li,
+.article-editor-canvas li + li {
+  margin-top: 0.35rem;
+}
+
+.article-content blockquote,
+.article-editor-canvas blockquote {
+  border-left: 4px solid #1C4ED1;
+  background: #F4F6FB;
+  color: #040B37;
+  font-weight: 650;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+}
+
+.article-content pre,
+.article-editor-canvas pre {
+  background: #040B37;
+  color: #F8FAFC;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.article-content code,
+.article-editor-canvas code {
+  background: #EEF3FF;
+  color: #1C4ED1;
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+  font-weight: 700;
+}
+
+.article-content pre code,
+.article-editor-canvas pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.article-editor-canvas:empty::before {
+  content: "Start writing this lesson...";
+  color: #9CA3AF;
 }
 
 /* Scrollbar — invisible by default, sky-blue on hover */

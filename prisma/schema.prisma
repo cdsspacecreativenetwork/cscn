@@ -32,15 +32,35 @@ model User {
   canManageBilling Boolean @default(false)
   canViewAnalytics Boolean @default(false)
 
-  marketingConsent  Boolean  @default(false)
+  marketingConsent Boolean @default(false)
 
   // Course relations
-  taughtCourses     Course[]           @relation("InstructorCourses")
+  taughtCourses     Course[]             @relation("InstructorCourses")
   enrollments       Enrollment[]
   progress          LessonProgress[]
   courseInstructors CourseInstructor[]
   notifications     Notification[]
   courseReviews     CourseReview[]
+  courseFeedback    CourseFeedbackItem[] @relation("FeedbackAuthor")
+  dailyActivities   DailyActivity[]
+  ratings           CourseRating[]
+  examAttempts      ExamAttempt[]
+
+  // Streak & Gamification relations
+  currentStreak     Int                 @default(0)
+  longestStreak     Int                 @default(0)
+  achievements      UserAchievement[]
+  questProgress     UserQuestProgress[]
+  leaderboardRecord LeaderboardCache?
+
+  // Payout Configuration
+  payoutSetup      Boolean @default(false)
+  payoutMethod     String?
+  payoutDetails    Json?
+
+  // Security (2FA)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -151,36 +171,47 @@ model Course {
   promoVideo   String?
   difficulty   Difficulty   @default(BEGINNER)
   status       CourseStatus @default(DRAFT)
-  previewCount  Int          @default(1)
-  price         Decimal?     @db.Decimal(10, 2)
-  duration      Int?         // total minutes, computed on publish
-  requirements  Json?        // String[] — what students need before starting
-  includes      Json?        // String[] — what the course provides (video hours, cert, etc.)
+  previewCount Int          @default(1)
+  price        Decimal?     @db.Decimal(10, 2)
+  duration     Int? // total minutes, computed on publish
+  requirements Json? // String[] — what students need before starting
+  includes     Json? // String[] — what the course provides (video hours, cert, etc.)
+
+  certificateEnabled Boolean   @default(false)
+  examGated          Boolean   @default(false)
+  metaTitle          String?
+  metaDescription    String?
+
+  finalExamId  String?       @unique
+  finalExam    Exam?         @relation("CourseFinalExam", fields: [finalExamId], references: [id])
 
   categoryId   String?
   category     Category? @relation(fields: [categoryId], references: [id])
   instructorId String
   instructor   User      @relation("InstructorCourses", fields: [instructorId], references: [id])
 
-  featuredOrder  Int?             // 1–8 = appears on landing page in this position
+  featuredOrder Int? // 1–8 = appears on landing page in this position
 
   modules       Module[]
   enrollments   Enrollment[]
   instructors   CourseInstructor[]
   courseInvites CourseInvite[]
   reviews       CourseReview[]
+  feedbackItems CourseFeedbackItem[]
+  ratings       CourseRating[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Module {
-  id       String  @id @default(cuid())
-  title    String
-  position Int
-  courseId String
-  course   Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons  Lesson[]
+  id          String   @id @default(cuid())
+  title       String
+  position    Int
+  isPublished Boolean  @default(false)
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -192,13 +223,21 @@ model Lesson {
   id          String      @id @default(cuid())
   title       String
   position    Int
-  videoUrl    String?     // YouTube URL or CDN URL
+  videoUrl    String? // Legacy YouTube URL
   contentType ContentType @default(VIDEO)
-  duration    Int?        // minutes
+  bodyContent String?     @db.Text
+  duration    Int? // minutes
   isPreview   Boolean     @default(false)
+  isPublished Boolean     @default(false)
   transcript  String?     @db.Text
   moduleId    String
   module      Module      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  // Mux video hosting
+  muxUploadId   String?        @unique
+  muxAssetId    String?        @unique
+  muxPlaybackId String?        @unique
+  muxStatus     MuxVideoStatus @default(NONE)
 
   resources LessonResource[]
   progress  LessonProgress[]
@@ -237,12 +276,14 @@ model Enrollment {
 }
 
 model LessonProgress {
-  id          String   @id @default(cuid())
-  userId      String
-  lessonId    String
-  completedAt DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  userId          String
+  lessonId        String
+  lastSeekTime    Float    @default(0.0)
+  percentComplete Int      @default(0)
+  completedAt     DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
   @@index([userId])
@@ -281,6 +322,14 @@ enum EnrollmentStatus {
   CANCELLED
 }
 
+enum MuxVideoStatus {
+  NONE
+  UPLOADING
+  PROCESSING
+  READY
+  ERROR
+}
+
 enum CourseInstructorRole {
   OWNER
   CO_INSTRUCTOR
@@ -295,11 +344,11 @@ model Notification {
   type      NotificationType
   title     String
   body      String?
-  data      Json?            // context payload: { courseId, token, reviewId, … }
+  data      Json? // context payload: { courseId, token, reviewId, … }
   readAt    DateTime?
   createdAt DateTime         @default(now())
 
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, readAt])
@@ -308,6 +357,7 @@ model Notification {
 enum NotificationType {
   COURSE_INVITE
   COURSE_FEEDBACK
+  COURSE_FEEDBACK_RESOLVED
   COURSE_PUBLISHED
   COURSE_REJECTED
   COURSE_CHANGES_REQUESTED
@@ -322,7 +372,7 @@ model Announcement {
   title       String
   body        String               @db.Text
   audience    AnnouncementAudience @default(ALL)
-  publishedAt DateTime?            // null = draft
+  publishedAt DateTime? // null = draft
   expiresAt   DateTime?
   authorId    String
   createdAt   DateTime             @default(now())
@@ -341,17 +391,17 @@ enum AnnouncementAudience {
 // ─── Course Reviews ───────────────────────────────────────────────────────────
 
 model CourseReview {
-  id           String       @id @default(cuid())
-  courseId     String
-  reviewerId   String
-  status       ReviewStatus
-  comment      String?      @db.Text
-  addressedAt  DateTime?
-  addressedBy  String?
-  createdAt    DateTime     @default(now())
+  id          String       @id @default(cuid())
+  courseId    String
+  reviewerId  String
+  status      ReviewStatus
+  comment     String?      @db.Text
+  addressedAt DateTime?
+  addressedBy String?
+  createdAt   DateTime     @default(now())
 
-  course     Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  reviewer   User         @relation(fields: [reviewerId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  reviewer User   @relation(fields: [reviewerId], references: [id])
 
   @@index([courseId])
 }
@@ -371,8 +421,8 @@ model CourseInstructor {
   role      CourseInstructorRole @default(CO_INSTRUCTOR)
   createdAt DateTime             @default(now())
 
-  course    Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, userId])
   @@index([courseId])
@@ -391,10 +441,226 @@ model CourseInvite {
   usedAt    DateTime?
   usedBy    String?
 
-  createdAt DateTime             @default(now())
+  createdAt DateTime @default(now())
 
-  course    Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([courseId])
   @@index([email])
+}
+
+// ─── Course Feedback ──────────────────────────────────────────────────────────
+
+model CourseFeedbackItem {
+  id         String    @id @default(cuid())
+  courseId   String
+  authorId   String
+  body       String    @db.Text
+  resolvedAt DateTime?
+  resolvedBy String?
+  createdAt  DateTime  @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author User   @relation("FeedbackAuthor", fields: [authorId], references: [id])
+
+  @@index([courseId])
+  @@index([authorId])
+}
+
+// ─── Daily Activity (Streak Tracking) ─────────────────────────────────────────
+
+model DailyActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String // Format: YYYY-MM-DD
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+// ─── Gamification & Achievements System ───────────────────────────────────────
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+}
+
+model Achievement {
+  id          String             @id @default(cuid())
+  name        String             @unique
+  description String
+  icon        String // Name of Lucide icon
+  triggerType AchievementTrigger
+  threshold   Int
+  role        AchievementRole    @default(LEARNER)
+
+  userAchievements UserAchievement[]
+
+  createdAt DateTime @default(now())
+}
+
+enum AchievementTrigger {
+  LESSON_COUNT
+  STUDENT_COUNT
+  STREAK_DAYS
+  COURSE_COMPLETE
+  PUBLISH_COURSE
+}
+
+enum AchievementRole {
+  LEARNER
+  CREATOR
+  HYBRID
+}
+
+model Quest {
+  id          String         @id @default(cuid())
+  title       String
+  description String
+  frequency   QuestFrequency @default(DAILY)
+  targetType  QuestTarget
+  threshold   Int
+
+  progressItems UserQuestProgress[]
+
+  createdAt DateTime @default(now())
+}
+
+enum QuestFrequency {
+  DAILY
+  WEEKLY
+}
+
+enum QuestTarget {
+  LESSON_WATCH
+  RESOURCE_DOWNLOAD
+  REVIEW_REPLY
+}
+
+model UserQuestProgress {
+  id           String   @id @default(cuid())
+  userId       String
+  questId      String
+  currentValue Int      @default(0)
+  isCompleted  Boolean  @default(false)
+  resetAt      DateTime // When this quest progress expires (end of day/week)
+  updatedAt    DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId, resetAt])
+  @@index([userId])
+  @@index([questId])
+}
+
+model LeaderboardCache {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  score          Float
+  rank           Int
+  studentCount   Int      @default(0)
+  avgRating      Float    @default(0)
+  completionRate Float    @default(0)
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Student Rating System ───────────────────────────────────────────────────
+
+model CourseRating {
+  id         String   @id @default(cuid())
+  courseId   String
+  studentId  String
+  rating     Int      // 1 to 5 stars
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@index([courseId])
+}
+
+// ─── Integrated Certification Exams ──────────────────────────────────────────
+
+model Exam {
+  id           String   @id @default(cuid())
+  title        String
+  duration     Int      // duration in minutes
+  passingScore Int      // e.g. 70 for 70%
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  course       Course?  @relation("CourseFinalExam")
+  questions    ExamQuestion[]
+  attempts     ExamAttempt[]
+}
+
+model ExamQuestion {
+  id            String   @id @default(cuid())
+  examId        String
+  question      String   @db.Text
+  type          String   // "mcq" | "coding"
+  options       Json?    // String[] options for MCQ
+  correctAnswer String   // correct option text or expected result
+  codeContext   String?  @db.Text // baseline template for coding challenges
+  position      Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  exam          Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  answers       ExamAnswer[]
+
+  @@index([examId])
+}
+
+model ExamAttempt {
+  id          String   @id @default(cuid())
+  examId      String
+  userId      String
+  score       Float    @default(0.0)
+  passed      Boolean  @default(false)
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers     ExamAnswer[]
+
+  @@index([examId])
+  @@index([userId])
+}
+
+model ExamAnswer {
+  id             String   @id @default(cuid())
+  attemptId      String
+  questionId     String
+  selectedAnswer String   @db.Text
+  isCorrect      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  attempt        ExamAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       ExamQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@index([questionId])
 }

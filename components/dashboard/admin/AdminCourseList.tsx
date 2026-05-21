@@ -7,7 +7,7 @@ import {
   BookOpen, Users, Star, Search, ChevronDown,
   Eye, MoreHorizontal, CheckCircle2, XCircle,
   AlertCircle, Archive, RotateCcw, Loader2,
-  GraduationCap, ClipboardList, Layers,
+  GraduationCap, ClipboardList, Layers, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { reviewCourseAction, toggleFeatureAction, adminArchiveCourseAction, adminRestoreCourseAction } from '@/actions/admin-courses';
@@ -424,6 +424,12 @@ function ReviewCard({ course, onReviewDone }: { course: AdminCourse; onReviewDon
           <div className="flex items-center justify-between mt-3 flex-wrap gap-3">
             <span className="text-[11px] text-text-mute">Updated {relativeTime(course.updatedAt)}</span>
             <div className="flex items-center gap-2">
+              <Link
+                href={`/dashboard/admin/courses/${course.id}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stroke bg-white text-[12px] font-semibold text-navy hover:bg-background hover:border-primary/30 transition-all"
+              >
+                <Pencil size={12} /> Edit
+              </Link>
               {(Object.entries(REVIEW_CONFIG) as [ReviewStatus, typeof REVIEW_CONFIG[ReviewStatus]][]).map(([key, cfg]) => (
                 <button
                   key={key}
@@ -514,7 +520,8 @@ export default function AdminCourseList({ courses: initialCourses, adminId, cate
   const reviewQueue = useMemo(() => courses.filter((c) => c.status === 'PENDING_REVIEW'), [courses]);
 
   const filteredAll = useMemo(() => {
-    let list = courses;
+    // PENDING_REVIEW courses live exclusively in the Review Queue tab
+    let list = courses.filter((c) => c.status !== 'PENDING_REVIEW');
     if (statusFilter !== 'ALL') list = list.filter((c) => c.status === statusFilter);
     if (categoryFilter) list = list.filter((c) => c.category === categoryFilter);
     if (search.trim()) {
@@ -568,10 +575,9 @@ export default function AdminCourseList({ courses: initialCourses, adminId, cate
   ];
 
   const statusTabs: { id: CourseStatus | 'ALL'; label: string }[] = [
-    { id: 'ALL',            label: 'All' },
-    { id: 'PUBLISHED',      label: 'Published' },
-    { id: 'PENDING_REVIEW', label: 'In Review' },
-    { id: 'ARCHIVED',       label: 'Archived' },
+    { id: 'ALL',       label: 'All' },
+    { id: 'PUBLISHED', label: 'Published' },
+    { id: 'ARCHIVED',  label: 'Archived' },
   ];
 
   const activeList = activeTab === 'mine' ? myCourses : filteredAll;

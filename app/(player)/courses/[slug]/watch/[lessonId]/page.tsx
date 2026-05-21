@@ -7,7 +7,10 @@ import {
   enrollUser,
 } from '@/lib/services/courses.service';
 import { CoursePlayerView } from '@/components/dashboard/courses/CoursePlayerView';
+import { signMuxToken } from '@/lib/mux-jwt';
 import type { SidebarModule, PlayerLesson } from '@/types/player';
+import { db } from '@/lib/db';
+import { getCourseRatingSummary, getUserCourseRating } from '@/data/course-ratings';
 
 interface Props {
   params: Promise<{ slug: string; lessonId: string }>;
@@ -23,7 +26,8 @@ function buildSidebarModules(
   }>,
   isEnrolled: boolean,
   currentLessonId: string,
-  completedSet: Set<string>
+  completedSet: Set<string>,
+  bypassLocks = false
 ): SidebarModule[] {
   return modules.map((mod) => ({
     id: mod.id,
@@ -34,7 +38,7 @@ function buildSidebarModules(
       title: lesson.title,
       duration: lesson.duration ? `${lesson.duration}m` : '—',
       isPreview: lesson.isPreview,
-      isLocked: !isEnrolled && !lesson.isPreview,
+      isLocked: !bypassLocks && !isEnrolled && !lesson.isPreview,
       isCompleted: completedSet.has(lesson.id),
       isCurrent: lesson.id === currentLessonId,
     })),
@@ -47,32 +51,115 @@ export default async function WatchPage({ params, searchParams }: Props) {
   const session = await auth();
   const userId = session?.user?.id;
 
-  const [lessonResult, courseDetail, playerData] = await Promise.all([
-    getLessonAccess(lessonId, userId),
-    getCourseDetail(slug),
-    userId ? getPlayerData(slug, userId) : Promise.resolve(null),
-  ]);
+  // 1. Fetch course details, bypassing strictly PUBLISHED status
+  const courseDetail = await db.course.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      description: true,
+      instructorId: true,
+      instructor: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+      instructors: {
+        select: {
+          userId: true,
+        },
+      },
+      modules: {
+        orderBy: { position: "asc" },
+        select: {
+          id: true,
+          title: true,
+          position: true,
+          lessons: {
+            orderBy: { position: "asc" },
+            select: {
+              id: true,
+              title: true,
+              duration: true,
+              isPreview: true,
+            },
+          },
+        },
+      },
+    },
+  });
 
-  if (!lessonResult || !courseDetail) notFound();
+  if (!courseDetail) notFound();
 
-  const { lesson } = lessonResult;
+  // 2. Fetch lesson detail securely
+  const lesson = await db.lesson.findUnique({
+    where: { id: lessonId },
+    include: {
+      resources: true,
+    },
+  });
+
+  if (!lesson) notFound();
+
+  // 3. Check if current user has creator (primary/co-instructor) or admin authority to preview
+  const isCreator = userId && (
+    courseDetail.instructorId === userId || 
+    courseDetail.instructors.some(i => i.userId === userId)
+  );
+
+  const isAuthorizedPreview =
+    !!isCreator ||
+    session?.user?.role === 'ADMIN' ||
+    session?.user?.role === 'SUPER_ADMIN';
+
+  // Security: non-creators/non-admins cannot access draft courses!
+  if (courseDetail.status !== 'PUBLISHED' && !isAuthorizedPreview) {
+    notFound();
+  }
+
+  // 4. Fetch enrollment and progress
+  const enrollment = userId
+    ? await db.enrollment.findUnique({
+        where: { userId_courseId: { userId, courseId: courseDetail.id } },
+      })
+    : null;
+
+  const completedSet = new Set<string>();
+  if (userId) {
+    const progressList = await db.lessonProgress.findMany({
+      where: {
+        userId,
+        lesson: {
+          module: {
+            courseId: courseDetail.id,
+          },
+        },
+      },
+      select: { lessonId: true },
+    });
+    progressList.forEach((p) => completedSet.add(p.lessonId));
+  }
 
   // Auto-enroll: server-side, then redirect to strip the query param
-  if (autoEnroll === 'true' && userId && playerData && !playerData.enrollment) {
+  if (autoEnroll === 'true' && userId && !enrollment) {
     await enrollUser(userId, slug);
     redirect(`/courses/${slug}/watch/${lessonId}`);
   }
 
-  const isEnrolled = !!playerData?.enrollment;
+  const isEnrolled = !!enrollment;
   const isAuthenticated = !!userId;
-  const canWatch = lesson.isPreview || isEnrolled;
-  const completedSet = playerData?.completedSet ?? new Set<string>();
+  const canWatch = lesson.isPreview || isEnrolled || isAuthorizedPreview;
 
   const sidebarModules = buildSidebarModules(
     courseDetail.modules,
     isEnrolled,
     lessonId,
-    completedSet
+    completedSet,
+    isAuthorizedPreview
   );
 
   const allLessons = sidebarModules.flatMap((m) => m.lessons);
@@ -81,13 +168,29 @@ export default async function WatchPage({ params, searchParams }: Props) {
     currentIdx >= 0 && currentIdx < allLessons.length - 1
       ? allLessons[currentIdx + 1].id
       : null;
+  const isCourseCompleted =
+    isEnrolled && allLessons.length > 0 && allLessons.every((l) => completedSet.has(l.id));
+
+  const [ratingSummary, userRating] = await Promise.all([
+    getCourseRatingSummary(courseDetail.id),
+    userId ? getUserCourseRating(courseDetail.id, userId) : Promise.resolve(null),
+  ]);
+
+  // Generate signed Mux playback token (RS256) scoped to this lesson's duration
+  let muxToken: string | null = null;
+  if (canWatch && lesson.muxPlaybackId) {
+    muxToken = signMuxToken(lesson.muxPlaybackId, 'v', lesson.duration);
+  }
 
   const safeLesson: PlayerLesson = {
     id: lesson.id,
     title: lesson.title,
     videoUrl: canWatch ? lesson.videoUrl : null,
+    muxPlaybackId: canWatch ? lesson.muxPlaybackId ?? null : null,
+    muxToken,
     duration: lesson.duration,
     transcript: canWatch ? lesson.transcript : null,
+    bodyContent: canWatch ? lesson.bodyContent : null,
     contentType: lesson.contentType,
     resources: canWatch
       ? lesson.resources.map((r) => ({
@@ -102,6 +205,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
   return (
     <div className="bg-[#F4F6FB] min-h-screen">
       <CoursePlayerView
+        courseId={courseDetail.id}
         courseSlug={slug}
         courseTitle={courseDetail.title}
         courseDescription={courseDetail.description}
@@ -113,6 +217,10 @@ export default async function WatchPage({ params, searchParams }: Props) {
         isAuthenticated={isAuthenticated}
         nextLessonId={nextLessonId}
         isCurrentLessonCompleted={completedSet.has(lessonId)}
+        isPreviewMode={isAuthorizedPreview}
+        isCourseCompleted={isCourseCompleted}
+        ratingSummary={ratingSummary}
+        userRating={userRating}
       />
     </div>
   );

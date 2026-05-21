@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import {
   createModuleAction, updateModuleAction, deleteModuleAction, reorderModulesAction,
-  createLessonAction, reorderLessonsAction, deleteLessonAction,
+  createLessonAction, reorderLessonsAction, deleteLessonAction, moveAndReorderLessonsAction,
 } from '@/actions/instructor';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
@@ -25,14 +25,17 @@ interface Lesson {
   id: string; title: string; position: number;
   videoUrl: string | null; duration: number | null;
   isPreview: boolean; transcript: string | null;
+  bodyContent: string | null;
   contentType: string;
   resources: { id: string; title: string; url: string; type: string }[];
+  muxStatus: string;
+  muxPlaybackId: string | null;
 }
 interface Module { id: string; title: string; position: number; lessons: Lesson[] }
 
-interface Props { courseId: string; initialModules: Module[] }
+interface Props { courseId: string; courseTitle: string; courseSlug: string; initialModules: Module[]; isAdmin?: boolean; isLocked?: boolean }
 
-// ── Confirm Modal ────────────────────────────────────────────────────────────
+// ── Confirm Modal ─────────────────────────────────────────────────────────────
 
 interface ConfirmState {
   title: string;
@@ -58,10 +61,7 @@ function ConfirmModal({
             <h3 className="font-bold text-navy text-base">{title}</h3>
             <p className="text-sm text-text-mute mt-1">{message}</p>
           </div>
-          <button
-            onClick={onCancel}
-            className="text-text-mute hover:text-navy transition-colors shrink-0 -mt-0.5"
-          >
+          <button onClick={onCancel} className="text-text-mute hover:text-navy transition-colors shrink-0 -mt-0.5">
             <X size={16} />
           </button>
         </div>
@@ -75,9 +75,7 @@ function ConfirmModal({
           <button
             onClick={onConfirm}
             className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors ${
-              destructive
-                ? 'bg-red-500 hover:bg-red-600'
-                : 'bg-amber-500 hover:bg-amber-600'
+              destructive ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600'
             }`}
           >
             {confirmLabel}
@@ -88,37 +86,41 @@ function ConfirmModal({
   );
 }
 
-// ── Sortable Lesson Row ──────────────────────────────────────────────────────
+// ── Sortable Lesson Row ───────────────────────────────────────────────────────
 
 function SortableLesson({
-  lesson, isSelected,
+  lesson, isSelected, isReadOnly,
   onSelect, onDelete,
 }: {
-  lesson: Lesson; isSelected: boolean; courseId: string; moduleId: string;
+  lesson: Lesson; isSelected: boolean; isReadOnly: boolean;
   onSelect: () => void; onDelete: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: lesson.id });
+    useSortable({ id: lesson.id, disabled: isReadOnly });
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-2 px-3 py-2.5 ml-6 rounded-xl border transition-all cursor-pointer ${
+      className={`flex items-center gap-2 px-3 py-2.5 ml-6 rounded-xl border transition-all ${
         isDragging ? 'opacity-50 bg-white shadow-lg z-50' :
-        isSelected ? 'bg-primary/5 border-primary/30' : 'bg-white border-transparent hover:border-stroke hover:bg-background/60'
+        isSelected && !isReadOnly ? 'bg-primary/5 border-primary/30' :
+        isReadOnly ? 'bg-white border-transparent' :
+        'bg-white border-transparent hover:border-stroke hover:bg-background/60 cursor-pointer'
       }`}
-      onClick={onSelect}
+      onClick={isReadOnly ? undefined : onSelect}
     >
-      <button
-        {...attributes} {...listeners}
-        className="text-text-mute/40 hover:text-text-mute cursor-grab active:cursor-grabbing p-0.5 shrink-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical size={14} />
-      </button>
+      {!isReadOnly && (
+        <button
+          {...attributes} {...listeners}
+          className="text-text-mute/40 hover:text-text-mute cursor-grab active:cursor-grabbing p-0.5 shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical size={14} />
+        </button>
+      )}
       <Video size={13} className="text-text-mute shrink-0" />
-      <span className={`flex-1 text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-navy'}`}>
+      <span className={`flex-1 text-sm font-medium truncate ${isSelected && !isReadOnly ? 'text-primary' : 'text-navy'}`}>
         {lesson.title}
       </span>
       <div className="flex items-center gap-1 shrink-0">
@@ -127,24 +129,27 @@ function SortableLesson({
           : <Lock size={12} className="text-text-mute/50" aria-label="Locked" />
         }
         {lesson.duration && <span className="text-[11px] text-text-mute">{lesson.duration}m</span>}
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="p-1 text-text-mute hover:text-red-500 transition-colors rounded ml-1"
-        >
-          <Trash2 size={12} />
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="p-1 text-text-mute hover:text-red-500 transition-colors rounded ml-1"
+          >
+            <Trash2 size={12} />
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-// ── Sortable Module ──────────────────────────────────────────────────────────
+// ── Sortable Module ───────────────────────────────────────────────────────────
 
 function SortableModule({
-  mod, courseId, selectedId, onSelectLesson, onLessonDelete,
+  mod, courseId, selectedId, isReadOnly,
+  onSelectLesson, onLessonDelete,
   onModuleRename, onModuleDelete, onAddLesson,
 }: {
-  mod: Module; courseId: string; selectedId: string | null;
+  mod: Module; courseId: string; selectedId: string | null; isReadOnly: boolean;
   onSelectLesson: (l: Lesson) => void;
   onLessonDelete: (lessonId: string, moduleId: string) => void;
   onModuleRename: (moduleId: string, title: string) => void;
@@ -154,24 +159,8 @@ function SortableModule({
   const [open, setOpen] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(mod.title);
-  const [, startReorder] = useTransition();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: mod.id });
-
-  const handleLessonDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIdx = mod.lessons.findIndex((l) => l.id === active.id);
-    const newIdx = mod.lessons.findIndex((l) => l.id === over.id);
-    arrayMove(mod.lessons, oldIdx, newIdx); // optimistic update handled by parent
-    startReorder(async () => {
-      try {
-        await reorderLessonsAction(mod.id, courseId, arrayMove(mod.lessons, oldIdx, newIdx).map((l) => l.id));
-      } catch { toast.error('Failed to reorder lessons.'); }
-    });
-  };
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+    useSortable({ id: mod.id, disabled: isReadOnly });
 
   return (
     <div
@@ -181,17 +170,19 @@ function SortableModule({
     >
       {/* Module header */}
       <div className="flex items-center gap-2 px-4 py-3">
-        <button
-          {...attributes} {...listeners}
-          className="text-text-mute/40 hover:text-text-mute cursor-grab active:cursor-grabbing p-0.5 shrink-0"
-        >
-          <GripVertical size={16} />
-        </button>
+        {!isReadOnly && (
+          <button
+            {...attributes} {...listeners}
+            className="text-text-mute/40 hover:text-text-mute cursor-grab active:cursor-grabbing p-0.5 shrink-0"
+          >
+            <GripVertical size={16} />
+          </button>
+        )}
         <button onClick={() => setOpen((o) => !o)} className="text-text-mute shrink-0">
           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
 
-        {editing ? (
+        {editing && !isReadOnly ? (
           <input
             autoFocus
             value={editTitle}
@@ -206,68 +197,72 @@ function SortableModule({
         ) : (
           <span
             className="flex-1 text-sm font-semibold text-navy truncate cursor-text"
-            onDoubleClick={() => setEditing(true)}
+            onDoubleClick={() => !isReadOnly && setEditing(true)}
           >
             {mod.title}
           </span>
         )}
 
         <span className="text-[11px] text-text-mute shrink-0 ml-1">{mod.lessons.length} lessons</span>
-        <button onClick={() => setEditing(true)} className="p-1.5 text-text-mute hover:text-primary rounded transition-colors shrink-0">
-          <Pencil size={13} />
-        </button>
-        <button onClick={() => onModuleDelete(mod.id)} className="p-1.5 text-text-mute hover:text-red-500 rounded transition-colors shrink-0">
-          <Trash2 size={13} />
-        </button>
+        {!isReadOnly && (
+          <button onClick={() => setEditing(true)} className="p-1.5 text-text-mute hover:text-primary rounded transition-colors shrink-0">
+            <Pencil size={13} />
+          </button>
+        )}
+        {!isReadOnly && (
+          <button onClick={() => onModuleDelete(mod.id)} className="p-1.5 text-text-mute hover:text-red-500 rounded transition-colors shrink-0">
+            <Trash2 size={13} />
+          </button>
+        )}
       </div>
 
       {/* Lessons */}
       {open && (
         <div className="flex flex-col gap-1 px-3 pb-3">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLessonDragEnd}>
-            <SortableContext items={mod.lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-              {mod.lessons.map((lesson) => (
-                <SortableLesson
-                  key={lesson.id}
-                  lesson={lesson}
-                  isSelected={selectedId === lesson.id}
-                  courseId={mod.id}
-                  moduleId={mod.id}
-                  onSelect={() => onSelectLesson(lesson)}
-                  onDelete={() => onLessonDelete(lesson.id, mod.id)}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
+          <SortableContext items={mod.lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+            {mod.lessons.map((lesson) => (
+              <SortableLesson
+                key={lesson.id}
+                lesson={lesson}
+                isSelected={selectedId === lesson.id}
+                isReadOnly={isReadOnly}
+                onSelect={() => onSelectLesson(lesson)}
+                onDelete={() => onLessonDelete(lesson.id, mod.id)}
+              />
+            ))}
+          </SortableContext>
 
-          <button
-            onClick={() => onAddLesson(mod.id)}
-            className="ml-6 mt-1 flex items-center gap-1.5 text-xs text-primary font-medium hover:underline w-fit px-2 py-1"
-          >
-            <Plus size={13} /> Add lesson
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={() => onAddLesson(mod.id)}
+              className="ml-6 mt-1 flex items-center gap-1.5 text-xs text-primary font-medium hover:underline w-fit px-2 py-1"
+            >
+              <Plus size={13} /> Add lesson
+            </button>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-// ── Main Builder ─────────────────────────────────────────────────────────────
+// ── Main Builder ──────────────────────────────────────────────────────────────
 
-export default function CurriculumBuilder({ courseId, initialModules }: Props) {
+export default function CurriculumBuilder({ courseId, courseTitle, courseSlug, initialModules, isAdmin = false, isLocked = false }: Props) {
+  const isReadOnly = isAdmin || isLocked;
   const [modules, setModules] = useState<Module[]>(initialModules);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [lessonIsDirty, setLessonIsDirty] = useState(false);
   const [adding, startAdd] = useTransition();
   const [, startReorder] = useTransition();
+  const [structureSaveStatus, setStructureSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const showConfirm = (state: ConfirmState) => setConfirmState(state);
   const closeConfirm = () => setConfirmState(null);
 
-  // Intercept lesson selection — warn if the current lesson has unsaved changes
   const selectLesson = (lesson: Lesson, moduleId: string) => {
     if (lessonIsDirty && selectedLesson?.id !== lesson.id) {
       showConfirm({
@@ -288,45 +283,197 @@ export default function CurriculumBuilder({ courseId, initialModules }: Props) {
     }
   };
 
-  const handleModuleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIdx = modules.findIndex((m) => m.id === active.id);
-    const newIdx = modules.findIndex((m) => m.id === over.id);
-    const reordered = arrayMove(modules, oldIdx, newIdx);
-    setModules(reordered);
-    startReorder(async () => {
-      try {
-        await reorderModulesAction(courseId, reordered.map((m) => m.id));
-      } catch { toast.error('Failed to reorder modules.'); }
-    });
+    if (!over) return;
+
+    const activeId = active.id.toString();
+    const overId = over.id.toString();
+
+    // Case 1: Reordering modules
+    const isModule = modules.some((m) => m.id === activeId);
+    if (isModule) {
+      if (activeId === overId) return;
+      const oldIdx = modules.findIndex((m) => m.id === activeId);
+      const newIdx = modules.findIndex((m) => m.id === overId);
+      if (oldIdx !== -1 && newIdx !== -1) {
+        const original = [...modules];
+        const reordered = arrayMove(modules, oldIdx, newIdx);
+        setModules(reordered);
+        setStructureSaveStatus('saving');
+        reorderModulesAction(courseId, reordered.map((m) => m.id))
+          .then(() => setStructureSaveStatus('saved'))
+          .catch(() => {
+            setModules(original);
+            setStructureSaveStatus('error');
+            toast.error('Failed to reorder modules.');
+          });
+      }
+      return;
+    }
+
+    // Case 2: Dragging a lesson
+    const activeModule = modules.find((m) => m.lessons.some((l) => l.id === activeId));
+    if (!activeModule) return;
+
+    let overModule = modules.find((m) => m.id === overId);
+    let overLessonIndex = -1;
+
+    if (!overModule) {
+      overModule = modules.find((m) =>
+        m.lessons.some((l, idx) => {
+          if (l.id === overId) {
+            overLessonIndex = idx;
+            return true;
+          }
+          return false;
+        })
+      );
+    }
+
+    if (!overModule) return;
+
+    const originalModules = [...modules];
+
+    // Scenario A: Same module reordering
+    if (activeModule.id === overModule.id) {
+      const lessons = activeModule.lessons;
+      const oldIdx = lessons.findIndex((l) => l.id === activeId);
+      const newIdx = overLessonIndex !== -1 ? overLessonIndex : lessons.length - 1;
+      if (oldIdx === newIdx || oldIdx === -1) return;
+
+      const reorderedLessons = arrayMove([...lessons], oldIdx, newIdx);
+
+      setModules((prev) =>
+        prev.map((m) => (m.id === activeModule.id ? { ...m, lessons: reorderedLessons } : m))
+      );
+
+      setStructureSaveStatus('saving');
+      reorderLessonsAction(activeModule.id, courseId, reorderedLessons.map((l) => l.id))
+        .then(() => setStructureSaveStatus('saved'))
+        .catch(() => {
+          setModules(originalModules);
+          setStructureSaveStatus('error');
+          toast.error('Failed to reorder lessons.');
+        });
+    } else {
+      // Scenario B: Moving lesson across modules
+      const sourceLessons = [...activeModule.lessons];
+      const activeIdx = sourceLessons.findIndex((l) => l.id === activeId);
+      if (activeIdx === -1) return;
+      const [movedLesson] = sourceLessons.splice(activeIdx, 1);
+
+      const targetLessons = [...overModule.lessons];
+      const insertIdx = overLessonIndex !== -1 ? overLessonIndex : targetLessons.length;
+      targetLessons.splice(insertIdx, 0, movedLesson);
+
+      setModules((prev) =>
+        prev.map((m) => {
+          if (m.id === activeModule.id) {
+            return { ...m, lessons: sourceLessons };
+          }
+          if (m.id === overModule.id) {
+            return { ...m, lessons: targetLessons };
+          }
+          return m;
+        })
+      );
+
+      if (selectedLesson?.id === activeId) {
+        setSelectedModuleId(overModule.id);
+      }
+
+      setStructureSaveStatus('saving');
+      moveAndReorderLessonsAction(
+        activeId,
+        activeModule.id,
+        overModule.id,
+        targetLessons.map((l) => l.id),
+        courseId
+      )
+        .then(() => setStructureSaveStatus('saved'))
+        .catch(() => {
+          setModules(originalModules);
+          setStructureSaveStatus('error');
+          toast.error('Failed to move lesson to another module.');
+        });
+    }
   };
 
   const handleAddModule = () => {
-    startAdd(async () => {
-      try {
-        const mod = await createModuleAction(courseId, `Module ${modules.length + 1}`);
-        setModules((prev) => [...prev, { ...mod, lessons: [] }]);
-      } catch { toast.error('Failed to add module.'); }
-    });
+    const tempId = `temp-mod-${Date.now()}`;
+    const newTitle = `Module ${modules.length + 1}`;
+    const placeholder: Module = {
+      id: tempId,
+      title: newTitle,
+      position: modules.length + 1,
+      lessons: [],
+    };
+
+    setModules((prev) => [...prev, placeholder]);
+
+    createModuleAction(courseId, newTitle)
+      .then((actualMod) => {
+        setModules((prev) =>
+          prev.map((m) => m.id === tempId ? { ...actualMod, lessons: [] } : m)
+        );
+      })
+      .catch(() => {
+        setModules((prev) => prev.filter((m) => m.id !== tempId));
+        toast.error('Failed to add module.');
+      });
   };
 
   const handleAddLesson = (moduleId: string) => {
-    startAdd(async () => {
-      try {
-        const lesson = await createLessonAction(
-          moduleId,
-          `Lesson ${(modules.find((m) => m.id === moduleId)?.lessons.length ?? 0) + 1}`,
-          courseId
-        );
+    const tempId = `temp-les-${Date.now()}`;
+    const newTitle = `Lesson ${(modules.find((m) => m.id === moduleId)?.lessons.length ?? 0) + 1}`;
+    const placeholder: Lesson = {
+      id: tempId,
+      title: newTitle,
+      position: (modules.find((m) => m.id === moduleId)?.lessons.length ?? 0) + 1,
+      isPreview: false,
+      duration: null,
+      videoUrl: null,
+      contentType: 'VIDEO',
+      transcript: null,
+      bodyContent: null,
+      muxStatus: 'idle',
+      muxPlaybackId: null,
+      resources: [],
+    };
+
+    setModules((prev) =>
+      prev.map((m) => m.id === moduleId ? { ...m, lessons: [...m.lessons, placeholder] } : m)
+    );
+    setSelectedLesson(placeholder);
+    setSelectedModuleId(moduleId);
+    setLessonIsDirty(false);
+
+    createLessonAction(moduleId, newTitle, courseId)
+      .then((actualLesson) => {
         setModules((prev) =>
-          prev.map((m) => m.id === moduleId ? { ...m, lessons: [...m.lessons, lesson] } : m)
+          prev.map((m) =>
+            m.id === moduleId
+              ? {
+                  ...m,
+                  lessons: m.lessons.map((l) => l.id === tempId ? actualLesson : l),
+                }
+              : m
+          )
         );
-        setSelectedLesson(lesson);
-        setSelectedModuleId(moduleId);
-        setLessonIsDirty(false);
-      } catch { toast.error('Failed to add lesson.'); }
-    });
+        setSelectedLesson((current) => current?.id === tempId ? actualLesson : current);
+      })
+      .catch(() => {
+        setModules((prev) =>
+          prev.map((m) =>
+            m.id === moduleId
+              ? { ...m, lessons: m.lessons.filter((l) => l.id !== tempId) }
+              : m
+          )
+        );
+        setSelectedLesson((current) => current?.id === tempId ? null : current);
+        toast.error('Failed to add lesson.');
+      });
   };
 
   const handleModuleRename = (moduleId: string, title: string) => {
@@ -386,30 +533,45 @@ export default function CurriculumBuilder({ courseId, initialModules }: Props) {
         {/* Left: module/lesson tree */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-navy">
-              {modules.length} modules · {totalLessons} lessons
-            </span>
-            <Button
-              variant="primary"
-              size="sm"
-              rounded="lg"
-              leftIcon={<Plus size={13} />}
-              onClick={handleAddModule}
-              loading={adding}
-            >
-              Add Module
-            </Button>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold text-navy">
+                {modules.length} modules · {totalLessons} lessons
+              </span>
+              {!isReadOnly && structureSaveStatus !== 'idle' && (
+                <span className={`text-xs font-medium ${
+                  structureSaveStatus === 'saving' ? 'text-primary' :
+                  structureSaveStatus === 'saved' ? 'text-green-600' : 'text-red-500'
+                }`}>
+                  {structureSaveStatus === 'saving' ? 'Saving structure...' :
+                    structureSaveStatus === 'saved' ? 'Structure saved' : 'Structure save failed'}
+                </span>
+              )}
+            </div>
+            {!isReadOnly && (
+              <Button
+                variant="primary"
+                size="sm"
+                rounded="lg"
+                leftIcon={<Plus size={13} />}
+                onClick={handleAddModule}
+                loading={adding}
+              >
+                Add Module
+              </Button>
+            )}
           </div>
 
           {modules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 bg-white rounded-2xl border border-stroke">
               <p className="text-text-mute text-sm font-medium">No modules yet.</p>
-              <button onClick={handleAddModule} className="text-primary text-sm font-semibold hover:underline">
-                Add your first module →
-              </button>
+              {!isReadOnly && (
+                <button onClick={handleAddModule} className="text-primary text-sm font-semibold hover:underline">
+                  Add your first module →
+                </button>
+              )}
             </div>
           ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleModuleDragEnd}>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={modules.map((m) => m.id)} strategy={verticalListSortingStrategy}>
                 {modules.map((mod) => (
                   <SortableModule
@@ -417,6 +579,7 @@ export default function CurriculumBuilder({ courseId, initialModules }: Props) {
                     mod={mod}
                     courseId={courseId}
                     selectedId={selectedLesson?.id ?? null}
+                    isReadOnly={isReadOnly}
                     onSelectLesson={(l) => selectLesson(l, mod.id)}
                     onLessonDelete={handleLessonDelete}
                     onModuleRename={handleModuleRename}
@@ -429,16 +592,28 @@ export default function CurriculumBuilder({ courseId, initialModules }: Props) {
           )}
         </div>
 
-        {/* Right: editor panel */}
+        {/* Right: editor panel — read-only placeholder for admin */}
         <div className="sticky top-[140px]">
-          {selectedLesson ? (
-            // key forces a full remount when switching lessons, clearing all form state
+          {isAdmin ? (
+            <div className="bg-white rounded-2xl border border-stroke flex flex-col items-center justify-center py-24 gap-3 text-center px-8">
+              <div className="w-12 h-12 bg-background rounded-full flex items-center justify-center">
+                <Video size={20} className="text-text-mute" />
+              </div>
+              <p className="font-semibold text-navy">Lesson content is read-only</p>
+              <p className="text-sm text-text-mute max-w-xs">
+                Admins can add and rename modules. Use the Feedback tab to request lesson changes from the instructor.
+              </p>
+            </div>
+          ) : selectedLesson ? (
             <LessonEditor
               key={selectedLesson.id}
               lesson={selectedLesson}
               courseId={courseId}
+              courseTitle={courseTitle}
+              courseSlug={courseSlug}
               onUpdate={handleLessonUpdate}
               onDirtyChange={setLessonIsDirty}
+              isReadOnly={isReadOnly}
             />
           ) : (
             <div className="bg-white rounded-2xl border border-stroke flex flex-col items-center justify-center py-24 gap-3 text-center px-8">
@@ -454,12 +629,8 @@ export default function CurriculumBuilder({ courseId, initialModules }: Props) {
         </div>
       </div>
 
-      {/* Confirm modal */}
       {confirmState && (
-        <ConfirmModal
-          {...confirmState}
-          onCancel={closeConfirm}
-        />
+        <ConfirmModal {...confirmState} onCancel={closeConfirm} />
       )}
     </>
   );

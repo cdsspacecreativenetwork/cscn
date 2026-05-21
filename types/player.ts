@@ -26,8 +26,11 @@ export interface PlayerLesson {
   id: string;
   title: string;
   videoUrl: string | null;
+  muxPlaybackId: string | null;
+  muxToken: string | null;
   duration: number | null;
   transcript: string | null;
+  bodyContent: string | null;
   contentType: string;
   resources: PlayerResource[];
 }

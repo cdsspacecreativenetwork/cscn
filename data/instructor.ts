@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { Difficulty, CourseStatus, CourseInstructorRole } from "@prisma/client";
+import type { Difficulty, CourseStatus, CourseInstructorRole, ContentType } from "@prisma/client";
 import { createNotification } from "@/data/notifications";
 import { sendCourseInviteEmail } from "@/lib/mail";
 
@@ -113,6 +113,12 @@ export async function getStudioCourse(courseId: string, userId: string) {
       categoryId: true,
       requirements: true,
       includes: true,
+      certificateEnabled: true,
+      examGated: true,
+      metaTitle: true,
+      metaDescription: true,
+      price: true,
+      finalExamId: true,
       modules: {
         orderBy: { position: "asc" },
         select: {
@@ -129,7 +135,10 @@ export async function getStudioCourse(courseId: string, userId: string) {
               duration: true,
               isPreview: true,
               transcript: true,
+              bodyContent: true,
               contentType: true,
+              muxStatus: true,
+              muxPlaybackId: true,
               resources: {
                 select: { id: true, title: true, url: true, type: true },
               },
@@ -263,6 +272,12 @@ export async function updateCourseSettings(
     previewCount?: number;
     requirements?: string[];
     includes?: string[];
+    certificateEnabled?: boolean;
+    examGated?: boolean;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    price?: number | null;
+    finalExamId?: string | null;
   }
 ) {
   await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
@@ -272,6 +287,8 @@ export async function updateCourseSettings(
       ...data,
       requirements: data.requirements ?? undefined,
       includes: data.includes ?? undefined,
+      price: data.price !== undefined ? data.price : undefined,
+      finalExamId: data.finalExamId !== undefined ? data.finalExamId : undefined,
     },
   });
 }
@@ -367,6 +384,8 @@ export async function createLesson(moduleId: string, userId: string, title: stri
     select: {
       id: true, title: true, position: true, isPreview: true,
       duration: true, videoUrl: true, contentType: true, transcript: true,
+      bodyContent: true,
+      muxStatus: true, muxPlaybackId: true,
     },
   });
   return { ...lesson, resources: [] as { id: string; title: string; url: string; type: string }[] };
@@ -381,6 +400,8 @@ export async function updateLesson(
     duration?: number | null;
     isPreview?: boolean;
     transcript?: string | null;
+    bodyContent?: string | null;
+    contentType?: ContentType;
   }
 ) {
   const lesson = await db.lesson.findUnique({
@@ -416,6 +437,54 @@ export async function reorderLessons(
   await Promise.all(
     orderedIds.map((id, idx) =>
       db.lesson.update({ where: { id }, data: { position: idx + 1 } })
+    )
+  );
+}
+
+export async function moveAndReorderLessons(
+  lessonId: string,
+  sourceModuleId: string,
+  targetModuleId: string,
+  targetOrderedIds: string[],
+  userId: string
+) {
+  const lesson = await db.lesson.findUnique({
+    where: { id: lessonId },
+    select: { module: { select: { courseId: true } } },
+  });
+  if (!lesson) throw new Error("Lesson not found");
+  await requireCourseAccess(lesson.module.courseId, userId, "CO_INSTRUCTOR");
+
+  const targetMod = await db.module.findUnique({
+    where: { id: targetModuleId },
+    select: { courseId: true },
+  });
+  if (!targetMod) throw new Error("Target module not found");
+  await requireCourseAccess(targetMod.courseId, userId, "CO_INSTRUCTOR");
+
+  if (lesson.module.courseId !== targetMod.courseId) {
+    throw new Error("Cannot move lessons across different courses");
+  }
+
+  await db.lesson.update({
+    where: { id: lessonId },
+    data: { moduleId: targetModuleId },
+  });
+
+  await Promise.all(
+    targetOrderedIds.map((id, idx) =>
+      db.lesson.update({ where: { id }, data: { position: idx + 1 } })
+    )
+  );
+
+  const sourceLessons = await db.lesson.findMany({
+    where: { moduleId: sourceModuleId },
+    orderBy: { position: "asc" },
+    select: { id: true },
+  });
+  await Promise.all(
+    sourceLessons.map((l, idx) =>
+      db.lesson.update({ where: { id: l.id }, data: { position: idx + 1 } })
     )
   );
 }

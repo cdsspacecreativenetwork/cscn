@@ -230,7 +230,7 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
         <motion.div
           layout
           className={view === 'grid'
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[24px]"
+            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[24px]"
             : "flex flex-col gap-6"
           }
         >

@@ -58,8 +58,33 @@ export default function CourseAnalyticsTab({ courseId, data }: Props) {
 
   if (loading || !analytics) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col gap-6 animate-pulse">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-2xl border border-stroke p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-background shrink-0" />
+              <div className="space-y-2">
+                <div className="h-7 w-12 rounded bg-background" />
+                <div className="h-3 w-24 rounded bg-background" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-white rounded-2xl border border-stroke p-6">
+          <div className="h-4 w-48 rounded bg-background mb-5" />
+          <div className="h-[200px] rounded-xl bg-background" />
+        </div>
+        <div className="bg-white rounded-2xl border border-stroke p-6">
+          <div className="h-4 w-40 rounded bg-background mb-5" />
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="h-3 flex-1 rounded bg-background" />
+                <div className="h-3 w-10 rounded bg-background" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

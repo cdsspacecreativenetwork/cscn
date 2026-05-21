@@ -41,10 +41,10 @@ const Spinner = () => (
 );
 
 const roundnessMap: Record<string, string> = {
-  sm:   'rounded-[4px]',
+  sm:   'rounded-[8px]',
   md:   'rounded-[8px]',
-  lg:   'rounded-[12px]',
-  full: 'rounded-full',
+  lg:   'rounded-[8px]',
+  full: 'rounded-[8px]',
 };
 
 function getRounded(rounded: string): string {
@@ -75,7 +75,7 @@ export default function Button({
   children,
   variant = 'primary',
   size = 'md',
-  rounded = 'full',
+  rounded = 'md',
   loading = false,
   leftIcon,
   rightIcon,

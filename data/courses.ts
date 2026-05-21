@@ -2,6 +2,27 @@ import { db } from "@/lib/db";
 
 export const COURSES_PAGE_SIZE = 12;
 
+async function getRatingMap(courseIds: string[]) {
+  if (courseIds.length === 0) return new Map<string, { average: number; count: number }>();
+
+  const rows = await db.courseRating.groupBy({
+    by: ["courseId"],
+    where: { courseId: { in: courseIds } },
+    _avg: { rating: true },
+    _count: { rating: true },
+  });
+
+  return new Map(
+    rows.map((row) => [
+      row.courseId,
+      {
+        average: row._avg.rating ? Number(row._avg.rating.toFixed(1)) : 0,
+        count: row._count.rating,
+      },
+    ])
+  );
+}
+
 // ── Public catalog ──────────────────────────────────────────────────────────
 
 export async function getPublishedCourses(page = 1, categorySlug?: string) {
@@ -37,8 +58,14 @@ export async function getPublishedCourses(page = 1, categorySlug?: string) {
     db.course.count({ where }),
   ]);
 
+  const ratingMap = await getRatingMap(courses.map((course) => course.id));
+
   return {
-    courses,
+    courses: courses.map((course) => ({
+      ...course,
+      ratingAverage: ratingMap.get(course.id)?.average ?? 0,
+      ratingCount: ratingMap.get(course.id)?.count ?? 0,
+    })),
     total,
     page,
     totalPages: Math.ceil(total / COURSES_PAGE_SIZE),
@@ -52,7 +79,7 @@ export async function getCategories() {
 // ── Course detail (public) ──────────────────────────────────────────────────
 
 export async function getCourseBySlug(slug: string) {
-  return db.course.findUnique({
+  const course = await db.course.findUnique({
     where: { slug, status: "PUBLISHED" },
     select: {
       id: true,
@@ -98,6 +125,15 @@ export async function getCourseBySlug(slug: string) {
       _count: { select: { enrollments: true } },
     },
   });
+
+  if (!course) return null;
+
+  const ratingMap = await getRatingMap([course.id]);
+  return {
+    ...course,
+    ratingAverage: ratingMap.get(course.id)?.average ?? 0,
+    ratingCount: ratingMap.get(course.id)?.count ?? 0,
+  };
 }
 
 // ── Enrollment ──────────────────────────────────────────────────────────────
@@ -109,7 +145,7 @@ export async function getUserEnrollment(userId: string, courseId: string) {
 }
 
 export async function getUserEnrollments(userId: string) {
-  return db.enrollment.findMany({
+  const enrollments = await db.enrollment.findMany({
     where: { userId, status: "ACTIVE" },
     include: {
       course: {
@@ -176,7 +212,7 @@ export async function getLessonProgress(userId: string, lessonIds: string[]) {
 // ── Dashboard enrollments ────────────────────────────────────────────────────
 
 export async function getEnrollmentsForDashboard(userId: string) {
-  return db.enrollment.findMany({
+  const enrollments = await db.enrollment.findMany({
     where: { userId, status: { not: "CANCELLED" } },
     select: {
       id: true,
@@ -209,6 +245,16 @@ export async function getEnrollmentsForDashboard(userId: string) {
     },
     orderBy: { enrolledAt: "desc" },
   });
+
+  const ratingMap = await getRatingMap(enrollments.map((enrollment) => enrollment.course.id));
+  return enrollments.map((enrollment) => ({
+    ...enrollment,
+    course: {
+      ...enrollment.course,
+      ratingAverage: ratingMap.get(enrollment.course.id)?.average ?? 0,
+      ratingCount: ratingMap.get(enrollment.course.id)?.count ?? 0,
+    },
+  }));
 }
 
 // ── Course player (enrolled view) ────────────────────────────────────────────
@@ -237,6 +283,7 @@ export async function getCourseForPlayer(slug: string, userId: string) {
               isPreview: true,
               contentType: true,
               videoUrl: true,
+              muxPlaybackId: true,
               transcript: true,
               resources: true,
             },

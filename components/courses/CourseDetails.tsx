@@ -5,6 +5,8 @@ import Image from 'next/image';
 
 interface CourseDetailsProps {
   enrolledCount: string;
+  ratingAverage: number;
+  ratingCount: number;
   price: string;
   description: string;
   instructor: {
@@ -28,6 +30,8 @@ function getIncludeIcon(text: string): string {
 
 export const CourseDetails: React.FC<CourseDetailsProps> = ({
   enrolledCount,
+  ratingAverage,
+  ratingCount,
   price,
   description,
   instructor,
@@ -49,6 +53,14 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
               <span className="text-[12px] font-medium text-[#4B5563] tracking-[-0.12px] leading-normal">Enrolled</span>
             </div>
             <span className="text-[16px] font-semibold text-[#040B37] tracking-[-0.16px] leading-normal">{enrolledCount}</span>
+          </div>
+
+          <div className="flex flex-col justify-center gap-[6px]">
+            <span className="text-[12px] font-medium text-[#4B5563] tracking-[-0.12px] leading-normal">Rating</span>
+            <span className="text-[16px] font-semibold text-[#040B37] tracking-[-0.16px] leading-normal">
+              {ratingAverage > 0 ? `★ ${ratingAverage.toFixed(1)}` : '★ New'}
+              <span className="text-[12px] font-medium text-[#4B5563] ml-1">({ratingCount})</span>
+            </span>
           </div>
 
           {/* Price (Mobile only row partner, Desktop original) */}

@@ -17,6 +17,7 @@ import { Social } from "@/components/auth/Social";
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
@@ -33,8 +34,22 @@ export default function SignupPage() {
 
   const [agreed, setAgreed] = useState(false);
 
+  const passwordValue = form.watch("password") || "";
+  const criteria = [
+    { label: "Uppercase letter", met: /[A-Z]/.test(passwordValue) },
+    { label: "Lowercase letter", met: /[a-z]/.test(passwordValue) },
+    { label: "Number", met: /\d/.test(passwordValue) },
+    { label: "Special character (e.g. !?<>@#$%)", met: /[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\';/ ]/.test(passwordValue) },
+    { label: "8 characters or more", met: passwordValue.length >= 8 },
+  ];
+  const isPasswordSecure = criteria.every(c => c.met);
+
   const onSubmit = (values: z.infer<typeof RegisterSchema>) => {
     if (!agreed) return;
+    if (!isPasswordSecure) {
+      setError("Please ensure your password meets all security criteria.");
+      return;
+    }
     setError("");
     setSuccess("");
 
@@ -113,6 +128,8 @@ export default function SignupPage() {
               <div className="relative">
                 <input
                   {...form.register("password")}
+                  onFocus={() => setIsPasswordFocused(true)}
+                  onBlur={() => setIsPasswordFocused(false)}
                   disabled={isPending}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Min. 8 characters"
@@ -133,12 +150,30 @@ export default function SignupPage() {
               )}
             </div>
             
-            {/* Password Strength Indicator (Visual only for now) */}
-            <div className="flex gap-[5px]">
-              <div className={`flex-1 h-[8px] rounded-[100px] transition-all ${form.watch("password")?.length >= 4 ? 'bg-[#1C4ED1]' : 'bg-[#F4F6FB]'}`} />
-              <div className={`flex-1 h-[8px] rounded-[100px] transition-all ${form.watch("password")?.length >= 8 ? 'bg-[#1C4ED1]' : 'bg-[#F4F6FB]'}`} />
-              <div className={`flex-1 h-[8px] rounded-[100px] transition-all ${form.watch("password")?.length >= 10 ? 'bg-[#1C4ED1]' : 'bg-[#F4F6FB]'}`} />
-              <div className={`flex-1 h-[8px] rounded-[100px] transition-all ${form.watch("password")?.length >= 12 ? 'bg-[#1C4ED1]' : 'bg-[#F4F6FB]'}`} />
+            {/* Accordion reveal password strength checklist */}
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isPasswordFocused || passwordValue.length > 0 ? 'max-h-[220px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+              <div className="space-y-2.5 p-4 bg-[#F8FAFB] rounded-[16px] border border-[#E3E8F4]">
+                {criteria.map((c, idx) => (
+                  <div key={idx} className="flex items-center gap-2.5 text-[14px] font-semibold transition-colors duration-200">
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                      c.met 
+                        ? 'border-emerald-500 bg-emerald-500 text-white' 
+                        : 'border-gray-300 bg-white text-transparent'
+                    }`}>
+                      {c.met ? (
+                        <svg className="w-3 h-3 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      ) : (
+                        <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                      )}
+                    </div>
+                    <span className={c.met ? 'text-[#040B37] font-medium' : 'text-gray-400 font-medium'}>
+                      {c.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
