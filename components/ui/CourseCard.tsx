@@ -21,6 +21,7 @@ export interface CourseCardProps {
   students?: string;
   level?: string;
   view?: 'grid' | 'list';
+  showLevel?: boolean;
 }
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -70,6 +71,7 @@ export default function CourseCard({
   students = '1.2k',
   level = 'Beginner',
   view = 'grid',
+  showLevel = true,
 }: CourseCardProps) {
   const isList = view === 'list';
   const [thumbErr, setThumbErr] = useState(false);
@@ -197,9 +199,11 @@ export default function CourseCard({
                   <span className="text-[11px] text-text-body">({reviews} reviews)</span>
                 </div>
                 <div className="flex items-center gap-2 font-inter">
-                  <span className="hidden md:inline px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider rounded-sm">
-                    {level}
-                  </span>
+                  {showLevel && (
+                    <span className="hidden md:inline px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider rounded-sm">
+                      {level}
+                    </span>
+                  )}
                   <button className="px-3 md:px-4 py-1 md:py-1.5 bg-navy text-white text-[12px] md:text-sm font-medium rounded-sm hover:bg-primary transition-colors">
                     Enroll
                   </button>
@@ -207,7 +211,7 @@ export default function CourseCard({
               </div>
             )}
 
-            {!isList && (
+            {!isList && showLevel && (
               <span className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider rounded-sm font-inter">
                 {level}
               </span>

@@ -9,6 +9,7 @@ export interface SidebarLesson {
   id: string;
   title: string;
   duration: string;
+  contentType: string;
   isPreview: boolean;
   isLocked: boolean;
   isCompleted: boolean;

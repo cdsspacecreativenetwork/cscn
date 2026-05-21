@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { SidebarModule } from '@/types/player';
+import { LessonTypeIcon } from './LessonTypeIcon';
 
 interface CourseContentSidebarProps {
   modules: SidebarModule[];
@@ -116,8 +117,9 @@ export const CourseContentSidebar = ({
                         className="flex items-center justify-between px-6 py-3 border-t border-background opacity-60 cursor-default"
                       >
                         <div className="flex flex-col gap-0.5 flex-1 min-w-0 pr-3">
-                          <span className="font-medium text-text-body text-sm truncate">
-                            {lesson.title}
+                          <span className="flex items-center gap-2 font-medium text-text-body text-sm min-w-0">
+                            <LessonTypeIcon contentType={lesson.contentType} size="xs" />
+                            <span className="truncate">{lesson.title}</span>
                           </span>
                           <span className="text-text-mute text-xs">{lesson.duration}</span>
                         </div>
@@ -133,11 +135,12 @@ export const CourseContentSidebar = ({
                       >
                         <div className="flex flex-col gap-0.5 flex-1 min-w-0 pr-3">
                           <span
-                            className={`font-medium text-sm truncate ${
+                            className={`flex items-center gap-2 font-medium text-sm min-w-0 ${
                               isCurrent ? 'text-primary' : 'text-text-body'
                             }`}
                           >
-                            {lesson.title}
+                            <LessonTypeIcon contentType={lesson.contentType} size="xs" />
+                            <span className="truncate">{lesson.title}</span>
                           </span>
                           <span className="text-text-mute text-xs">{lesson.duration}</span>
                         </div>

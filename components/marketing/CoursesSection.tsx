@@ -48,7 +48,7 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
             >
-              <CourseCard {...course} />
+              <CourseCard {...course} showLevel={false} />
             </motion.div>
           ))}
         </div>

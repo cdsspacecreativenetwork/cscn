@@ -70,7 +70,7 @@ export async function getCoursePreview(slug: string, userId: string, userRole?: 
           id: true, title: true, position: true,
           lessons: {
             orderBy: { position: "asc" },
-            select: { id: true, title: true, duration: true, isPreview: true },
+            select: { id: true, title: true, duration: true, contentType: true, isPreview: true },
           },
         },
       },

@@ -3,11 +3,13 @@
 import React from 'react';
 import Image from 'next/image';
 import { ChevronDown } from 'lucide-react';
+import { LessonTypeIcon } from '@/components/dashboard/courses/LessonTypeIcon';
 
 interface Lesson {
   id: string | number;
   title: string;
   duration: string;
+  contentType?: string;
   isLocked: boolean;
   isPreview?: boolean;
 }
@@ -111,6 +113,7 @@ export const ClassLessons: React.FC<ClassLessonsProps> = ({
                           height={24}
                           className="shrink-0"
                         />
+                        <LessonTypeIcon contentType={lesson.contentType} size="xs" />
                         <div className="font-medium text-[14px] text-[#4B5563] tracking-[-0.14px] leading-normal min-w-0 flex items-center gap-[6px]">
                           <span className="truncate">
                             {num}. {lesson.title}

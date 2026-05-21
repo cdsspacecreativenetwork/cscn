@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
 import LessonEditor from './LessonEditor';
+import { LessonTypeIcon } from '@/components/dashboard/courses/LessonTypeIcon';
 
 interface Lesson {
   id: string; title: string; position: number;
@@ -119,7 +120,7 @@ function SortableLesson({
           <GripVertical size={14} />
         </button>
       )}
-      <Video size={13} className="text-text-mute shrink-0" />
+      <LessonTypeIcon contentType={lesson.contentType} size="xs" />
       <span className={`flex-1 text-sm font-medium truncate ${isSelected && !isReadOnly ? 'text-primary' : 'text-navy'}`}>
         {lesson.title}
       </span>

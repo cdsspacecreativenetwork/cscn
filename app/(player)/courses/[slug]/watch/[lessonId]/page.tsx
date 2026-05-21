@@ -22,7 +22,7 @@ function buildSidebarModules(
     id: string;
     title: string;
     position: number;
-    lessons: Array<{ id: string; title: string; duration: number | null; isPreview: boolean }>;
+    lessons: Array<{ id: string; title: string; duration: number | null; contentType: string; isPreview: boolean }>;
   }>,
   isEnrolled: boolean,
   currentLessonId: string,
@@ -36,6 +36,7 @@ function buildSidebarModules(
     lessons: mod.lessons.map((lesson) => ({
       id: lesson.id,
       title: lesson.title,
+      contentType: lesson.contentType,
       duration: lesson.duration ? `${lesson.duration}m` : '—',
       isPreview: lesson.isPreview,
       isLocked: !bypassLocks && !isEnrolled && !lesson.isPreview,
@@ -85,6 +86,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
               id: true,
               title: true,
               duration: true,
+              contentType: true,
               isPreview: true,
             },
           },

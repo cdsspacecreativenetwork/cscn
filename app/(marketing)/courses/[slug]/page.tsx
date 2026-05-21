@@ -61,6 +61,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
     lessons: mod.lessons.map((lesson, lessonIdx) => ({
       id: lesson.id,
       title: lesson.title,
+      contentType: lesson.contentType,
       duration: lesson.duration ? `${lesson.duration}m` : '—',
       isLocked: !lesson.isPreview && !enrollment,
       isPreview: lesson.isPreview,

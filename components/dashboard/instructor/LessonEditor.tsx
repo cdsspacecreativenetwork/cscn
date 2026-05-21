@@ -41,6 +41,16 @@ const contentTypes = [
   { value: 'QUIZ', label: 'Quiz', icon: FileQuestion },
 ] as const;
 
+function estimateArticleReadTime(html: string) {
+  const plainText = html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plainText) return '';
+  return String(Math.max(1, Math.ceil(plainText.split(/\s+/).length / 220)));
+}
+
 export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug, onUpdate, onDirtyChange, isReadOnly = false }: Props) {
   const [saving, startSave] = useTransition();
 
@@ -120,6 +130,28 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
     saveStatus === 'error' ? 'Save failed' :
     isDirty ? 'Unsaved changes' : 'Saved';
 
+  const durationLabel =
+    contentType === 'ARTICLE' ? 'Estimated Read Time' :
+    contentType === 'QUIZ' ? 'Quiz Duration' :
+    'Duration';
+
+  const durationHint =
+    contentType === 'ARTICLE' ? 'Calculated from the article body.' :
+    contentType === 'QUIZ' ? 'Set the time learners should expect for this quiz.' :
+    'Video duration should come from the uploaded video when available.';
+
+  const handleContentTypeChange = (nextType: typeof contentType) => {
+    setContentType(nextType);
+    if (nextType === 'ARTICLE') {
+      setDuration(estimateArticleReadTime(bodyContent));
+    }
+  };
+
+  const handleArticleChange = (nextBody: string) => {
+    setBodyContent(nextBody);
+    setDuration(estimateArticleReadTime(nextBody));
+  };
+
   return (
     <div className="bg-white rounded-[8px] border border-stroke flex flex-col gap-5 p-6">
       <div className="flex items-center justify-between gap-3">
@@ -185,7 +217,7 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
                 key={type.value}
                 type="button"
                 disabled={isReadOnly}
-                onClick={() => setContentType(type.value)}
+                onClick={() => handleContentTypeChange(type.value)}
                 className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-[8px] text-sm font-semibold transition-all disabled:cursor-not-allowed ${
                   active ? 'bg-white text-primary shadow-sm' : 'text-text-mute hover:text-navy'
                 }`}
@@ -218,7 +250,7 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
           <label className="text-sm font-semibold text-navy">Article Body</label>
           <ArticleLessonEditor
             value={bodyContent}
-            onChange={setBodyContent}
+            onChange={handleArticleChange}
             disabled={isReadOnly}
           />
         </div>
@@ -238,16 +270,17 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
 
       {/* Duration + Preview toggle */}
       <div className="flex items-start gap-4">
-        <div className="flex flex-col gap-1.5 w-32">
-          <label className="text-sm font-semibold text-navy">Duration (mins)</label>
+        <div className="flex flex-col gap-1.5 w-40">
+          <label className="text-sm font-semibold text-navy">{durationLabel} (mins)</label>
           <input
             type="number" min={0} max={999}
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
-            disabled={isReadOnly}
+            disabled={isReadOnly || contentType === 'ARTICLE'}
             className={inputCls}
             placeholder="0"
           />
+          <p className="text-[11px] leading-4 text-text-mute">{durationHint}</p>
         </div>
 
         <div className="flex flex-col gap-1.5 flex-1">
