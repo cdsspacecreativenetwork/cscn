@@ -88,6 +88,8 @@ export default function InstructorSection({ instructors = DEFAULT_INSTRUCTORS }:
                     alt={instructor.name.replace('\n', ' ')} 
                     fill 
                     className="object-cover group-hover:scale-105 transition-transform duration-700" 
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 260px"
+                    unoptimized={instructor.image.endsWith('.svg')}
                   />
                 </div>
 

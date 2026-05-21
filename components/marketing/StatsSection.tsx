@@ -42,7 +42,7 @@ export default function StatsSection({ initialData }: StatsSectionProps) {
                 </span>
                 {stat.type === 'rating' && (
                   <div className="w-8 h-8 relative">
-                    <Image src="/assets/icons/star.svg" alt="Star" fill className="object-contain" />
+                    <Image src="/assets/icons/star.svg" alt="Star" fill className="object-contain" sizes="32px" unoptimized />
                   </div>
                 )}
               </div>
@@ -124,7 +124,7 @@ function ToolPill({ tool }: { tool: Tool }) {
       className="flex items-center justify-center gap-2 px-4 py-3 rounded-full border border-stroke-ii bg-white/50 backdrop-blur-sm hover:bg-white hover:border-primary/20 transition-all duration-300 group shadow-sm"
     >
       <div className="w-5 h-5 relative opacity-80 group-hover:opacity-100 transition-opacity">
-        <Image src={tool.icon} alt={tool.name} fill className="object-contain" />
+        <Image src={tool.icon} alt={tool.name} fill className="object-contain" sizes="20px" unoptimized={tool.icon.endsWith('.svg')} />
       </div>
       <span className="text-[0.875rem] md:text-base font-medium text-text-body whitespace-nowrap group-hover:text-navy transition-colors">
         {tool.name}

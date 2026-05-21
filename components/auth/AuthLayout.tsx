@@ -39,6 +39,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               alt="" 
               fill
               className="object-cover"
+              sizes="50vw"
+              unoptimized
             />
           </div>
 
@@ -49,6 +51,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               alt="" 
               fill
               className="object-contain scale-[1.6] translate-x-[10%] translate-y-[15%]"
+              sizes="50vw"
+              unoptimized
             />
           </div>
 

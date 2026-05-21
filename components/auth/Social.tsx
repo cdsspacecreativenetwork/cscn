@@ -18,7 +18,7 @@ export const Social = () => {
         onClick={() => onClick("google")}
         className="w-[56px] h-[56px] xl:w-[64px] xl:h-[64px] bg-[#F4F6FB] border-2 border-white rounded-[16px] shadow-[0px_4px_8px_4px_rgba(0,0,0,0.04)] flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
       >
-        <Image src="/assets/dashboard/flat-color-icons_google.svg" alt="Google" width={28} height={28} />
+        <Image src="/assets/dashboard/flat-color-icons_google.svg" alt="Google" width={28} height={28} unoptimized />
       </button>
       <button 
         type="button"
@@ -32,7 +32,7 @@ export const Social = () => {
         onClick={() => onClick("apple")}
         className="w-[56px] h-[56px] xl:w-[64px] xl:h-[64px] bg-[#F4F6FB] border-2 border-white rounded-[16px] shadow-[0px_4px_8px_4px_rgba(0,0,0,0.04)] flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
       >
-        <Image src="/assets/dashboard/mdi_apple.svg" alt="Apple" width={28} height={28} />
+        <Image src="/assets/dashboard/mdi_apple.svg" alt="Apple" width={28} height={28} unoptimized />
       </button>
     </div>
   );

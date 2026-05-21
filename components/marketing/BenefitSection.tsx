@@ -39,10 +39,10 @@ export default function BenefitSection() {
                 src={images.left}
                 alt="Start from Zero"
                 fill
-                priority
                 className="object-contain pointer-events-none select-none"
                 draggable={false}
                 sizes="(max-width: 768px) 100vw, 33vw"
+                unoptimized
               />
               {/* Invisible protection overlay */}
               <div className="absolute inset-0 z-20 cursor-default" />
@@ -54,10 +54,10 @@ export default function BenefitSection() {
                 src={images.middle}
                 alt="Learn from Professionals"
                 fill
-                priority
                 className="object-contain pointer-events-none select-none"
                 draggable={false}
                 sizes="(max-width: 768px) 100vw, 33vw"
+                unoptimized
               />
               {/* Invisible protection overlay */}
               <div className="absolute inset-0 z-20 cursor-default" />
@@ -69,10 +69,10 @@ export default function BenefitSection() {
                 src={images.right}
                 alt="Create Portfolio"
                 fill
-                priority
                 className="object-contain pointer-events-none select-none"
                 draggable={false}
                 sizes="(max-width: 768px) 100vw, 33vw"
+                unoptimized
               />
               {/* Invisible protection overlay */}
               <div className="absolute inset-0 z-20 cursor-default" />

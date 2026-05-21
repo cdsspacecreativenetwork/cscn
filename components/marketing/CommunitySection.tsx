@@ -83,7 +83,14 @@ export default function CommunitySection({
                     className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white bg-white overflow-hidden -ml-2 md:-ml-3 first:ml-0 relative shadow-sm ${i > 4 ? 'hidden md:block' : ''}`}
                     style={{ zIndex: initialAvatars.length - i }}
                   >
-                    <Image src={avatar} alt="Avatar" fill className="object-cover" />
+                    <Image
+                      src={avatar}
+                      alt="Avatar"
+                      fill
+                      className="object-cover"
+                      sizes="32px"
+                      unoptimized={avatar.endsWith('.svg')}
+                    />
                   </div>
                 ))}
                 {/* Mobile "+" indicator */}
@@ -171,6 +178,8 @@ function ProjectImage({ id, src, height }: { id: string; src: string; height: nu
           alt="Student Project" 
           fill 
           className="object-cover group-hover:scale-110 transition-transform duration-1000 ease-in-out" 
+          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 220px"
+          unoptimized={src.endsWith('.svg')}
         />
         {/* Overlay on hover */}
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

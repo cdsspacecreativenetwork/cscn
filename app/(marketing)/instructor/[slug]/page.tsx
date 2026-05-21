@@ -81,8 +81,10 @@ export default async function InstructorPage({ params }: { params: Promise<{ slu
                 src={instructor.image}
                 alt={instructor.name}
                 fill
-                className="object-cover"
-                priority
+                className="object-cover object-top lg:object-center"
+                sizes="(max-width: 768px) 200px, 280px"
+                preload
+                unoptimized={instructor.image.endsWith('.svg')}
               />
             </div>
 

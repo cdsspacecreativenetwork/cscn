@@ -18,7 +18,11 @@ export default auth((req) => {
   const isCoursePublicRoute =
     /^\/courses\/[^/]+$/.test(nextUrl.pathname) ||
     /^\/courses\/[^/]+\/watch\/[^/]+$/.test(nextUrl.pathname);
-  const isPublicRoute = publicRoutes.includes(nextUrl.pathname) || isCoursePublicRoute;
+  const isProjectPublicRoute = /^\/projects\/[^/]+$/.test(nextUrl.pathname);
+  const isPublicRoute =
+    publicRoutes.includes(nextUrl.pathname) ||
+    isCoursePublicRoute ||
+    isProjectPublicRoute;
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
   const isInviteRoute = nextUrl.pathname.startsWith("/invite/");
   const isAdminRoute = nextUrl.pathname.startsWith("/dashboard/admin");

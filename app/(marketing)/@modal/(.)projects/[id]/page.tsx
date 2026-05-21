@@ -72,7 +72,9 @@ export default function ProjectSidebarModal() {
               alt={project.title} 
               fill 
               className="object-cover" 
-              priority
+              sizes="(max-width: 600px) 100vw, 600px"
+              preload
+              unoptimized={project.image.endsWith('.svg')}
             />
             {/* Close Button */}
             <button 

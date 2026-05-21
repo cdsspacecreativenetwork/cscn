@@ -81,8 +81,10 @@ export default function Hero() {
           src="/assets/hero-curve.svg"
           alt="Curve Background"
           fill
-          priority
+          preload
           className="object-contain"
+          sizes="100vw"
+          unoptimized
         />
       </div>
 
@@ -100,7 +102,7 @@ export default function Hero() {
                 key={i}
                 className={`w-6 h-6 md:w-8 md:h-8 rounded-full border border-[#F4F6FB] overflow-hidden relative bg-[#eee] ${i === 1 ? '' : '-ml-2 md:-ml-3'}`}
               >
-                <Image src={`/assets/avatars/avatar${i}.png`} alt={`Instructor ${i}`} fill />
+                <Image src={`/assets/avatars/avatar${i}.png`} alt={`Instructor ${i}`} fill sizes="32px" />
               </div>
             ))}
           </div>
@@ -108,7 +110,7 @@ export default function Hero() {
             <span className="text-[10px] md:text-sm font-medium text-text-body whitespace-nowrap">Expert in these tools</span>
             <div className="flex items-center gap-1 bg-[#F4F6FB] px-1.5 py-0.5 rounded-full">
               <div className="w-3 h-3 md:w-4 md:h-4 relative">
-                <Image src="/assets/expert-badge.svg" alt="Expert" fill />
+                <Image src="/assets/expert-badge.svg" alt="Expert" fill sizes="16px" unoptimized />
               </div>
               <span className="text-[10px] md:text-sm font-bold text-primary tracking-tight">more</span>
             </div>
@@ -178,7 +180,7 @@ export default function Hero() {
               <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isPlaying ? 'bg-white/10' : 'bg-white'}`}>
                 {isPlaying ? (
                   <div className="w-full h-full relative">
-                    <Image src="/assets/video-controls/pause.svg" alt="Pause" fill className="object-contain" />
+                    <Image src="/assets/video-controls/pause.svg" alt="Pause" fill className="object-contain" sizes="56px" unoptimized />
                   </div>
                 ) : (
                   <span className="text-2xl text-primary ml-1">▶</span>
@@ -204,12 +206,12 @@ export default function Hero() {
             <div className="flex items-center gap-2 pr-3">
               <button onClick={toggleMute} className="bg-white/10 border-none w-12 h-12 rounded-full cursor-pointer flex items-center justify-center hover:bg-white/20 transition-colors">
                 <div className={`w-full h-full relative ${isMuted ? 'opacity-50' : 'opacity-100'}`}>
-                  <Image src="/assets/video-controls/volume.svg" alt="Volume" fill className="object-contain" />
+                  <Image src="/assets/video-controls/volume.svg" alt="Volume" fill className="object-contain" sizes="48px" unoptimized />
                 </div>
               </button>
               <button onClick={toggleFullscreen} className="bg-white/10 border-none w-12 h-12 rounded-full cursor-pointer flex items-center justify-center hover:bg-white/20 transition-colors">
                 <div className="w-full h-full relative">
-                  <Image src="/assets/video-controls/fullscreen.svg" alt="Fullscreen" fill className="object-contain" />
+                  <Image src="/assets/video-controls/fullscreen.svg" alt="Fullscreen" fill className="object-contain" sizes="48px" unoptimized />
                 </div>
               </button>
               {/* <button className="bg-white/10 border-none w-12 h-12 rounded-full cursor-pointer flex items-center justify-center hover:bg-white/20 transition-colors">

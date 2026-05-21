@@ -54,7 +54,7 @@ const ReviewCard = ({ review }: { review: Review }) => (
   <div className="bg-[#EAEEF7] p-6 rounded-[24px] mb-5 flex flex-col gap-6 w-full cursor-pointer">
     <div className="flex items-center gap-3">
       <div className="relative w-11 h-11 rounded-[16px] overflow-hidden bg-white">
-        <Image src={review.avatar} alt={review.name} fill className="object-cover" />
+        <Image src={review.avatar} alt={review.name} fill className="object-cover" sizes="44px" />
       </div>
       <h4 className="text-[18px] font-semibold text-[#040B37] font-inter">{review.name}</h4>
     </div>

@@ -50,6 +50,10 @@ function initials(name: string) {
     .slice(0, 2);
 }
 
+function shouldSkipOptimization(src: string) {
+  return src.endsWith('.svg') || src.startsWith('https://img.youtube.com');
+}
+
 export default function CourseCard({
   id,
   slug,
@@ -91,7 +95,12 @@ export default function CourseCard({
           fill
           className="object-cover group-hover:scale-[1.05] transition-transform duration-700 ease-out"
           onError={() => setThumbErr(true)}
-          unoptimized={image.startsWith('https://img.youtube.com')}
+          sizes={
+            isList
+              ? "(max-width: 768px) 76px, 240px"
+              : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          }
+          unoptimized={shouldSkipOptimization(image)}
         />
       )}
     </div>
@@ -112,6 +121,7 @@ export default function CourseCard({
           fill
           className="object-cover"
           onError={() => setAvatarErr(true)}
+          sizes={size.includes('20px') ? "20px" : "18px"}
           unoptimized
         />
       )}

@@ -35,6 +35,7 @@ export default function Navbar() {
                 width={34} 
                 height={33} 
                 className="h-9 w-auto"
+                unoptimized
               />
             </Link>
 
@@ -65,6 +66,7 @@ export default function Navbar() {
                 width={24} 
                 height={24} 
                 className="w-6 h-6"
+                unoptimized
               />
             </button>
             
@@ -90,6 +92,7 @@ export default function Navbar() {
                   width={32} 
                   height={32} 
                   className="w-8 h-8 brightness-0"
+                  unoptimized
                 />
               )}
             </button>

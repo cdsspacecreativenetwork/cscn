@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 
 interface RevealProps {
@@ -20,6 +20,11 @@ export const Reveal = ({
 }: RevealProps) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.2 });
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   return (
     <div ref={ref} style={{ position: 'relative', width, overflow: 'visible' }}>
@@ -28,8 +33,8 @@ export const Reveal = ({
           hidden: { opacity: 0, y: yOffset },
           visible: { opacity: 1, y: 0 },
         }}
-        initial="hidden"
-        animate={isInView ? "visible" : "hidden"}
+        initial={false}
+        animate={!hasMounted || isInView ? "visible" : "hidden"}
         transition={{ 
           duration, 
           delay, 

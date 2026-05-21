@@ -31,6 +31,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               alt={project.title} 
               fill 
               className="object-cover" 
+              sizes="(max-width: 896px) 100vw, 896px"
+              unoptimized={project.image.endsWith('.svg')}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
             <div className="absolute bottom-12 left-12 right-12">
