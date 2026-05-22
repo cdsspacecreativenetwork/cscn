@@ -67,7 +67,7 @@ export const getUserStats = async () => {
 export const adminExists = async () => {
   try {
     const superAdmin = await db.user.findFirst({
-      where: { role: "SUPER_ADMIN" as UserRole },
+      where: { role: "SUPER_ADMIN" as UserRole }, 
     });
     return !!superAdmin;
   } catch {
