@@ -7,6 +7,7 @@ import { UserRole } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { assertEmailVerifiedByUserId } from "@/lib/trust-gates";
 
 export const createInvite = async (role: UserRole, email?: string) => {
   const session = await auth();
@@ -14,6 +15,11 @@ export const createInvite = async (role: UserRole, email?: string) => {
 
   if (!session?.user || (callerRole !== "ADMIN" && callerRole !== "SUPER_ADMIN")) {
     return { error: "Unauthorized" };
+  }
+  try {
+    await assertEmailVerifiedByUserId(session.user.id!);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Verify your email before using this feature." };
   }
 
   // Regular ADMINs can only invite INSTRUCTORs
@@ -82,6 +88,11 @@ export const deleteInvite = async (id: string) => {
   const callerRole = session?.user?.role as string | undefined;
   if (!session?.user || (callerRole !== "ADMIN" && callerRole !== "SUPER_ADMIN")) {
     return { error: "Unauthorized" };
+  }
+  try {
+    await assertEmailVerifiedByUserId(session.user.id!);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Verify your email before using this feature." };
   }
 
   try {

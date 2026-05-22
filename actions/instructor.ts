@@ -26,6 +26,7 @@ import {
   requireCourseAccess,
 } from "@/data/instructor";
 import type { CourseInstructorRole, Difficulty, ContentType, ResourceType } from "@prisma/client";
+import { assertCreatorReadyForReview } from "@/lib/trust-gates";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,6 +51,7 @@ export async function createCourseAction(data: {
   difficulty?: Difficulty;
 }) {
   const userId = await requireInstructor();
+  await assertCreatorReadyForReview(userId);
   const course = await createCourse(userId, data);
   revalidatePath("/dashboard/instructor/courses");
   return { courseId: course.id, slug: course.slug };
@@ -97,6 +99,7 @@ export async function submitForReviewAction(courseId: string) {
   await import("@/data/instructor").then(({ requireCourseAccess }) =>
     requireCourseAccess(courseId, userId, "OWNER")
   );
+  await assertCreatorReadyForReview(userId);
   await import("@/lib/db").then(({ db }) =>
     db.course.update({ where: { id: courseId }, data: { status: "PENDING_REVIEW" } })
   );

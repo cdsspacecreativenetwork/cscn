@@ -74,8 +74,8 @@ export default function InstructorCourseList({ courses, categories, studioPath =
         setShowModal(false);
         setNewTitle('');
         router.push(`${studioPath}/${result.courseId}`);
-      } catch {
-        toast.error('Failed to create course.');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to create course.');
       }
     });
   };

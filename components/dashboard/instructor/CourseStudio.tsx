@@ -125,8 +125,8 @@ export default function CourseStudio({
         await submitForReviewAction(course.id);
         setStatus('PENDING_REVIEW');
         toast.success('Course submitted for review!');
-      } catch {
-        toast.error('Failed to submit for review.');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to submit for review.');
       }
     });
   };

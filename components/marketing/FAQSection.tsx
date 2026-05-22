@@ -31,7 +31,7 @@ export default function FAQSection() {
 
   return (
     <section className="py-24 bg-[#F4F6FB]">
-      <div className="container max-w-[1200px] px-4">
+      <div className="container px-4">
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-[2.5rem] md:text-[3rem] font-semibold text-navy leading-[1.24] tracking-tight font-inter">

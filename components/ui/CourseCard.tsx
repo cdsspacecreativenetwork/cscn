@@ -80,7 +80,7 @@ export default function CourseCard({
   const gradient = categoryGradient(category);
 
   const Thumbnail = ({ className }: { className: string }) => (
-    <div className={`bg-[#F4F6FB] relative rounded-[10px] overflow-hidden flex-shrink-0 ${className}`}>
+    <div className={`bg-[#F4F6FB] relative rounded-[10px] overflow-hidden flex-shrink-0 outline-none ${className}`}>
       {thumbErr ? (
         <div className={`absolute inset-0 bg-gradient-to-br ${gradient} flex flex-col justify-end p-3`}>
           <span className="text-[10px] font-semibold text-white/60 uppercase tracking-wider mb-1">

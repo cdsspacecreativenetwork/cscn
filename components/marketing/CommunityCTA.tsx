@@ -7,7 +7,7 @@ import Image from 'next/image';
 export default function CommunityCTA() {
   return (
     <section className="py-24 bg-white px-4 md:px-0">
-      <div className="container max-w-[1200px]">
+      <div className="container">
         <div className="bg-navy rounded-[32px] p-10 md:p-20 relative overflow-hidden flex flex-col items-center text-center">
           {/* Background Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2" />

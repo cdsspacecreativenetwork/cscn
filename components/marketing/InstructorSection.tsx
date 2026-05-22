@@ -51,7 +51,7 @@ export default function InstructorSection({ instructors = DEFAULT_INSTRUCTORS }:
       transition={{ duration: 0.8 }}
       className="py-24 bg-white overflow-hidden"
     >
-      <div className="container max-w-[1102px]">
+      <div className="mx-auto max-w-[1102px]">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
           <motion.h2 
             initial={{ opacity: 0, x: -20 }}

@@ -18,7 +18,7 @@ export default function BenefitSection() {
 
   return (
     <section className="py-24 bg-white overflow-hidden no-select" onContextMenu={handleContextMenu}>
-      <div className="container">
+      <div className="">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl lg:text-[3rem] font-semibold text-navy leading-[1.2] tracking-tight font-inter">
             One class can change <br className="hidden md:block" /> everything.

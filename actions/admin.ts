@@ -5,6 +5,7 @@ import { UserRole } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { assertEmailVerifiedByUserId } from "@/lib/trust-gates";
 
 const isSuperAdmin = (role: string | undefined) => role === "SUPER_ADMIN";
 const isAdminOrAbove = (role: string | undefined) =>
@@ -17,6 +18,11 @@ export const changeUserRole = async (userId: string, newRole: string) => {
 
   if (!callerId || !isAdminOrAbove(callerRole)) {
     return { error: "Unauthorized" };
+  }
+  try {
+    await assertEmailVerifiedByUserId(callerId);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Verify your email before using this feature." };
   }
 
   if (callerId === userId) {
@@ -68,9 +74,15 @@ export const updateAdminPermissions = async (
   permissions: AdminPermissions
 ) => {
   const session = await auth();
+  const superAdminId = session?.user?.id;
 
-  if (!isSuperAdmin(session?.user?.role as string | undefined)) {
+  if (!superAdminId || !isSuperAdmin(session?.user?.role as string | undefined)) {
     return { error: "Only a Super Admin can manage permissions" };
+  }
+  try {
+    await assertEmailVerifiedByUserId(superAdminId);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Verify your email before using this feature." };
   }
 
   const targetUser = await db.user.findUnique({ where: { id: userId } });

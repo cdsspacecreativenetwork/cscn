@@ -9,13 +9,16 @@ import { useDashboardStore } from '@/lib/store/dashboardStore';
 import { ResumeCourseModal, GetStartedModal } from '@/components/dashboard/CourseModals';
 import { InstructorDashboardData } from '@/lib/services/dashboard.service';
 import { toast } from 'sonner';
+import CreatorReadinessCard from '@/components/dashboard/CreatorReadinessCard';
+import type { CreatorReadiness } from '@/lib/trust-gates';
 
 interface Props {
   data: InstructorDashboardData;
   user: any;
+  creatorReadiness?: CreatorReadiness;
 }
 
-export default function InstructorDashboardClient({ data, user }: Props) {
+export default function InstructorDashboardClient({ data, user, creatorReadiness }: Props) {
   const router = useRouter();
   const { activeModal, selectedCourse, openResumeModal, openStartModal, closeModals } = useDashboardStore();
 
@@ -116,6 +119,8 @@ export default function InstructorDashboardClient({ data, user }: Props) {
           <span className="text-[clamp(13px,0.92vw,16px)] whitespace-nowrap">Manage Studio</span>
         </button>
       </div>
+
+      {creatorReadiness && <CreatorReadinessCard readiness={creatorReadiness} />}
 
       {/* Stats section - Creator At-a-Glance with curated premium Lucide icons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[clamp(16px,1.39vw,24px)]">

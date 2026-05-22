@@ -7,12 +7,14 @@ import { submitCourseReview } from "@/data/course-reviews";
 import { adminToggleCoursePublish } from "@/data/admin-courses";
 import { postFeedback } from "@/data/course-feedback";
 import type { ReviewStatus } from "@prisma/client";
+import { assertEmailVerifiedByUserId } from "@/lib/trust-gates";
 
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Not authenticated");
   const { role } = session.user;
   if (role !== "ADMIN" && role !== "SUPER_ADMIN") throw new Error("Unauthorized");
+  await assertEmailVerifiedByUserId(session.user.id);
   return session.user.id;
 }
 

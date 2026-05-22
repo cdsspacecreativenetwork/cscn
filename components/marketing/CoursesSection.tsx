@@ -27,7 +27,7 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
       transition={{ duration: 0.8 }}
       className="py-25 bg-white overflow-hidden"
     >
-      <div className="container">
+      <div className="mx-auto max-w-[1328px]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
