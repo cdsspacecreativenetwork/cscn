@@ -25,7 +25,9 @@ export async function submitCourseRatingAction(
     });
 
     if (course?.slug) {
+      revalidatePath("/courses");
       revalidatePath(`/courses/${course.slug}`);
+      revalidatePath(`/courses/${course.slug}/watch`);
       revalidatePath(`/dashboard/courses`);
     }
 

@@ -1,4 +1,5 @@
-export type ResourceType = 'PDF' | 'Video' | 'Link' | 'Audio' | 'File';
+export type ResourceType = 'PDF' | 'LINK' | 'FILE';
+export type ResourceScope = 'student' | 'instructor';
 
 export interface Resource {
   id: string;
@@ -7,65 +8,31 @@ export interface Resource {
   type: ResourceType;
   size?: string;
   thumbnail?: string;
+  url: string;
+  courseTitle: string;
+  lessonTitle: string;
+  scope: ResourceScope;
+  usageCount?: number;
 }
 
-export const getResources = async (query?: string, type?: string, course?: string): Promise<Resource[]> => {
-  // Simulating API delay
-  await new Promise(resolve => setTimeout(resolve, 800));
+export interface ResourceResponse {
+  resources: Resource[];
+  courses: string[];
+}
 
-  const allResources: Resource[] = [
-    {
-      id: '1',
-      title: 'Figma Component Guide',
-      category: 'UI/UX Design',
-      type: 'PDF',
-      size: '2.5 MB'
-    },
-    {
-      id: '2',
-      title: 'Intro to Python',
-      category: 'Software Development',
-      type: 'Video',
-      size: '150 MB'
-    },
-    {
-      id: '3',
-      title: 'Advanced JavaScript',
-      category: 'Web Development',
-      type: 'Link'
-    },
-    {
-      id: '4',
-      title: 'Data Science Roadmap',
-      category: 'Data Science',
-      type: 'File',
-      size: '4.2 MB'
-    },
-    {
-      id: '5',
-      title: 'React Hooks Audio',
-      category: 'Frontend Development',
-      type: 'Audio',
-      size: '12 MB'
-    },
-    {
-      id: '6',
-      title: 'Brand Identity Guidelines',
-      category: 'Design Strategy',
-      type: 'PDF',
-      size: '1.8 MB'
-    },
-    {
-      id: '7',
-      title: 'Kubernetes Handbook',
-      category: 'Cloud Computing',
-      type: 'Link'
-    }
-  ];
+export const getResources = async (
+  query?: string,
+  type?: string,
+  course?: string,
+  scope: ResourceScope = 'student'
+): Promise<ResourceResponse> => {
+  const params = new URLSearchParams();
+  if (query) params.set('q', query);
+  if (type && type !== 'All Types') params.set('type', type);
+  if (course && course !== 'All Courses') params.set('course', course);
+  params.set('scope', scope);
 
-  return allResources.filter(res => {
-    const matchesQuery = !query || res.title.toLowerCase().includes(query.toLowerCase());
-    const matchesType = !type || type === 'All Types' || res.type === type;
-    return matchesQuery && matchesType;
-  });
+  const response = await fetch(`/api/dashboard/resources?${params.toString()}`);
+  if (!response.ok) throw new Error('Failed to fetch resources');
+  return response.json();
 };

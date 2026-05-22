@@ -39,6 +39,25 @@ export async function upsertCourseRating(
     throw new Error("You must be enrolled before rating this course.");
   }
 
+  const [totalLessons, completedLessons] = await Promise.all([
+    db.lesson.count({ where: { module: { courseId } } }),
+    db.lessonProgress.count({
+      where: {
+        userId: studentId,
+        percentComplete: { gte: 100 },
+        lesson: { module: { courseId } },
+      },
+    }),
+  ]);
+
+  const hasCompletedCourse =
+    enrollment.status === "COMPLETED" ||
+    (totalLessons > 0 && completedLessons >= totalLessons);
+
+  if (!hasCompletedCourse) {
+    throw new Error("You can rate this course after completing all lessons.");
+  }
+
   if (data.rating < 1 || data.rating > 5 || !Number.isInteger(data.rating)) {
     throw new Error("Rating must be a whole number from 1 to 5.");
   }

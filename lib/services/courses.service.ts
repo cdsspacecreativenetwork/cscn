@@ -166,9 +166,24 @@ export async function completeLessonForUser(
 
   if (!existing) {
     await db.lessonProgress.create({
-      data: { userId, lessonId },
+      data: {
+        userId,
+        lessonId,
+        percentComplete: 100,
+        completedAt: new Date(),
+      },
     });
+  } else if (!existing.completedAt) {
+    await db.lessonProgress.update({
+      where: { userId_lessonId: { userId, lessonId } },
+      data: {
+        percentComplete: 100,
+        completedAt: new Date(),
+      },
+    });
+  }
 
+  if (!existing || !existing.completedAt) {
     // A: Record Daily Activity and Streak calculations
     const streakInfo = await recordUserActivity(userId);
     if (streakInfo.streakIncreased) {
@@ -178,7 +193,7 @@ export async function completeLessonForUser(
 
     // B: Check platform-wide LESSON_COUNT achievements
     const totalLessonsCompleted = await db.lessonProgress.count({
-      where: { userId },
+      where: { userId, percentComplete: { gte: 100 } },
     });
     const lessonUnlocks = await checkAndAwardAchievements(userId, "LESSON_COUNT", totalLessonsCompleted);
     newlyUnlockedAchievements.push(...lessonUnlocks);
@@ -191,7 +206,11 @@ export async function completeLessonForUser(
   const [totalLessons, completedCount] = await Promise.all([
     db.lesson.count({ where: { module: { courseId } } }),
     db.lessonProgress.count({
-      where: { userId, lesson: { module: { courseId } } },
+      where: {
+        userId,
+        percentComplete: { gte: 100 },
+        lesson: { module: { courseId } },
+      },
     }),
   ]);
 
@@ -212,6 +231,121 @@ export async function completeLessonForUser(
   revalidatePath(`/courses/${courseSlug}/watch/${lessonId}`);
 
   return { newlyUnlockedAchievements };
+}
+
+export async function updateLessonPlaybackProgress(
+  userId: string,
+  lessonId: string,
+  data: { lastSeekTime: number; percentComplete: number }
+): Promise<{ error?: string; progress?: { lastSeekTime: number; percentComplete: number; isCompleted: boolean } }> {
+  const lesson = await db.lesson.findUnique({
+    where: { id: lessonId },
+    select: {
+      id: true,
+      contentType: true,
+      duration: true,
+      module: {
+        select: { course: { select: { id: true } } },
+      },
+    },
+  });
+
+  if (!lesson) return { error: "Lesson not found" };
+  if (lesson.contentType !== "VIDEO") return { error: "Playback progress is only available for video lessons." };
+
+  const enrollment = await getUserEnrollment(userId, lesson.module.course.id);
+  if (!enrollment) return { error: "Not enrolled" };
+
+  const safeSeek = Number.isFinite(data.lastSeekTime)
+    ? Math.max(0, data.lastSeekTime)
+    : 0;
+  const safePercent = Number.isFinite(data.percentComplete)
+    ? Math.min(100, Math.max(0, Math.round(data.percentComplete)))
+    : 0;
+
+  const existingProgress = await db.lessonProgress.findUnique({
+    where: { userId_lessonId: { userId, lessonId } },
+    select: {
+      percentComplete: true,
+      completedAt: true,
+    },
+  });
+
+  if (existingProgress?.completedAt) {
+    const progress = await db.lessonProgress.update({
+      where: { userId_lessonId: { userId, lessonId } },
+      data: {
+        lastSeekTime: safeSeek,
+        percentComplete: Math.max(existingProgress.percentComplete, safePercent, 100),
+      },
+      select: {
+        lastSeekTime: true,
+        percentComplete: true,
+        completedAt: true,
+      },
+    });
+
+    return {
+      progress: {
+        lastSeekTime: progress.lastSeekTime,
+        percentComplete: progress.percentComplete,
+        isCompleted: !!progress.completedAt,
+      },
+    };
+  }
+
+  if (safePercent >= 95) {
+    const result = await completeLessonForUser(userId, lessonId);
+    if (result.error) return { error: result.error };
+
+    const progress = await db.lessonProgress.update({
+      where: { userId_lessonId: { userId, lessonId } },
+      data: {
+        lastSeekTime: safeSeek,
+        percentComplete: 100,
+      },
+      select: {
+        lastSeekTime: true,
+        percentComplete: true,
+        completedAt: true,
+      },
+    });
+
+    return {
+      progress: {
+        lastSeekTime: progress.lastSeekTime,
+        percentComplete: progress.percentComplete,
+        isCompleted: !!progress.completedAt,
+      },
+    };
+  }
+
+  const progress = await db.lessonProgress.upsert({
+    where: { userId_lessonId: { userId, lessonId } },
+    create: {
+      userId,
+      lessonId,
+      lastSeekTime: safeSeek,
+      percentComplete: safePercent,
+    },
+    update: {
+      lastSeekTime: safeSeek,
+      percentComplete: safePercent,
+    },
+    select: {
+      lastSeekTime: true,
+      percentComplete: true,
+      completedAt: true,
+    },
+  });
+
+  return {
+    progress: {
+      lastSeekTime: progress.lastSeekTime,
+      percentComplete: progress.percentComplete,
+      isCompleted: !!progress.completedAt,
+    },
+  };
 }
 
 // ── Course player ─────────────────────────────────────────────────────────────

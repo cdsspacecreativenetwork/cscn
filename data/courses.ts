@@ -203,7 +203,11 @@ export async function getLessonWithAccess(
 
 export async function getLessonProgress(userId: string, lessonIds: string[]) {
   const rows = await db.lessonProgress.findMany({
-    where: { userId, lessonId: { in: lessonIds } },
+    where: {
+      userId,
+      lessonId: { in: lessonIds },
+      percentComplete: { gte: 100 },
+    },
     select: { lessonId: true },
   });
   return new Set(rows.map((r) => r.lessonId));

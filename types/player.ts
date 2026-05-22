@@ -33,5 +33,10 @@ export interface PlayerLesson {
   transcript: string | null;
   bodyContent: string | null;
   contentType: string;
+  progress: {
+    lastSeekTime: number;
+    percentComplete: number;
+    isCompleted: boolean;
+  } | null;
   resources: PlayerResource[];
 }

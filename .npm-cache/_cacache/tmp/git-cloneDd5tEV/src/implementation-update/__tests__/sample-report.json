@@ -1,0 +1,49 @@
+{
+  "name": "Acme Corp Test Tool",
+  "vendor": "Test Tool",
+  "consistency": {
+    "complete": 1,
+    "partial": 0,
+    "minimal": 0,
+    "inconsistent": 0,
+    "untested": 0
+  },
+  "procedureSets": [
+    {
+      "ruleId": "abc123",
+      "ruleName": "My ABCs",
+      "procedureSetName": "abc-rule",
+      "consistency": "complete",
+      "coverage": {
+        "covered": 3,
+        "testCaseTotal": 3
+      },
+      "procedures": [
+        {
+          "procedureName": "abc-rule",
+          "consistentRequirements": true,
+          "testResults": [
+            {
+              "testcaseId": "4240276511703c9bfa881ac80f7c0af5c92c97cc",
+              "expected": "passed",
+              "outcomes": ["passed"],
+              "automatic": true
+            },
+            {
+              "testcaseId": "f91d77e96c069380252b674faaf08eecab375503",
+              "expected": "failed",
+              "outcomes": ["failed"],
+              "automatic": true
+            },
+            {
+              "testcaseId": "fec2c81ca23a9647c00ccd1fb5e74d06841ed6fa",
+              "expected": "inapplicable",
+              "outcomes": ["inapplicable"],
+              "automatic": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

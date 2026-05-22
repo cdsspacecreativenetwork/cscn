@@ -23,8 +23,9 @@ import {
   createCourseInvite,
   removeCourseInstructor,
   updateCourseInstructorRole,
+  requireCourseAccess,
 } from "@/data/instructor";
-import type { CourseInstructorRole, Difficulty, ContentType } from "@prisma/client";
+import type { CourseInstructorRole, Difficulty, ContentType, ResourceType } from "@prisma/client";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -253,6 +254,263 @@ export async function moveAndReorderLessonsAction(
   const userId = await requireInstructor();
   await moveAndReorderLessons(lessonId, sourceModuleId, targetModuleId, targetOrderedIds, userId);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+}
+
+// â”€â”€ Lesson resources â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+type LessonResourcePayload = {
+  id: string;
+  title: string;
+  url: string;
+  type: ResourceType;
+};
+
+function normalizeResourceUrl(url: string) {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+function safeFileName(name: string) {
+  return name
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 120);
+}
+
+async function ensureLessonResourcesBucket() {
+  const bucketName = "lesson-resources";
+  const { data } = await supabase.storage.listBuckets();
+  if (data?.some((bucket) => bucket.name === bucketName)) return bucketName;
+
+  await supabase.storage.createBucket(bucketName, {
+    public: true,
+  });
+
+  return bucketName;
+}
+
+async function ensureLessonMediaBucket() {
+  const bucketName = "lesson-media";
+  const { data } = await supabase.storage.listBuckets();
+  if (data?.some((bucket) => bucket.name === bucketName)) return bucketName;
+
+  await supabase.storage.createBucket(bucketName, {
+    public: true,
+  });
+
+  return bucketName;
+}
+
+async function requireLessonAccess(courseId: string, lessonId: string, userId: string) {
+  await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
+  const lesson = await import("@/lib/db").then(({ db }) =>
+    db.lesson.findFirst({
+      where: { id: lessonId, module: { courseId } },
+      select: { id: true },
+    })
+  );
+  if (!lesson) throw new Error("Lesson not found");
+}
+
+export async function listReusableLessonResourcesAction(
+  courseId: string,
+  lessonId: string
+): Promise<LessonResourcePayload[]> {
+  const userId = await requireInstructor();
+  await requireLessonAccess(courseId, lessonId, userId);
+  const { db } = await import("@/lib/db");
+
+  const resources = await db.lessonResource.findMany({
+    where: {
+      lessonId: { not: lessonId },
+      lesson: { module: { courseId } },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, title: true, url: true, type: true },
+    take: 80,
+  });
+
+  const seen = new Set<string>();
+  return resources.filter((resource) => {
+    const key = `${resource.url}::${resource.title}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export async function addLessonResourceLinkAction(
+  courseId: string,
+  lessonId: string,
+  data: { title: string; url: string }
+): Promise<{ resource?: LessonResourcePayload; error?: string }> {
+  try {
+    const userId = await requireInstructor();
+    await requireLessonAccess(courseId, lessonId, userId);
+
+    const title = data.title.trim();
+    const url = normalizeResourceUrl(data.url);
+    if (!title) return { error: "Resource title is required." };
+    if (!/^https?:\/\/\S+\.\S+/i.test(url)) return { error: "Enter a valid URL." };
+
+    const { db } = await import("@/lib/db");
+    const resource = await db.lessonResource.create({
+      data: { lessonId, title, url, type: "LINK" },
+      select: { id: true, title: true, url: true, type: true },
+    });
+
+    revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+    return { resource };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Failed to add resource." };
+  }
+}
+
+export async function uploadLessonResourceAction(
+  courseId: string,
+  lessonId: string,
+  formData: FormData
+): Promise<{ resource?: LessonResourcePayload; error?: string }> {
+  try {
+    const userId = await requireInstructor();
+    await requireLessonAccess(courseId, lessonId, userId);
+
+    const file = formData.get("file") as File | null;
+    const rawTitle = String(formData.get("title") ?? "").trim();
+    if (!file) return { error: "Choose a file to upload." };
+    if (file.size > 50 * 1024 * 1024) return { error: "Resource files must be 50MB or smaller." };
+
+    const title = rawTitle || file.name.replace(/\.[^.]+$/, "");
+    const ext = file.name.split(".").pop()?.toLowerCase() || "file";
+    const path = `courses/${courseId}/lessons/${lessonId}/${uuidv4()}-${safeFileName(file.name)}`;
+    const type: ResourceType = file.type === "application/pdf" || ext === "pdf" ? "PDF" : "FILE";
+    const bucketName = await ensureLessonResourcesBucket();
+
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) return { error: error.message ?? "Upload failed." };
+
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(path);
+
+    const { db } = await import("@/lib/db");
+    const resource = await db.lessonResource.create({
+      data: { lessonId, title, url: urlData.publicUrl, type },
+      select: { id: true, title: true, url: true, type: true },
+    });
+
+    revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+    return { resource };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Failed to upload resource." };
+  }
+}
+
+export async function uploadLessonMediaImageAction(
+  courseId: string,
+  lessonId: string,
+  formData: FormData
+): Promise<{ url?: string; error?: string }> {
+  try {
+    const userId = await requireInstructor();
+    await requireLessonAccess(courseId, lessonId, userId);
+
+    const file = formData.get("file") as File | null;
+    if (!file) return { error: "Choose an image to upload." };
+    if (!file.type.startsWith("image/")) return { error: "Only image files can be inserted into article lessons." };
+    if (file.size > 10 * 1024 * 1024) return { error: "Images must be 10MB or smaller." };
+
+    const path = `courses/${courseId}/lessons/${lessonId}/images/${uuidv4()}-${safeFileName(file.name)}`;
+    const bucketName = await ensureLessonMediaBucket();
+
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(path, file, {
+        contentType: file.type,
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) return { error: error.message ?? "Image upload failed." };
+
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(path);
+
+    return { url: urlData.publicUrl };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Failed to upload image." };
+  }
+}
+
+export async function attachExistingLessonResourceAction(
+  courseId: string,
+  lessonId: string,
+  sourceResourceId: string
+): Promise<{ resource?: LessonResourcePayload; error?: string }> {
+  try {
+    const userId = await requireInstructor();
+    await requireLessonAccess(courseId, lessonId, userId);
+    const { db } = await import("@/lib/db");
+
+    const source = await db.lessonResource.findFirst({
+      where: {
+        id: sourceResourceId,
+        lesson: { module: { courseId } },
+      },
+      select: { title: true, url: true, type: true },
+    });
+    if (!source) return { error: "Reusable resource not found." };
+
+    const duplicate = await db.lessonResource.findFirst({
+      where: { lessonId, url: source.url },
+      select: { id: true, title: true, url: true, type: true },
+    });
+    if (duplicate) return { resource: duplicate };
+
+    const resource = await db.lessonResource.create({
+      data: {
+        lessonId,
+        title: source.title,
+        url: source.url,
+        type: source.type,
+      },
+      select: { id: true, title: true, url: true, type: true },
+    });
+
+    revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+    return { resource };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Failed to attach resource." };
+  }
+}
+
+export async function deleteLessonResourceAction(
+  courseId: string,
+  lessonId: string,
+  resourceId: string
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const userId = await requireInstructor();
+    await requireLessonAccess(courseId, lessonId, userId);
+    const { db } = await import("@/lib/db");
+    await db.lessonResource.deleteMany({
+      where: { id: resourceId, lessonId },
+    });
+    revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+    return { success: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Failed to delete resource." };
+  }
 }
 
 export async function getCourseAnalyticsAction(courseId: string) {

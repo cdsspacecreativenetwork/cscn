@@ -111,9 +111,11 @@ export const CoursePlayerView = ({
             <QuizReader title={lesson.title} />
           ) : (
             <VideoPlayer
+              lessonId={lesson.id}
               videoUrl={lesson.videoUrl}
               muxPlaybackId={lesson.muxPlaybackId}
               muxToken={lesson.muxToken}
+              initialProgress={lesson.progress}
               canWatch={canWatch}
               isAuthenticated={isAuthenticated}
               isEnrolled={isEnrolled}

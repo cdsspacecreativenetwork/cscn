@@ -8,7 +8,10 @@ export async function getCourseAnalyticsAdmin(courseId: string) {
       orderBy: { enrolledAt: "asc" },
     }),
     db.lessonProgress.findMany({
-      where: { lesson: { module: { courseId } } },
+      where: {
+        percentComplete: { gte: 100 },
+        lesson: { module: { courseId } },
+      },
       select: { lessonId: true },
     }),
     db.lesson.findMany({

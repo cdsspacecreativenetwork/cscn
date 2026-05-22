@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useTransition, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,7 +8,7 @@ import { SettingsSchema } from '@/schemas';
 import { settings } from '@/actions/settings';
 import { User } from '@prisma/client';
 import { toast } from 'sonner';
-import { Plus, Trash2, Link as LinkIcon, Globe, AlertTriangle, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const FormField = ({ 
@@ -85,6 +85,8 @@ interface ProfileFormProps {
 export const ProfileForm = ({ user }: ProfileFormProps) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'dirty' | 'saving' | 'saved' | 'error'>('idle');
+  const lastSavedRef = useRef('');
 
   // Parse existing socials safely, or provide defaults
   const defaultSocials = React.useMemo(() => {
@@ -110,99 +112,96 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   const form = useForm<z.infer<typeof SettingsSchema>>({
     resolver: zodResolver(SettingsSchema),
     defaultValues: {
-      firstName: user.firstName || (user.name ? user.name.split(' ')[0] : undefined),
-      lastName: user.lastName || (user.name ? user.name.split(' ').slice(1).join(' ') : undefined) || undefined,
-      bio: user.bio || undefined,
-      headline: user.headline || undefined,
-      location: user.location || undefined,
+      firstName: user.firstName || (user.name ? user.name.split(' ')[0] : ''),
+      lastName: user.lastName || (user.name ? user.name.split(' ').slice(1).join(' ') : '') || '',
+      bio: user.bio || '',
+      headline: user.headline || '',
+      location: user.location || '',
       socials: defaultSocials,
     }
   });
 
   const { isDirty } = form.formState;
+  const watchedValues = form.watch();
 
   // Sync external save button state
   useEffect(() => {
     const btn = document.getElementById('save-profile-btn') as HTMLButtonElement;
     if (btn) {
       btn.disabled = !isDirty || isPending;
+      btn.textContent = isPending ? 'Saving...' : isDirty ? 'Save Now' : 'Saved';
     }
   }, [isDirty, isPending]);
-
-  const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
-
-  // Intercept Next.js Link clicks for internal navigation
-  useEffect(() => {
-    const handleLinkClick = (e: MouseEvent) => {
-      if (!isDirty || isPending) return;
-
-      const target = (e.target as HTMLElement).closest('a');
-      if (!target || !target.href) return;
-
-      if (target.target === '_blank' || target.href.startsWith('mailto:') || target.href.startsWith('tel:')) return;
-      
-      const currentUrl = new URL(window.location.href);
-      const targetUrl = new URL(target.href);
-
-      // Only intercept if it's navigating away from the current path
-      if (targetUrl.pathname !== currentUrl.pathname) {
-        e.preventDefault();
-        e.stopPropagation();
-        setPendingUrl(targetUrl.pathname + targetUrl.search + targetUrl.hash);
-        setShowLeaveModal(true);
-      }
-    };
-
-    document.addEventListener('click', handleLinkClick, { capture: true });
-    return () => document.removeEventListener('click', handleLinkClick, { capture: true });
-  }, [isDirty, isPending]);
-
-  // Unsaved changes prompt (browser refresh/close)
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isDirty]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "socials",
   });
 
-  const onSubmit = (values: z.infer<typeof SettingsSchema>, redirectUrl?: string) => {
-    const processedValues = {
+  const processValues = useCallback((values: z.infer<typeof SettingsSchema>) => ({
       ...values,
       socials: values.socials?.filter(s => s.url.trim() !== "").map(s => ({
         url: s.url,
         platform: getPlatformFromUrl(s.url)
       }))
-    };
+  }), []);
 
+  const defaultSignature = useMemo(() => JSON.stringify(processValues(form.getValues())), [form, processValues]);
+
+  useEffect(() => {
+    lastSavedRef.current = defaultSignature;
+  }, [defaultSignature]);
+
+  const saveProfile = useCallback((values: z.infer<typeof SettingsSchema>, showToast = false) => {
+    const processedValues = processValues(values);
+    const signature = JSON.stringify(processedValues);
+    if (signature === lastSavedRef.current && !showToast) return;
+
+    setSaveStatus('saving');
     startTransition(() => {
       settings(processedValues)
         .then((data) => {
           if (data.error) {
+            setSaveStatus('error');
             toast.error(data.error);
+            return;
           }
           if (data.success) {
-            toast.success("Profile updated successfully");
-            form.reset(values); // Reset to clear isDirty state
-            router.refresh(); // Refresh to update external Server Components (like Navbar)
-            if (redirectUrl) {
-              router.push(redirectUrl);
+            lastSavedRef.current = signature;
+            setSaveStatus('saved');
+            if (showToast) toast.success("Profile updated successfully");
+            if (JSON.stringify(processValues(form.getValues())) === signature) {
+              form.reset(values); // Reset to clear isDirty state only when no newer edits exist.
             }
-            setShowLeaveModal(false);
+            router.refresh(); // Refresh to update external Server Components (like Navbar)
           }
         })
-        .catch(() => toast.error("Something went wrong!"));
+        .catch(() => {
+          setSaveStatus('error');
+          toast.error("Something went wrong!");
+        });
     });
-  };
+  }, [form, processValues, router]);
+
+  useEffect(() => {
+    if (isDirty) setSaveStatus('dirty');
+    if (!isDirty || isPending) return;
+
+    const id = window.setTimeout(() => {
+      form.handleSubmit((values) => saveProfile(values, false))();
+    }, 1500);
+
+    return () => window.clearTimeout(id);
+  }, [form, isDirty, isPending, saveProfile, watchedValues]);
+
+  const onSubmit = (values: z.infer<typeof SettingsSchema>) => saveProfile(values, true);
+
+  const saveStatusLabel =
+    isPending || saveStatus === 'saving' ? 'Saving changes...' :
+    saveStatus === 'saved' ? 'All changes saved' :
+    saveStatus === 'error' ? 'Autosave failed. Use Save Now.' :
+    isDirty || saveStatus === 'dirty' ? 'Autosaving shortly...' :
+    'All changes saved';
 
   return (
     <form id="profile-form" onSubmit={form.handleSubmit((values) => onSubmit(values))} className="w-full space-y-10">
@@ -212,6 +211,13 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
           <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
             Personal Information
           </h3>
+          <p className={`mt-1 text-xs font-bold ${
+            saveStatus === 'error' ? 'text-red-500' :
+            isPending || saveStatus === 'saving' ? 'text-[#1C4ED1]' :
+            'text-[#9CA3AF]'
+          }`}>
+            {saveStatusLabel}
+          </p>
         </div>
 
         {/* Form Grid */}
@@ -221,7 +227,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
             placeholder="Chris" 
             name="firstName"
             register={form.register}
-            disabled={isPending}
             error={form.formState.errors.firstName?.message}
           />
           <FormField 
@@ -229,7 +234,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
             placeholder="John" 
             name="lastName"
             register={form.register}
-            disabled={isPending}
             error={form.formState.errors.lastName?.message}
           />
           
@@ -239,7 +243,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
             placeholder="e.g. Senior Product Designer" 
             name="headline"
             register={form.register}
-            disabled={isPending}
             error={form.formState.errors.headline?.message}
           />
 
@@ -250,7 +253,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
             name="bio"
             register={form.register}
             type="textarea"
-            disabled={isPending}
             error={form.formState.errors.bio?.message}
           />
 
@@ -260,7 +262,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
             placeholder="City, Country" 
             name="location"
             register={form.register}
-            disabled={isPending}
             error={form.formState.errors.location?.message}
           />
         </div>
@@ -299,7 +300,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
                     <input
                       {...form.register(`socials.${index}.url` as const)}
                       placeholder={`https://${platform === 'website' ? '...' : platform + '.com/...'}`}
-                      disabled={isPending}
                       className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all shadow-sm font-medium disabled:opacity-50"
                     />
                     {form.formState.errors.socials?.[index]?.url && (
@@ -323,56 +323,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         </div>
       </div>
 
-      {showLeaveModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[24px] w-full max-w-[400px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col p-6 items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-4">
-              <AlertTriangle className="text-amber-600" size={24} />
-            </div>
-            <h3 className="text-[20px] font-bold text-[#040B37] font-jakarta mb-2">Unsaved Changes</h3>
-            <p className="text-[#4B5563] text-[15px] mb-8 leading-relaxed">
-              You have unsaved changes on your profile. Do you want to save them before leaving?
-            </p>
-            <div className="flex flex-col gap-3 w-full">
-              <button 
-                type="button"
-                disabled={isPending}
-                onClick={() => {
-                  form.handleSubmit((values) => onSubmit(values, pendingUrl || undefined))();
-                }}
-                className="w-full px-4 py-3 rounded-[12px] bg-[#1C4ED1] text-[15px] font-bold text-white hover:bg-[#163BB1] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isPending ? <Loader2 className="animate-spin" size={18} /> : "Save Changes"}
-              </button>
-              <button 
-                type="button"
-                disabled={isPending}
-                onClick={() => {
-                  form.reset(); // Clear dirty state so navigation isn't intercepted again
-                  setShowLeaveModal(false);
-                  if (pendingUrl) router.push(pendingUrl);
-                }}
-                className="w-full px-4 py-3 rounded-[12px] bg-red-50 text-[15px] font-bold text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-              >
-                Discard & Leave
-              </button>
-              <button 
-                type="button"
-                disabled={isPending}
-                onClick={() => {
-                  setShowLeaveModal(false);
-                  setPendingUrl(null);
-                }}
-                className="w-full px-4 py-3 rounded-[12px] bg-[#F4F6FB] text-[15px] font-bold text-[#040B37] hover:bg-[#E3E8F4] transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </form>
   );
 };
-
-

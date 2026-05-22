@@ -42,6 +42,7 @@ export default async function MyCourses() {
       const completedCount = await db.lessonProgress.count({
         where: {
           userId: session.user.id,
+          percentComplete: { gte: 100 },
           lesson: {
             module: {
               courseId: c.id

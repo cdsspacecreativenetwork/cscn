@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import MuxPlayer from '@mux/mux-player-react';
 
@@ -24,6 +25,12 @@ interface VideoPlayerProps {
   isEnrolled: boolean;
   courseSlug: string;
   lessonTitle: string;
+  lessonId: string;
+  initialProgress?: {
+    lastSeekTime: number;
+    percentComplete: number;
+    isCompleted: boolean;
+  } | null;
 }
 
 export const VideoPlayer = ({
@@ -35,16 +42,106 @@ export const VideoPlayer = ({
   isEnrolled,
   courseSlug,
   lessonTitle,
+  lessonId,
+  initialProgress,
 }: VideoPlayerProps) => {
+  const muxRef = useRef<any>(null);
+  const lastSavedAtRef = useRef(0);
+  const hasResumedRef = useRef(false);
+  const [resumeLabel, setResumeLabel] = useState<string | null>(() => {
+    if (!initialProgress?.lastSeekTime || initialProgress.isCompleted) return null;
+    const minutes = Math.floor(initialProgress.lastSeekTime / 60);
+    const seconds = Math.floor(initialProgress.lastSeekTime % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  });
+
+  const saveProgress = useCallback(async (force = false) => {
+    if (!isEnrolled || !lessonId || !muxRef.current) return;
+
+    const currentTime = Number(muxRef.current.currentTime ?? 0);
+    const duration = Number(muxRef.current.duration ?? 0);
+    if (!Number.isFinite(currentTime) || currentTime < 0) return;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+
+    const now = Date.now();
+    const percentComplete = Math.min(100, Math.max(0, Math.round((currentTime / duration) * 100)));
+
+    if (!force && percentComplete < 95 && now - lastSavedAtRef.current < 15000) return;
+    lastSavedAtRef.current = now;
+
+    await fetch(`/api/lessons/${lessonId}/progress`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lastSeekTime: currentTime,
+        percentComplete,
+      }),
+      keepalive: true,
+    }).catch(() => undefined);
+  }, [isEnrolled, lessonId]);
+
+  const resumePlayback = useCallback(() => {
+    if (hasResumedRef.current || !muxRef.current || !initialProgress?.lastSeekTime) return;
+    if (initialProgress.isCompleted) return;
+
+    const duration = Number(muxRef.current.duration ?? 0);
+    const target = Math.max(0, initialProgress.lastSeekTime);
+
+    if (Number.isFinite(duration) && duration > 0 && target < duration - 5) {
+      muxRef.current.currentTime = target;
+      hasResumedRef.current = true;
+    }
+  }, [initialProgress]);
+
+  useEffect(() => {
+    return () => {
+      void saveProgress(true);
+    };
+  }, [saveProgress]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      void saveProgress(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        void saveProgress(true);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [saveProgress]);
+
   // Mux (preferred)
   if (canWatch && muxPlaybackId) {
     return (
       <div className="relative w-full aspect-video max-h-[472px] h-full bg-black rounded-2xl overflow-hidden shadow-lg">
+        {resumeLabel && (
+          <div className="absolute left-4 top-4 z-10 rounded-[8px] bg-[#040B37]/85 px-3 py-2 text-xs font-semibold text-white shadow-lg">
+            Resumed at {resumeLabel}
+          </div>
+        )}
         <MuxPlayer
+          ref={muxRef}
           playbackId={muxPlaybackId}
           tokens={{ playback: muxToken ?? undefined }}
           streamType="on-demand"
           title={lessonTitle}
+          onLoadedMetadata={resumePlayback}
+          onCanPlay={resumePlayback}
+          onTimeUpdate={() => {
+            setResumeLabel(null);
+            void saveProgress(false);
+          }}
+          onPause={() => void saveProgress(true)}
+          onEnded={() => void saveProgress(true)}
           style={{ width: '100%', height: '100%', aspectRatio: '16/9' }}
           className="absolute inset-0 w-full h-full"
         />

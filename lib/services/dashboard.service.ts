@@ -214,7 +214,11 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
       const totalLessons = allLessons.length;
 
       const progressRows = await db.lessonProgress.findMany({
-        where: { userId, lesson: { module: { courseId: e.course.id } } },
+        where: {
+          userId,
+          percentComplete: { gte: 100 },
+          lesson: { module: { courseId: e.course.id } },
+        },
         select: { lessonId: true },
       });
       const completedIds = new Set(progressRows.map(r => r.lessonId));
@@ -324,7 +328,11 @@ export async function getStudentDashboardData(userId: string): Promise<StudentDa
       totalLessonsAcrossAll += totalLessons;
 
       const progressRows = await db.lessonProgress.findMany({
-        where: { userId, lesson: { module: { courseId: e.course.id } } },
+        where: {
+          userId,
+          percentComplete: { gte: 100 },
+          lesson: { module: { courseId: e.course.id } },
+        },
         select: { lessonId: true },
       });
       const completedIds = new Set(progressRows.map(r => r.lessonId));

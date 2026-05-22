@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { FolderOpen } from 'lucide-react';
 import { ResourceHeader } from '@/components/dashboard/resources/ResourceHeader';
 import { ResourceCard, ResourceCardSkeleton } from '@/components/dashboard/resources/ResourceCard';
-import { getResources, Resource } from '@/lib/resourceService';
+import { getResources, Resource, type ResourceScope } from '@/lib/resourceService';
 
 export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
@@ -11,13 +12,16 @@ export default function ResourcesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('All Types');
   const [selectedCourse, setSelectedCourse] = useState('All Courses');
+  const [scope, setScope] = useState<ResourceScope>('student');
+  const [courses, setCourses] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchResources = async () => {
       setIsLoading(true);
       try {
-        const data = await getResources(searchQuery, selectedType, selectedCourse);
-        setResources(data);
+        const data = await getResources(searchQuery, selectedType, selectedCourse, scope);
+        setResources(data.resources);
+        setCourses(data.courses);
       } catch (error) {
         console.error('Failed to fetch resources:', error);
       } finally {
@@ -27,7 +31,7 @@ export default function ResourcesPage() {
 
     const debounce = setTimeout(fetchResources, 300);
     return () => clearTimeout(debounce);
-  }, [searchQuery, selectedType, selectedCourse]);
+  }, [searchQuery, selectedType, selectedCourse, scope]);
 
   return (
     <div className="p-6 md:p-10 space-y-10 max-w-[1600px] mx-auto font-jakarta">
@@ -36,6 +40,12 @@ export default function ResourcesPage() {
         onSearch={setSearchQuery}
         onTypeChange={setSelectedType}
         onCourseChange={setSelectedCourse}
+        onScopeChange={(nextScope) => {
+          setScope(nextScope);
+          setSelectedCourse('All Courses');
+        }}
+        courses={courses}
+        scope={scope}
       />
 
       {/* Resources Grid */}
@@ -51,14 +61,11 @@ export default function ResourcesPage() {
           ))
         ) : (
           <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="w-20 h-20 bg-[#F4F6FB] rounded-full flex items-center justify-center">
-              <span className="text-[32px]">📂</span>
+            <div className="w-20 h-20 rounded-[8px] flex items-center justify-center border border-[#1C4ED1]/15">
+              <FolderOpen size={34} strokeWidth={1.8} className="text-[#1C4ED1]" />
             </div>
             <div className="space-y-1">
               <h3 className="text-[20px] font-bold text-[#040B37]">No resources found</h3>
-              <p className="text-[#9CA3AF] max-w-xs">
-                Try adjusting your search or filters to find what you're looking for.
-              </p>
             </div>
             <button 
               onClick={() => {

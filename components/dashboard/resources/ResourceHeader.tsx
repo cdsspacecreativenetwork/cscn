@@ -3,38 +3,45 @@
 import React from 'react';
 import Image from 'next/image';
 import { CustomSelect } from '../../ui/CustomSelect';
-import { FileText, PlayCircle, Music, Link as LinkIcon, Folder, LayoutGrid, GraduationCap } from 'lucide-react';
+import { FileText, Link as LinkIcon, Folder, LayoutGrid, GraduationCap, UserRound, BookOpen } from 'lucide-react';
 
 interface ResourceHeaderProps {
   onSearch: (query: string) => void;
   onTypeChange: (type: string) => void;
   onCourseChange: (course: string) => void;
+  onScopeChange: (scope: 'student' | 'instructor') => void;
+  courses: string[];
+  scope: 'student' | 'instructor';
 }
 
 const TYPE_OPTIONS = [
   { value: "All Types", label: "All Types", icon: <LayoutGrid size={16} /> },
   { value: "PDF", label: "PDF Documents", icon: <FileText size={16} /> },
-  { value: "Video", label: "Video Lessons", icon: <PlayCircle size={16} /> },
-  { value: "Audio", label: "Audio Materials", icon: <Music size={16} /> },
-  { value: "Link", label: "External Links", icon: <LinkIcon size={16} /> },
-  { value: "File", label: "Project Files", icon: <Folder size={16} /> },
-];
-
-const COURSE_OPTIONS = [
-  { value: "All Courses", label: "All Courses", icon: <GraduationCap size={16} /> },
-  { value: "Design", label: "Design" },
-  { value: "Development", label: "Development" },
-  { value: "Data Science", label: "Data Science" },
-  { value: "Business", label: "Business" },
+  { value: "LINK", label: "External Links", icon: <LinkIcon size={16} /> },
+  { value: "FILE", label: "Project Files", icon: <Folder size={16} /> },
 ];
 
 export const ResourceHeader: React.FC<ResourceHeaderProps> = ({ 
   onSearch, 
   onTypeChange, 
-  onCourseChange 
+  onCourseChange,
+  onScopeChange,
+  courses,
+  scope,
 }) => {
   const [type, setType] = React.useState("All Types");
   const [course, setCourse] = React.useState("All Courses");
+  const courseOptions = React.useMemo(() => [
+    { value: "All Courses", label: "All Courses", icon: <GraduationCap size={16} /> },
+    ...courses.map((item) => ({ value: item, label: item })),
+  ], [courses]);
+
+  React.useEffect(() => {
+    if (course !== "All Courses" && !courses.includes(course)) {
+      setCourse("All Courses");
+      onCourseChange("All Courses");
+    }
+  }, [course, courses, onCourseChange]);
 
   const handleTypeChange = (val: string) => {
     setType(val);
@@ -54,8 +61,31 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
           Resources
         </h1>
         <p className="text-[#9CA3AF] text-[16px] font-medium tracking-tight">
-          All your learning materials in one place
+          Learning downloads and teaching materials in one place
         </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {([
+          { value: 'student', label: 'Learning Resources', icon: BookOpen },
+          { value: 'instructor', label: 'Teaching Resources', icon: UserRound },
+        ] as const).map((item) => {
+          const Icon = item.icon;
+          const active = scope === item.value;
+          return (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => onScopeChange(item.value)}
+              className={`inline-flex items-center gap-2 rounded-[8px] px-4 py-2.5 text-sm font-bold transition-colors ${
+                active ? 'bg-[#1C4ED1] text-white' : 'bg-white border border-[#E3E8F4] text-[#4B5563] hover:text-[#1C4ED1]'
+              }`}
+            >
+              <Icon size={16} />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Filter Bar */}
@@ -87,7 +117,7 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
             className="flex-1 lg:flex-none lg:min-w-[200px]"
           />
           <CustomSelect
-            options={COURSE_OPTIONS}
+            options={courseOptions}
             value={course}
             onChange={handleCourseChange}
             className="flex-1 lg:flex-none lg:min-w-[200px]"

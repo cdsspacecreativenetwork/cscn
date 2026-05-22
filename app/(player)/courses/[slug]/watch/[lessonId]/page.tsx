@@ -131,10 +131,17 @@ export default async function WatchPage({ params, searchParams }: Props) {
     : null;
 
   const completedSet = new Set<string>();
+  let currentLessonProgress: {
+    lastSeekTime: number;
+    percentComplete: number;
+    completedAt: Date | null;
+  } | null = null;
+
   if (userId) {
     const progressList = await db.lessonProgress.findMany({
       where: {
         userId,
+        percentComplete: { gte: 100 },
         lesson: {
           module: {
             courseId: courseDetail.id,
@@ -144,6 +151,15 @@ export default async function WatchPage({ params, searchParams }: Props) {
       select: { lessonId: true },
     });
     progressList.forEach((p) => completedSet.add(p.lessonId));
+
+    currentLessonProgress = await db.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId, lessonId } },
+      select: {
+        lastSeekTime: true,
+        percentComplete: true,
+        completedAt: true,
+      },
+    });
   }
 
   // Auto-enroll: server-side, then redirect to strip the query param
@@ -194,6 +210,13 @@ export default async function WatchPage({ params, searchParams }: Props) {
     transcript: canWatch ? lesson.transcript : null,
     bodyContent: canWatch ? lesson.bodyContent : null,
     contentType: lesson.contentType,
+    progress: currentLessonProgress
+      ? {
+          lastSeekTime: currentLessonProgress.lastSeekTime,
+          percentComplete: currentLessonProgress.percentComplete,
+          isCompleted: !!currentLessonProgress.completedAt,
+        }
+      : null,
     resources: canWatch
       ? lesson.resources.map((r) => ({
           id: r.id,

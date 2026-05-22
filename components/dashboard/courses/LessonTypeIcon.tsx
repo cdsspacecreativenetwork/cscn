@@ -8,13 +8,13 @@ export function getLessonTypeMeta(contentType?: string | null) {
       return {
         label: 'Article',
         Icon: FileText,
-        classes: 'text-[#7C3AED] bg-[#F3E8FF] border-[#E9D5FF]',
+        classes: 'text-[#1C4ED1] bg-[#EEF3FF] border-[#BFDBFE]',
       };
     case 'QUIZ':
       return {
         label: 'Quiz',
         Icon: CircleHelp,
-        classes: 'text-[#D97706] bg-[#FEF3C7] border-[#FDE68A]',
+        classes: 'text-[#1C4ED1] bg-[#EEF3FF] border-[#BFDBFE]',
       };
     default:
       return {

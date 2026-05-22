@@ -46,9 +46,9 @@ export default async function ProfilePage() {
           id="save-profile-btn"
           type="submit"
           form="profile-form"
-          className="bg-[#1C4ED1] hover:bg-[#163BB1] text-white px-8 py-3.5 rounded-[12px] text-[15px] md:text-[16px] font-bold transition-all shadow-md active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#9CA3AF] disabled:shadow-none"
+          className="bg-[#1C4ED1] hover:bg-[#163BB1] text-white px-8 py-3.5 rounded-[8px] text-[15px] md:text-[16px] font-bold transition-all shadow-md active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#9CA3AF] disabled:shadow-none"
         >
-          Save Changes
+          Saved
         </button>
       </div>
 
@@ -86,4 +86,3 @@ export default async function ProfilePage() {
     </div>
   );
 }
-

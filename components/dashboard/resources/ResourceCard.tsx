@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { ExternalLink, Music, File as FileIcon } from 'lucide-react';
+import { File as FileIcon, Repeat2 } from 'lucide-react';
 import { Resource } from '@/lib/resourceService';
 
 interface ResourceCardProps {
@@ -15,29 +15,17 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
     switch (resource.type) {
       case 'PDF':
         return {
-          badgeBg: 'bg-[#F5F3FF]',
-          badgeText: 'text-[#7C3AED]',
+          badgeBg: 'bg-[#EEF3FF]',
+          badgeText: 'text-[#1C4ED1]',
           icon: '/assets/dashboard/pdf-01.svg'
         };
-      case 'Video':
+      case 'LINK':
         return {
-          badgeBg: 'bg-[#FFFBEB]',
-          badgeText: 'text-[#D97706]',
-          icon: '/assets/dashboard/play.svg'
-        };
-      case 'Audio':
-        return {
-          badgeBg: 'bg-[#FDF2F8]',
-          badgeText: 'text-[#DB2777]',
-          icon: null // Fallback to Lucide
-        };
-      case 'Link':
-        return {
-          badgeBg: 'bg-[#ECFDF5]',
-          badgeText: 'text-[#059669]',
+          badgeBg: 'bg-[#EEF3FF]',
+          badgeText: 'text-[#1C4ED1]',
           icon: '/assets/dashboard/user/arrow-up-right-03.svg'
         };
-      case 'File':
+      case 'FILE':
         return {
           badgeBg: 'bg-[#EFF6FF]',
           badgeText: 'text-[#1C4ED1]',
@@ -74,7 +62,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
           </div>
         ) : (
           <div className="text-[#1C4ED1]">
-             {resource.type === 'Audio' ? <Music size={24} /> : <FileIcon size={24} />}
+             <FileIcon size={24} />
           </div>
         )}
       </div>
@@ -85,16 +73,24 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
           {resource.title}
         </h4>
         <span className="text-[14px] font-medium text-[#9CA3AF] tracking-tight">
-          {resource.category}
+          {resource.courseTitle}
+        </span>
+        <span className="text-[13px] font-medium text-[#4B5563] tracking-tight">
+          {resource.lessonTitle}
         </span>
       </div>
 
       {/* Metadata Row: Badge & Size */}
       <div className="flex items-center justify-between">
         <span className={`px-3 py-1.5 rounded-[8px] text-[12px] font-bold uppercase tracking-wider ${theme.badgeBg} ${theme.badgeText}`}>
-          {resource.type}
+          {resource.type === 'LINK' ? 'Link' : resource.type}
         </span>
-        {resource.size && (
+        {resource.scope === 'instructor' && typeof resource.usageCount === 'number' ? (
+          <span className="inline-flex items-center gap-1.5 rounded-[8px] bg-[#F4F6FB] px-2.5 py-1 text-[12px] font-bold text-[#1C4ED1]">
+            <Repeat2 size={13} />
+            {resource.usageCount} {resource.usageCount === 1 ? 'lesson' : 'lessons'}
+          </span>
+        ) : resource.size && (
           <span className="text-[14px] font-medium text-[#9CA3AF] tracking-tight">
             {resource.size}
           </span>
@@ -103,8 +99,8 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
 
       {/* Bottom: Action Area */}
       <div className="pt-2">
-        <button className="flex items-center gap-2.5 text-[#1C4ED1] hover:text-[#040B37] transition-all group/btn outline-none">
-          {resource.type === 'Link' ? (
+        <a href={resource.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-[#1C4ED1] hover:text-[#040B37] transition-all group/btn outline-none">
+          {resource.type === 'LINK' ? (
              <>
                 <div className="relative w-5 h-5 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5">
                  <Image 
@@ -115,7 +111,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
                   style={{ filter: 'invert(24%) sepia(91%) saturate(2333%) hue-rotate(218deg) brightness(91%) contrast(92%)' }}
                  />
                </div>
-               <span className="text-[18px] font-semibold tracking-tight">Visit</span>
+               <span className="text-[18px] font-semibold tracking-tight">Open</span>
              </>
           ) : (
             <>
@@ -131,7 +127,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
               <span className="text-[18px] font-semibold tracking-tight">Download</span>
             </>
           )}
-        </button>
+        </a>
       </div>
     </div>
   );

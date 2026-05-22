@@ -45,6 +45,7 @@ export default async function ProgressPage() {
       const completedLessons = await db.lessonProgress.count({
         where: {
           userId,
+          percentComplete: { gte: 100 },
           lesson: {
             module: {
               courseId: course.id,
@@ -97,6 +98,7 @@ export default async function ProgressPage() {
   // Group by date string YYYY-MM-DD
   const activityMap: Record<string, number> = {};
   for (const lp of lessonProgresses) {
+    if (!lp.completedAt) continue;
     const d = new Date(lp.completedAt);
     const dateStr = d.toISOString().split("T")[0];
     if (!activityMap[dateStr]) {
@@ -168,6 +170,7 @@ export default async function ProgressPage() {
   // Calculate total lessons finished by students of this instructor's courses
   const totalLessonsWatched = await db.lessonProgress.count({
     where: {
+      percentComplete: { gte: 100 },
       lesson: {
         module: {
           courseId: { in: creatorCourseIds },

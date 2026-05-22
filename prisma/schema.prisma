@@ -281,7 +281,7 @@ model LessonProgress {
   lessonId        String
   lastSeekTime    Float    @default(0.0)
   percentComplete Int      @default(0)
-  completedAt     DateTime @default(now())
+  completedAt     DateTime?
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 

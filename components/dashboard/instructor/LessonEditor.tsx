@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
 import VideoUploader from './VideoUploader';
 import ArticleLessonEditor from './ArticleLessonEditor';
+import LessonResourceManager from './LessonResourceManager';
 import Link from 'next/link';
 
 interface Resource { id: string; title: string; url: string; type: string }
@@ -59,6 +60,7 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
   const [isPreview, setIsPreview] = useState(lesson.isPreview);
   const [transcript, setTranscript] = useState(lesson.transcript ?? '');
   const [bodyContent, setBodyContent] = useState(lesson.bodyContent ?? '');
+  const [resources, setResources] = useState<Resource[]>(lesson.resources);
   const [contentType, setContentType] = useState<'VIDEO' | 'ARTICLE' | 'QUIZ'>(
     lesson.contentType === 'ARTICLE' || lesson.contentType === 'QUIZ' ? lesson.contentType : 'VIDEO'
   );
@@ -100,6 +102,7 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
         onUpdate({
           ...lesson,
           ...draft,
+          resources,
         });
         onDirtyChange?.(false);
         setSaveStatus('saved');
@@ -251,6 +254,8 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
           <ArticleLessonEditor
             value={bodyContent}
             onChange={handleArticleChange}
+            courseId={courseId}
+            lessonId={lesson.id}
             disabled={isReadOnly}
           />
         </div>
@@ -270,7 +275,7 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
 
       {/* Duration + Preview toggle */}
       <div className="flex items-start gap-4">
-        <div className="flex flex-col gap-1.5 w-40">
+        <div className="flex flex-col gap-1.5">
           <label className="text-sm font-semibold text-navy">{durationLabel} (mins)</label>
           <input
             type="number" min={0} max={999}
@@ -321,24 +326,16 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
       </div>
       )}
 
-      {/* Resources (read-only) */}
-      {lesson.resources.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-navy">Resources</label>
-          {lesson.resources.map((r) => (
-            <div key={r.id} className="flex items-center justify-between px-3 py-2 bg-background rounded-[8px] border border-stroke">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] font-bold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded shrink-0">{r.type}</span>
-                <span className="text-sm font-medium text-navy truncate">{r.title}</span>
-              </div>
-              <a href={r.url} target="_blank" rel="noopener noreferrer"
-                className="text-text-mute hover:text-primary transition-colors shrink-0 p-1">
-                <ExternalLink size={13} />
-              </a>
-            </div>
-          ))}
-        </div>
-      )}
+      <LessonResourceManager
+        courseId={courseId}
+        lessonId={lesson.id}
+        resources={resources}
+        disabled={isReadOnly}
+        onChange={(nextResources) => {
+          setResources(nextResources);
+          onUpdate({ ...lesson, ...draft, resources: nextResources });
+        }}
+      />
     </div>
   );
 }

@@ -1,20 +1,34 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
+import { mergeAttributes, Node as TiptapNode } from '@tiptap/core';
+import {
+  EditorContent,
+  NodeViewContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  useEditor,
+  type NodeViewProps,
+} from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import LinkExtension from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { common, createLowlight } from 'lowlight';
 import {
   Bold,
-  Columns2,
+  ChevronDown,
   Code2,
-  Eye,
+  Columns2,
   Heading1,
   Heading2,
+  Image as ImageIcon,
   Italic,
   Link as LinkIcon,
   List,
   ListOrdered,
   Maximize2,
-  Minimize2,
   PenLine,
   Quote,
   Redo2,
@@ -22,18 +36,204 @@ import {
   Undo2,
   X,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { uploadLessonMediaImageAction } from '@/actions/instructor';
 import { ArticleContent, normalizeArticleHtml } from '@/components/dashboard/courses/ArticleContent';
 
-type Mode = 'edit' | 'preview' | 'split';
+type Mode = 'edit' | 'split';
 
 interface ArticleLessonEditorProps {
   value: string;
   onChange: (value: string) => void;
+  courseId: string;
+  lessonId: string;
   disabled?: boolean;
 }
 
+const lowlight = createLowlight(common);
+
 const toolbarButton =
   'h-9 min-w-9 px-2 rounded-[8px] border border-[#E3E8F4] bg-white text-[#4B5563] hover:text-[#1C4ED1] hover:border-[#1C4ED1]/30 hover:bg-[#F4F6FB] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors';
+
+const activeToolbarButton = 'border-[#1C4ED1]/40 bg-[#EEF3FF] text-[#1C4ED1]';
+
+const codeLanguages = [
+  { value: 'plaintext', label: 'Plain text' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'typescript', label: 'TypeScript' },
+  { value: 'tsx', label: 'TSX' },
+  { value: 'jsx', label: 'JSX' },
+  { value: 'html', label: 'HTML' },
+  { value: 'css', label: 'CSS' },
+  { value: 'json', label: 'JSON' },
+  { value: 'python', label: 'Python' },
+  { value: 'bash', label: 'Bash' },
+  { value: 'sql', label: 'SQL' },
+];
+
+function getLanguageLabel(value: string) {
+  return codeLanguages.find((item) => item.value === value)?.label ?? 'Plain text';
+}
+
+function normalizeImageWidth(value: unknown) {
+  const width = String(value ?? '100').replace('%', '');
+  return ['50', '75', '100'].includes(width) ? width : '100';
+}
+
+function CodeLanguageDropdown({
+  value,
+  onChange,
+  disabled,
+  variant = 'toolbar',
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  variant?: 'toolbar' | 'codeblock';
+}) {
+  const [open, setOpen] = useState(false);
+  const isCodeBlock = variant === 'codeblock';
+
+  const buttonClass = isCodeBlock
+    ? 'h-7 min-w-[116px] max-w-[136px] rounded-[8px] border border-[#93C5FD]/35 bg-[#0F172A]/90 px-2.5 text-[#BFDBFE] text-[11px] font-extrabold flex items-center justify-between gap-2 hover:border-[#93C5FD] focus:outline-none focus:ring-2 focus:ring-[#93C5FD]/20 disabled:opacity-60'
+    : 'h-9 w-[128px] border-l border-[#E3E8F4] bg-white pl-3 pr-2 text-xs font-semibold text-[#040B37] flex items-center justify-between gap-2 outline-none hover:text-[#1C4ED1] disabled:opacity-50';
+
+  const menuClass = isCodeBlock
+    ? 'absolute left-0 top-8 z-30 w-[150px] max-h-[212px] overflow-y-auto rounded-[8px] border border-[#93C5FD]/30 bg-[#111827] p-1 shadow-2xl'
+    : 'absolute right-0 top-10 z-30 w-[150px] max-h-[220px] overflow-y-auto rounded-[8px] border border-[#D8E1F2] bg-white p-1 shadow-2xl';
+
+  return (
+    <div className="relative" onBlur={() => window.setTimeout(() => setOpen(false), 120)}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((value) => !value)}
+        className={buttonClass}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="truncate">{getLanguageLabel(value)}</span>
+        <ChevronDown size={14} className="shrink-0 text-current opacity-70" />
+      </button>
+
+      {open && (
+        <div className={menuClass} role="listbox">
+          {codeLanguages.map((item) => {
+            const selected = item.value === value;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(item.value);
+                  setOpen(false);
+                }}
+                className={`w-full rounded-[8px] px-2.5 py-2 text-left text-xs font-semibold transition-colors ${
+                  isCodeBlock
+                    ? selected ? 'bg-[#1C4ED1] text-white' : 'text-[#DBEAFE] hover:bg-[#1F2937]'
+                    : selected ? 'bg-[#EEF3FF] text-[#1C4ED1]' : 'text-[#040B37] hover:bg-[#F4F6FB]'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CodeBlockNodeView({ node, updateAttributes, editor }: NodeViewProps) {
+  const language = typeof node.attrs.language === 'string' && node.attrs.language
+    ? node.attrs.language
+    : 'plaintext';
+
+  return (
+    <NodeViewWrapper className="article-code-block-node" data-language={language}>
+      <div contentEditable={false} className="article-code-block-toolbar">
+        <CodeLanguageDropdown
+          value={language}
+          disabled={!editor.isEditable}
+          onChange={(nextLanguage) => updateAttributes({ language: nextLanguage })}
+          variant="codeblock"
+        />
+      </div>
+      <pre>
+        <NodeViewContent as={'code' as 'div'} className={`language-${language}`} />
+      </pre>
+    </NodeViewWrapper>
+  );
+}
+
+const ArticleImage = TiptapNode.create({
+  name: 'articleImage',
+  group: 'block',
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      src: { default: null },
+      alt: { default: '' },
+      width: { default: '100' },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'img[src]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const width = normalizeImageWidth(HTMLAttributes.width);
+    return [
+      'figure',
+      {
+        class: 'article-image-block',
+        'data-width': width,
+      },
+      [
+        'img',
+        mergeAttributes(HTMLAttributes, {
+          style: `width: ${width}%;`,
+        }),
+      ],
+    ];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageNodeView);
+  },
+});
+
+function ImageNodeView({ node, updateAttributes, editor, selected }: NodeViewProps) {
+  const width = normalizeImageWidth(node.attrs.width);
+  const src = typeof node.attrs.src === 'string' ? node.attrs.src : '';
+  const alt = typeof node.attrs.alt === 'string' ? node.attrs.alt : '';
+
+  return (
+    <NodeViewWrapper className={`article-image-node ${selected ? 'is-selected' : ''}`} data-width={width}>
+      {editor.isEditable && (
+        <div contentEditable={false} className="article-image-toolbar">
+          {['50', '75', '100'].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => updateAttributes({ width: value })}
+              className={width === value ? 'is-active' : ''}
+            >
+              {value}%
+            </button>
+          ))}
+        </div>
+      )}
+      <img src={src} alt={alt} style={{ width: `${width}%` }} />
+    </NodeViewWrapper>
+  );
+}
 
 function escapeHtml(value: string) {
   return value
@@ -59,6 +259,7 @@ function markdownToHtml(markdown: string) {
   let listType: 'ul' | 'ol' | null = null;
   let inCode = false;
   let codeLines: string[] = [];
+  let codeLanguage = 'plaintext';
 
   const closeList = () => {
     if (listType) {
@@ -73,10 +274,12 @@ function markdownToHtml(markdown: string) {
     if (trimmed.startsWith('```')) {
       closeList();
       if (inCode) {
-        html.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
+        html.push(`<pre data-language="${escapeHtml(codeLanguage)}"><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
         codeLines = [];
+        codeLanguage = 'plaintext';
         inCode = false;
       } else {
+        codeLanguage = trimmed.replace(/^```/, '').trim() || 'plaintext';
         inCode = true;
       }
       continue;
@@ -143,7 +346,7 @@ function markdownToHtml(markdown: string) {
   }
 
   closeList();
-  if (inCode) html.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
+  if (inCode) html.push(`<pre data-language="${escapeHtml(codeLanguage)}"><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
   return html.join('');
 }
 
@@ -152,12 +355,12 @@ function sanitizePastedHtml(html: string) {
   const doc = parser.parseFromString(html, 'text/html');
   const allowedTags = new Set([
     'A', 'B', 'BLOCKQUOTE', 'BR', 'CODE', 'DIV', 'EM', 'H1', 'H2', 'H3',
-    'I', 'LI', 'OL', 'P', 'PRE', 'STRONG', 'UL',
+    'FIGURE', 'I', 'IMG', 'LI', 'OL', 'P', 'PRE', 'SPAN', 'STRONG', 'UL',
   ]);
 
-  const cleanNode = (node: Node): Node | null => {
-    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent ?? '');
-    if (node.nodeType !== Node.ELEMENT_NODE) return null;
+  const cleanNode = (node: globalThis.Node): globalThis.Node | null => {
+    if (node.nodeType === globalThis.Node.TEXT_NODE) return document.createTextNode(node.textContent ?? '');
+    if (node.nodeType !== globalThis.Node.ELEMENT_NODE) return null;
 
     const element = node as HTMLElement;
     const tag = allowedTags.has(element.tagName) ? element.tagName.toLowerCase() : 'p';
@@ -170,6 +373,19 @@ function sanitizePastedHtml(html: string) {
         clean.setAttribute('target', '_blank');
         clean.setAttribute('rel', 'noopener noreferrer');
       }
+    }
+
+    if (tag === 'img') {
+      const src = element.getAttribute('src') ?? '';
+      if (!/^https?:\/\//i.test(src) && !src.startsWith('/')) return null;
+      clean.setAttribute('src', src);
+      clean.setAttribute('alt', element.getAttribute('alt') ?? '');
+      clean.setAttribute('width', normalizeImageWidth(element.getAttribute('width')));
+    }
+
+    if (tag === 'pre') {
+      const language = element.getAttribute('data-language') ?? element.querySelector('code')?.className.replace(/^language-/, '');
+      if (language) clean.setAttribute('data-language', language);
     }
 
     element.childNodes.forEach((child) => {
@@ -193,37 +409,116 @@ function looksLikeMarkdown(value: string) {
   return /(^#{1,3}\s)|(^[-*]\s)|(^\d+\.\s)|(^>\s)|(```)|(\*\*[^*]+\*\*)|(\[[^\]]+\]\(https?:\/\/)/m.test(value);
 }
 
-export default function ArticleLessonEditor({ value, onChange, disabled = false }: ArticleLessonEditorProps) {
+function getPlainText(html: string) {
+  if (!html) return '';
+  if (typeof window === 'undefined') return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  return new DOMParser().parseFromString(html, 'text/html').body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+}
+
+export default function ArticleLessonEditor({ value, onChange, courseId, lessonId, disabled = false }: ArticleLessonEditorProps) {
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<Mode>('edit');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [showLinkEditor, setShowLinkEditor] = useState(false);
   const [linkHref, setLinkHref] = useState('');
-  const savedSelectionRef = useRef<Range | null>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const lastHtmlRef = useRef('');
+  const [codeLanguage, setCodeLanguage] = useState('typescript');
+  const [editorHtml, setEditorHtml] = useState(() => normalizeArticleHtml(value));
+  const [activeSignature, setActiveSignature] = useState(0);
+  const [uploadingImage, startImageUpload] = useTransition();
 
-  const normalizedValue = useMemo(() => normalizeArticleHtml(value), [value]);
-  const plainText = useMemo(() => {
-    if (!value) return '';
-    const documentText = typeof window === 'undefined'
-      ? value.replace(/<[^>]*>/g, ' ')
-      : new DOMParser().parseFromString(normalizeArticleHtml(value), 'text/html').body.textContent ?? '';
-    return documentText.replace(/\s+/g, ' ').trim();
-  }, [value]);
-  const wordCount = plainText ? plainText.split(/\s+/).length : 0;
-  const readTime = Math.max(1, Math.ceil(wordCount / 220));
+  const editor = useEditor({
+    immediatelyRender: false,
+    editable: !disabled,
+    extensions: [
+      StarterKit.configure({
+        codeBlock: false,
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+        defaultLanguage: 'plaintext',
+        languageClassPrefix: 'language-',
+      }).extend({
+        addNodeView() {
+          return ReactNodeViewRenderer(CodeBlockNodeView);
+        },
+      }),
+      ArticleImage,
+      LinkExtension.configure({
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
+      }),
+      Placeholder.configure({
+        placeholder: 'Start writing this lesson...',
+      }),
+    ],
+    content: normalizeArticleHtml(value) || '<p></p>',
+    editorProps: {
+      attributes: {
+        class: 'article-editor-canvas tiptap-editor min-h-full max-w-[860px] mx-auto p-6 lg:p-10 outline-none',
+      },
+      handlePaste(view, event) {
+        const clipboard = event.clipboardData;
+        if (!clipboard) return false;
+
+        const plain = clipboard.getData('text/plain');
+        const html = clipboard.getData('text/html');
+        const { state } = view;
+        const parent = state.selection.$from.parent;
+
+        if (parent.type.name === 'codeBlock') {
+          event.preventDefault();
+          editor?.commands.insertContent(plain);
+          return true;
+        }
+
+        if (plain && looksLikeMarkdown(plain)) {
+          event.preventDefault();
+          editor?.commands.insertContent(markdownToHtml(plain));
+          return true;
+        }
+
+        if (html) {
+          event.preventDefault();
+          editor?.commands.insertContent(sanitizePastedHtml(html));
+          return true;
+        }
+
+        return false;
+      },
+    },
+    onUpdate({ editor: currentEditor }) {
+      const html = normalizeArticleHtml(currentEditor.getHTML());
+      setEditorHtml(html);
+      onChange(html);
+    },
+    onSelectionUpdate({ editor: currentEditor }) {
+      const language = currentEditor.getAttributes('codeBlock').language;
+      if (typeof language === 'string' && language) setCodeLanguage(language);
+      setActiveSignature((value) => value + 1);
+    },
+  });
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!editorRef.current) return;
-    if (lastHtmlRef.current && editorRef.current.innerHTML.trim()) return;
-    editorRef.current.innerHTML = normalizedValue || '<p></p>';
-    lastHtmlRef.current = normalizedValue;
-  }, [normalizedValue]);
+    editor?.setEditable(!disabled);
+  }, [disabled, editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const normalized = normalizeArticleHtml(value);
+    if (normalized === editorHtml || normalized === normalizeArticleHtml(editor.getHTML())) return;
+    editor.commands.setContent(normalized || '<p></p>', { emitUpdate: false });
+    setEditorHtml(normalized);
+  }, [editor, editorHtml, value]);
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -245,106 +540,74 @@ export default function ArticleLessonEditor({ value, onChange, disabled = false 
     };
   }, [isFullscreen]);
 
-  const emitChange = () => {
-    if (!editorRef.current) return;
-    const html = normalizeArticleHtml(editorRef.current.innerHTML);
-    lastHtmlRef.current = html;
-    onChange(html);
-  };
+  const plainText = useMemo(() => getPlainText(editorHtml), [editorHtml]);
+  const wordCount = plainText ? plainText.split(/\s+/).length : 0;
+  const readTime = Math.max(1, Math.ceil(wordCount / 220));
 
-  const saveSelection = () => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-    const range = selection.getRangeAt(0);
-    if (editorRef.current?.contains(range.commonAncestorContainer)) {
-      savedSelectionRef.current = range.cloneRange();
-    }
-  };
-
-  const restoreSelection = () => {
-    const range = savedSelectionRef.current;
-    if (!range) return;
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-  };
-
-  const command = (name: string, commandValue?: string) => {
-    if (disabled) return;
-    editorRef.current?.focus();
-    restoreSelection();
-    document.execCommand(name, false, commandValue);
-    emitChange();
-    saveSelection();
-  };
-
-  const formatBlock = (tag: 'p' | 'h1' | 'h2' | 'blockquote' | 'pre') => {
-    command('formatBlock', tag);
-  };
-
-  const openLinkEditor = () => {
-    if (disabled) return;
-    saveSelection();
-    const selection = window.getSelection();
-    const selectedNode = selection?.anchorNode?.parentElement;
-    const anchor = selectedNode?.closest('a');
-    setLinkHref(anchor?.getAttribute('href') ?? '');
-    setShowLinkEditor((value) => !value);
+  const isActive = (name: string, attrs?: Record<string, unknown>) => {
+    activeSignature;
+    return !!editor?.isActive(name, attrs);
   };
 
   const applyLink = () => {
+    if (!editor) return;
     const href = linkHref.trim();
-    if (!href) return;
-    const normalizedHref = /^https?:\/\//i.test(href) || href.startsWith('/') ? href : `https://${href}`;
-    command('createLink', normalizedHref);
-    setShowLinkEditor(false);
-    setLinkHref('');
-  };
-
-  const removeLink = () => {
-    command('unlink');
-    setShowLinkEditor(false);
-    setLinkHref('');
-  };
-
-  const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
-    if (disabled) return;
-    event.preventDefault();
-
-    const markdown = event.clipboardData.getData('text/plain');
-    const html = event.clipboardData.getData('text/html');
-    const insert = markdown && looksLikeMarkdown(markdown)
-      ? markdownToHtml(markdown)
-      : html
-        ? sanitizePastedHtml(html)
-        : markdownToHtml(markdown);
-
-    document.execCommand('insertHTML', false, insert);
-    emitChange();
-    saveSelection();
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!(event.ctrlKey || event.metaKey)) return;
-
-    const key = event.key.toLowerCase();
-    if (key === 'z' && !event.shiftKey) {
-      event.preventDefault();
-      command('undo');
+    if (!href) {
+      editor.chain().focus().unsetLink().run();
+      setShowLinkEditor(false);
       return;
     }
+    const normalizedHref = /^https?:\/\//i.test(href) || href.startsWith('/') ? href : `https://${href}`;
+    editor.chain().focus().extendMarkRange('link').setLink({ href: normalizedHref }).run();
+    setShowLinkEditor(false);
+    setLinkHref('');
+  };
 
-    if ((key === 'z' && event.shiftKey) || key === 'y') {
-      event.preventDefault();
-      command('redo');
+  const openLinkEditor = () => {
+    if (!editor || disabled) return;
+    const href = editor.getAttributes('link').href;
+    setLinkHref(typeof href === 'string' ? href : '');
+    setShowLinkEditor((value) => !value);
+  };
+
+  const applyCodeLanguage = (language: string) => {
+    setCodeLanguage(language);
+    if (editor?.isActive('codeBlock')) {
+      editor.chain().focus().updateAttributes('codeBlock', { language }).run();
     }
+  };
+
+  const toggleCodeBlock = () => {
+    editor?.chain().focus().toggleCodeBlock({ language: codeLanguage }).run();
+  };
+
+  const uploadImage = (file: File | null) => {
+    if (!file || !editor || disabled) return;
+    startImageUpload(async () => {
+      try {
+        const formData = new FormData();
+        formData.set('file', file);
+        const result = await uploadLessonMediaImageAction(courseId, lessonId, formData);
+        if (result.error || !result.url) {
+          toast.error(result.error ?? 'Image upload failed.');
+          return;
+        }
+        editor.chain().focus().insertContent({
+          type: 'articleImage',
+          attrs: { src: result.url, alt: file.name, width: '100' },
+        }).run();
+      } catch {
+        toast.error('Image upload failed.');
+      } finally {
+        if (imageInputRef.current) imageInputRef.current.value = '';
+      }
+    });
   };
 
   const ModeSwitcher = () => (
     <div className="flex items-center gap-2">
       {([
-        { id: 'edit', label: 'Edit', icon: PenLine },
-        { id: 'preview', label: 'Preview', icon: Eye },
+        { id: 'edit', label: 'Write', icon: PenLine },
         { id: 'split', label: 'Split', icon: Columns2 },
       ] as const).map((item) => {
         const Icon = item.icon;
@@ -370,17 +633,32 @@ export default function ArticleLessonEditor({ value, onChange, disabled = false 
       <div className="flex flex-col gap-3 border-b border-[#E3E8F4] bg-[#F8FAFF] p-3 shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => formatBlock('p')} title="Paragraph"><Type size={16} /></button>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => formatBlock('h1')} title="Heading 1"><Heading1 size={16} /></button>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => formatBlock('h2')} title="Heading 2"><Heading2 size={16} /></button>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => command('bold')} title="Bold"><Bold size={16} /></button>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => command('italic')} title="Italic"><Italic size={16} /></button>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => command('insertUnorderedList')} title="Bullet list"><List size={16} /></button>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => command('insertOrderedList')} title="Numbered list"><ListOrdered size={16} /></button>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => formatBlock('blockquote')} title="Quote"><Quote size={16} /></button>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => formatBlock('pre')} title="Code block"><Code2 size={16} /></button>
+            <button type="button" className={`${toolbarButton} ${isActive('paragraph') ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().setParagraph().run()} title="Paragraph"><Type size={16} /></button>
+            <button type="button" className={`${toolbarButton} ${isActive('heading', { level: 1 }) ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()} title="Heading 1"><Heading1 size={16} /></button>
+            <button type="button" className={`${toolbarButton} ${isActive('heading', { level: 2 }) ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading 2"><Heading2 size={16} /></button>
+            <button type="button" className={`${toolbarButton} ${isActive('bold') ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleBold().run()} title="Bold"><Bold size={16} /></button>
+            <button type="button" className={`${toolbarButton} ${isActive('italic') ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleItalic().run()} title="Italic"><Italic size={16} /></button>
+            <button type="button" className={`${toolbarButton} ${isActive('bulletList') ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleBulletList().run()} title="Bullet list"><List size={16} /></button>
+            <button type="button" className={`${toolbarButton} ${isActive('orderedList') ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleOrderedList().run()} title="Numbered list"><ListOrdered size={16} /></button>
+            <button type="button" className={`${toolbarButton} ${isActive('blockquote') ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleBlockquote().run()} title="Quote"><Quote size={16} /></button>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => uploadImage(event.target.files?.[0] ?? null)}
+            />
+            <button type="button" className={toolbarButton} disabled={disabled || uploadingImage} onClick={() => imageInputRef.current?.click()} title="Insert image"><ImageIcon size={16} /></button>
+            <div className="relative flex items-center rounded-[8px] border border-[#E3E8F4] bg-white">
+              <button type="button" className={`h-9 min-w-9 px-2 flex items-center justify-center transition-colors ${isActive('codeBlock') ? 'bg-[#EEF3FF] text-[#1C4ED1]' : 'text-[#4B5563] hover:text-[#1C4ED1]'}`} disabled={disabled} onClick={toggleCodeBlock} title="Code block"><Code2 size={16} /></button>
+              <CodeLanguageDropdown
+                value={codeLanguage}
+                disabled={disabled}
+                onChange={applyCodeLanguage}
+              />
+            </div>
             <div className="relative">
-              <button type="button" className={toolbarButton} disabled={disabled} onMouseDown={saveSelection} onClick={openLinkEditor} title="Link"><LinkIcon size={16} /></button>
+              <button type="button" className={`${toolbarButton} ${isActive('link') ? activeToolbarButton : ''}`} disabled={disabled} onClick={openLinkEditor} title="Link"><LinkIcon size={16} /></button>
               {showLinkEditor && (
                 <div className="absolute left-0 top-11 z-20 w-[320px] rounded-[8px] border border-[#E3E8F4] bg-white p-3 shadow-xl flex flex-col gap-2">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-text-mute">Link URL</label>
@@ -396,56 +674,64 @@ export default function ArticleLessonEditor({ value, onChange, disabled = false 
                     autoFocus
                   />
                   <div className="flex items-center justify-end gap-2">
-                    <button type="button" onClick={removeLink} className="px-3 py-2 rounded-[8px] text-xs font-semibold text-red-600 hover:bg-red-50">Remove</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        editor?.chain().focus().unsetLink().run();
+                        setShowLinkEditor(false);
+                        setLinkHref('');
+                      }}
+                      className="px-3 py-2 rounded-[8px] text-xs font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      Remove
+                    </button>
                     <button type="button" onClick={() => setShowLinkEditor(false)} className="px-3 py-2 rounded-[8px] text-xs font-semibold text-text-mute hover:bg-[#F4F6FB]">Cancel</button>
                     <button type="button" onClick={applyLink} className="px-3 py-2 rounded-[8px] text-xs font-semibold bg-primary text-white">Apply</button>
                   </div>
                 </div>
               )}
             </div>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => command('undo')} title="Undo"><Undo2 size={16} /></button>
-            <button type="button" className={toolbarButton} disabled={disabled} onClick={() => command('redo')} title="Redo"><Redo2 size={16} /></button>
+            <button type="button" className={toolbarButton} disabled={disabled || !editor?.can().undo()} onClick={() => editor?.chain().focus().undo().run()} title="Undo"><Undo2 size={16} /></button>
+            <button type="button" className={toolbarButton} disabled={disabled || !editor?.can().redo()} onClick={() => editor?.chain().focus().redo().run()} title="Redo"><Redo2 size={16} /></button>
           </div>
 
           <div className="flex items-center gap-2">
             <ModeSwitcher />
-            <button
-              type="button"
-              onClick={() => setIsFullscreen((v) => !v)}
-              className={toolbarButton}
-              title={isFullscreen ? 'Exit full view' : 'Full view'}
-            >
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
+            {isFullscreen ? (
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(false)}
+                className="h-9 px-3 rounded-[8px] bg-[#040B37] text-white text-xs font-semibold flex items-center gap-1.5 hover:bg-[#060e44] transition-colors"
+              >
+                <X size={14} />
+                Exit fullscreen
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(true)}
+                className={toolbarButton}
+                title="Full view"
+              >
+                <Maximize2 size={16} />
+              </button>
+            )}
           </div>
         </div>
         <p className="text-xs font-medium text-text-mute">
-          Paste from Markdown, Google Docs, or Word. CSCN keeps structure and normalizes messy styling. {wordCount} words · {readTime} min read
+          Paste from Markdown, Google Docs, Word, or code. CSCN keeps structure and normalizes messy styling. {wordCount} words - {readTime} min read
         </p>
       </div>
 
       <div className={`grid ${mode === 'split' ? 'lg:grid-cols-2' : 'grid-cols-1'} flex-1 min-h-0`}>
-        {(mode === 'edit' || mode === 'split') && (
-          <div className={`${mode === 'split' ? 'border-r border-[#E3E8F4]' : ''} min-h-0 overflow-y-auto custom-scrollbar`}>
-            <div
-              ref={editorRef}
-              contentEditable={!disabled}
-              suppressContentEditableWarning
-              onInput={emitChange}
-              onBlur={emitChange}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              onMouseUp={saveSelection}
-              onKeyUp={saveSelection}
-              className={`article-editor-canvas min-h-full max-w-[860px] mx-auto p-6 lg:p-10 outline-none ${disabled ? 'bg-[#F4F6FB] cursor-not-allowed' : 'bg-white'}`}
-            />
-          </div>
-        )}
+        <div className={`${mode === 'split' ? 'border-r border-[#E3E8F4]' : ''} min-h-0 overflow-y-auto custom-scrollbar`}>
+          <EditorContent editor={editor} />
+        </div>
 
-        {(mode === 'preview' || mode === 'split') && (
+        {mode === 'split' && (
           <div className="bg-white min-h-0 overflow-y-auto custom-scrollbar">
             <div className="max-w-[860px] mx-auto p-6 lg:p-10">
-              <ArticleContent body={value} />
+              <ArticleContent body={editorHtml} />
             </div>
           </div>
         )}
@@ -456,35 +742,8 @@ export default function ArticleLessonEditor({ value, onChange, disabled = false 
   if (!isFullscreen) return shell;
 
   const fullscreen = (
-    <div className="fixed inset-0 z-[2147483647] bg-[#F4F6FB] p-4 lg:p-6 flex flex-col gap-4">
-      <div className="shrink-0 bg-white border border-[#E3E8F4] rounded-[8px] px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-sm">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-[8px] bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider">
-              Article
-            </span>
-            <span className="text-xs font-semibold text-text-mute">Esc to exit</span>
-          </div>
-          <p className="text-base font-bold text-[#040B37] truncate mt-1">Article lesson editor</p>
-          <p className="text-xs font-medium text-text-mute">{wordCount} words · {readTime} min read</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <ModeSwitcher />
-          <button
-            type="button"
-            onClick={() => setIsFullscreen(false)}
-            className="h-9 px-3 rounded-[8px] bg-[#040B37] text-white text-xs font-semibold flex items-center gap-1.5 hover:bg-[#060e44] transition-colors"
-          >
-            <X size={14} />
-            Exit fullscreen
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0">
-        {shell}
-      </div>
+    <div className="fixed inset-0 z-[2147483647] bg-[#F4F6FB] p-3 lg:p-4">
+      {shell}
     </div>
   );
 

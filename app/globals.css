@@ -224,13 +224,17 @@ body {
 
 .article-content pre,
 .article-editor-canvas pre {
+  position: relative;
   background: #040B37;
   color: #F8FAFC;
   border-radius: 8px;
-  padding: 1rem;
+  padding: 2.5rem 1rem 1rem;
   overflow-x: auto;
   font-size: 0.875rem;
   line-height: 1.7;
+  white-space: pre;
+  tab-size: 2;
+  box-shadow: inset 0 1px 0 rgba(100, 142, 252, 0.18);
 }
 
 .article-content code,
@@ -247,11 +251,182 @@ body {
   background: transparent;
   color: inherit;
   padding: 0;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-weight: 600;
+  white-space: pre;
+}
+
+.article-content pre code::before {
+  position: absolute;
+  top: 0.75rem;
+  left: 1rem;
+  color: #93C5FD;
+  content: "Code";
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.article-content pre code.language-javascript::before {
+  content: "JavaScript";
+}
+
+.article-content pre code.language-typescript::before {
+  content: "TypeScript";
+}
+
+.article-content pre code.language-tsx::before {
+  content: "TSX";
+}
+
+.article-content pre code.language-jsx::before {
+  content: "JSX";
+}
+
+.article-content pre code.language-html::before {
+  content: "HTML";
+}
+
+.article-content pre code.language-css::before {
+  content: "CSS";
+}
+
+.article-content pre code.language-json::before {
+  content: "JSON";
+}
+
+.article-content pre code.language-python::before {
+  content: "Python";
+}
+
+.article-content pre code.language-bash::before {
+  content: "Bash";
+}
+
+.article-content pre code.language-sql::before {
+  content: "SQL";
+}
+
+.article-code-block-node {
+  position: relative;
+  margin-top: 1rem;
+}
+
+.article-code-block-node pre {
+  margin-top: 0 !important;
+  padding-top: 3rem;
+}
+
+.article-code-block-toolbar {
+  position: absolute;
+  top: 0.7rem;
+  left: 0.75rem;
+  z-index: 2;
+}
+
+.article-content .hljs-keyword,
+.article-editor-canvas .hljs-keyword,
+.article-content .hljs-selector-tag,
+.article-editor-canvas .hljs-selector-tag {
+  color: #93C5FD;
+}
+
+.article-content .hljs-string,
+.article-editor-canvas .hljs-string,
+.article-content .hljs-attr,
+.article-editor-canvas .hljs-attr {
+  color: #86EFAC;
+}
+
+.article-content .hljs-title,
+.article-editor-canvas .hljs-title,
+.article-content .hljs-built_in,
+.article-editor-canvas .hljs-built_in {
+  color: #FDE68A;
+}
+
+.article-content .hljs-comment,
+.article-editor-canvas .hljs-comment {
+  color: #94A3B8;
+  font-style: italic;
+}
+
+.article-content .hljs-number,
+.article-editor-canvas .hljs-number,
+.article-content .hljs-literal,
+.article-editor-canvas .hljs-literal {
+  color: #FCA5A5;
+}
+
+.article-editor-canvas .is-editor-empty:first-child::before {
+  color: #9CA3AF;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
 }
 
 .article-editor-canvas:empty::before {
   content: "Start writing this lesson...";
   color: #9CA3AF;
+}
+
+.article-image-block,
+.article-image-node {
+  margin-top: 1.25rem;
+}
+
+.article-image-block img,
+.article-image-node img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+  border-radius: 8px;
+  border: 1px solid #E3E8F4;
+}
+
+.article-image-node {
+  position: relative;
+  padding: 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.article-image-node.is-selected {
+  border-color: #1C4ED1;
+  background: #F8FAFF;
+}
+
+.article-image-toolbar {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid #E3E8F4;
+  border-radius: 8px;
+  background: #FFFFFF;
+  box-shadow: 0 12px 30px rgba(4, 11, 55, 0.12);
+}
+
+.article-image-toolbar button {
+  height: 1.75rem;
+  min-width: 2.75rem;
+  border-radius: 8px;
+  color: #4B5563;
+  font-size: 0.6875rem;
+  font-weight: 800;
+}
+
+.article-image-toolbar button:hover,
+.article-image-toolbar button.is-active {
+  background: #1C4ED1;
+  color: #FFFFFF;
 }
 
 /* Scrollbar — invisible by default, sky-blue on hover */
