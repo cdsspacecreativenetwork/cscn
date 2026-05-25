@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { ExternalLink, FileQuestion, FileText, Loader2, Save, Video } from 'lucide-react';
+import { Clock, ExternalLink, FileQuestion, FileText, Link2, Loader2, Plus, Save, Trash2, Video } from 'lucide-react';
 import { updateLessonAction } from '@/actions/instructor';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
@@ -14,7 +14,7 @@ interface Resource { id: string; title: string; url: string; type: string }
 
 interface Lesson {
   id: string; title: string; position: number; videoUrl: string | null;
-  duration: number | null; isPreview: boolean;
+  duration: number | null; isPublished: boolean; isPreview: boolean;
   transcript: string | null; bodyContent: string | null; contentType: string;
   resources: Resource[];
   muxStatus: string;
@@ -35,6 +35,7 @@ const inputCls =
   'w-full px-3 py-2.5 border border-stroke rounded-[8px] text-sm font-medium text-navy placeholder:text-text-mute bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all';
 
 type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
+type TimestampItem = { time: string; label: string };
 
 const contentTypes = [
   { value: 'VIDEO', label: 'Video', icon: Video },
@@ -52,10 +53,46 @@ function estimateArticleReadTime(html: string) {
   return String(Math.max(1, Math.ceil(plainText.split(/\s+/).length / 220)));
 }
 
+function normalizeTimestamps(value: unknown): TimestampItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const record = item as Record<string, unknown>;
+      return {
+        time: typeof record.time === 'string' ? record.time : '',
+        label: typeof record.label === 'string' ? record.label : '',
+      };
+    })
+    .filter((item): item is TimestampItem => !!item);
+}
+
+function cleanTimestamps(items: TimestampItem[]) {
+  return items
+    .map((item) => ({ time: item.time.trim(), label: item.label.trim() }))
+    .filter((item) => item.time && item.label);
+}
+
+function parseVideoMetadata(value: string | null): { timestamps: TimestampItem[] } {
+  if (!value) return { timestamps: [] };
+  try {
+    const parsed = JSON.parse(value) as { timestamps?: unknown };
+    return { timestamps: normalizeTimestamps(parsed.timestamps) };
+  } catch {
+    return { timestamps: [] };
+  }
+}
+
+function serializeVideoMetadata(timestamps: TimestampItem[]) {
+  const clean = cleanTimestamps(timestamps);
+  return clean.length > 0 ? JSON.stringify({ timestamps: clean }) : null;
+}
+
 export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug, onUpdate, onDirtyChange, isReadOnly = false }: Props) {
   const [saving, startSave] = useTransition();
 
   const [title, setTitle] = useState(lesson.title);
+  const [videoUrl, setVideoUrl] = useState(lesson.videoUrl ?? '');
   const [duration, setDuration] = useState<string>(lesson.duration?.toString() ?? '');
   const [isPreview, setIsPreview] = useState(lesson.isPreview);
   const [transcript, setTranscript] = useState(lesson.transcript ?? '');
@@ -64,25 +101,33 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
   const [contentType, setContentType] = useState<'VIDEO' | 'ARTICLE' | 'QUIZ'>(
     lesson.contentType === 'ARTICLE' || lesson.contentType === 'QUIZ' ? lesson.contentType : 'VIDEO'
   );
+  const [timestamps, setTimestamps] = useState<TimestampItem[]>(
+    parseVideoMetadata(lesson.bodyContent).timestamps
+  );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const mountedRef = useRef(false);
 
   const draft = useMemo(() => ({
     title,
+    videoUrl: videoUrl.trim() || null,
     duration: duration ? Number(duration) : null,
     isPreview,
     transcript: transcript.trim() || null,
-    bodyContent: bodyContent.trim() || null,
+    bodyContent: contentType === 'VIDEO'
+      ? serializeVideoMetadata(timestamps)
+      : bodyContent.trim() || null,
     contentType,
-  }), [title, duration, isPreview, transcript, bodyContent, contentType]);
+  }), [title, videoUrl, duration, isPreview, transcript, bodyContent, timestamps, contentType]);
 
   const isDirty =
     title !== lesson.title ||
+    videoUrl !== (lesson.videoUrl ?? '') ||
     duration !== (lesson.duration?.toString() ?? '') ||
     isPreview !== lesson.isPreview ||
     transcript !== (lesson.transcript ?? '') ||
-    bodyContent !== (lesson.bodyContent ?? '') ||
-    contentType !== (lesson.contentType === 'ARTICLE' || lesson.contentType === 'QUIZ' ? lesson.contentType : 'VIDEO');
+    bodyContent !== (lesson.bodyContent ?? '') && contentType !== 'VIDEO' ||
+    contentType !== (lesson.contentType === 'ARTICLE' || lesson.contentType === 'QUIZ' ? lesson.contentType : 'VIDEO') ||
+    JSON.stringify(cleanTimestamps(timestamps)) !== JSON.stringify(cleanTimestamps(parseVideoMetadata(lesson.bodyContent).timestamps));
 
   const prevDirtyRef = useRef(false);
   useEffect(() => {
@@ -90,7 +135,6 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
       prevDirtyRef.current = isDirty;
       onDirtyChange?.(isDirty);
     }
-    if (isDirty) setSaveStatus('dirty');
   }, [isDirty, onDirtyChange]);
 
   const saveDraft = (showToast = false) => {
@@ -235,16 +279,35 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
 
       {/* Video upload */}
       {contentType === 'VIDEO' && (
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-semibold text-navy">Video</label>
-        <VideoUploader
-          lessonId={lesson.id}
-          lessonTitle={lesson.title}
-          courseTitle={courseTitle}
-          dbStatus={lesson.muxStatus}
-          muxPlaybackId={lesson.muxPlaybackId}
-          isReadOnly={isReadOnly}
-        />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-semibold text-navy">Uploaded Video</label>
+          <VideoUploader
+            lessonId={lesson.id}
+            lessonTitle={lesson.title}
+            courseTitle={courseTitle}
+            dbStatus={lesson.muxStatus}
+            muxPlaybackId={lesson.muxPlaybackId}
+            isReadOnly={isReadOnly}
+          />
+        </div>
+
+        <div className="rounded-[8px] border border-stroke bg-[#F8FAFF] p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-navy">
+            <Link2 size={15} className="text-primary" />
+            External video link
+          </div>
+          <input
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            disabled={isReadOnly}
+            className={inputCls}
+            placeholder="YouTube link or video ID"
+          />
+          <p className="mt-2 text-[11px] leading-4 text-text-mute">
+            Use this for curated free lessons already hosted on YouTube. Uploaded Mux video is preferred for paid premium content.
+          </p>
+        </div>
       </div>
       )}
 
@@ -313,17 +376,72 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
 
       {/* Transcript */}
       {contentType === 'VIDEO' && (
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-semibold text-navy">Transcript</label>
-        <textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          disabled={isReadOnly}
-          rows={6}
-          className={`${inputCls} resize-y`}
-          placeholder="Paste or type the lesson transcript here…"
-        />
-      </div>
+      <>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-sm font-semibold text-navy">Timestamps</label>
+            {!isReadOnly && (
+              <button
+                type="button"
+                onClick={() => setTimestamps((prev) => [...prev, { time: '', label: '' }])}
+                className="flex items-center gap-1.5 rounded-[8px] border border-stroke px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/5"
+              >
+                <Plus size={13} />
+                Add timestamp
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            {timestamps.length === 0 ? (
+              <div className="rounded-[8px] border border-dashed border-[#C8D1E0] bg-[#F8FAFF] px-4 py-3 text-xs font-medium text-text-mute">
+                Add optional chapter markers like 00:00 Introduction or 04:30 Project setup.
+              </div>
+            ) : timestamps.map((item, index) => (
+              <div key={index} className="grid grid-cols-[120px_1fr_auto] gap-2">
+                <div className="relative">
+                  <Clock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-mute" />
+                  <input
+                    value={item.time}
+                    onChange={(e) => setTimestamps((prev) => prev.map((v, i) => i === index ? { ...v, time: e.target.value } : v))}
+                    disabled={isReadOnly}
+                    className={`${inputCls} pl-8`}
+                    placeholder="04:30"
+                  />
+                </div>
+                <input
+                  value={item.label}
+                  onChange={(e) => setTimestamps((prev) => prev.map((v, i) => i === index ? { ...v, label: e.target.value } : v))}
+                  disabled={isReadOnly}
+                  className={inputCls}
+                  placeholder="Chapter title"
+                />
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setTimestamps((prev) => prev.filter((_, i) => i !== index))}
+                    className="flex h-10 w-10 items-center justify-center rounded-[8px] text-text-mute hover:bg-red-50 hover:text-red-500"
+                    title="Remove timestamp"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-semibold text-navy">Transcript</label>
+          <textarea
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            disabled={isReadOnly}
+            rows={6}
+            className={`${inputCls} resize-y`}
+            placeholder="Paste or type the lesson transcript here..."
+          />
+        </div>
+      </>
       )}
 
       <LessonResourceManager

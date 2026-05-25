@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import type { ComponentProps } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Eye, Globe, EyeOff, Send, AlertTriangle } from 'lucide-react';
@@ -18,7 +19,7 @@ type Tab = 'settings' | 'curriculum' | 'analytics' | 'instructors' | 'feedback';
 interface StudioLesson {
   id: string; title: string; position: number;
   videoUrl: string | null; duration: number | null;
-  isPreview: boolean; transcript: string | null;
+  isPublished: boolean; isPreview: boolean; transcript: string | null;
   bodyContent: string | null;
   contentType: string;
   resources: { id: string; title: string; url: string; type: string }[];
@@ -28,13 +29,14 @@ interface StudioLesson {
 
 interface StudioModule {
   id: string; title: string; position: number;
+  isPublished: boolean;
   lessons: StudioLesson[];
 }
 
 interface StudioCourse {
   id: string; title: string; slug: string;
   description: string; shortDesc: string | null;
-  thumbnail: string | null; difficulty: string;
+  thumbnail: string | null; promoVideo?: string | null; difficulty: string;
   status: string; previewCount: number;
   categoryId: string | null;
   requirements: unknown; includes: unknown;
@@ -42,7 +44,19 @@ interface StudioCourse {
   examGated: boolean;
   metaTitle: string | null;
   metaDescription: string | null;
-  price: any;
+  price: unknown;
+  baseCurrency?: string;
+  instructor?: { payoutDetails?: { preferredCurrency?: unknown } | null };
+  pricingProposals?: {
+    id: string;
+    proposedPrice: unknown;
+    currentPriceSnapshot: unknown;
+    currency: string;
+    status: string;
+    adminNote: string | null;
+    createdAt: Date | string;
+    reviewedAt: Date | string | null;
+  }[];
   finalExamId: string | null;
   modules: StudioModule[];
 }
@@ -68,8 +82,8 @@ interface Props {
   latestReview: LatestReview | null;
   currentUserId: string;
   openFeedbackCount: number;
-  initialRosterData?: any;
-  initialFeedbackData?: any;
+  initialRosterData?: ComponentProps<typeof InstructorRosterTab>['initialData'];
+  initialFeedbackData?: ComponentProps<typeof FeedbackTab>['initialItems'];
 }
 
 const STATUS_CONFIG = {

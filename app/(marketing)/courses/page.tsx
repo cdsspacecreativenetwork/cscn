@@ -1,6 +1,8 @@
 import { listCourses, listCategories } from '@/lib/services/courses.service';
 import { toCardProps } from '@/lib/course-adapter';
 import CoursesFilter from '@/components/marketing/CoursesFilter';
+import { headers } from 'next/headers';
+import { getRequestCountry, localizePrice } from '@/lib/localization/pricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,12 +12,21 @@ export const metadata = {
 };
 
 export default async function CoursesPage() {
+  const requestCountry = getRequestCountry(await headers());
   const [{ courses: dbCourses }, categories] = await Promise.all([
     listCourses(1),
     listCategories(),
   ]);
 
-  const courses = dbCourses.map(toCardProps);
+  const courses = await Promise.all(dbCourses.map(async (course) => {
+    const price = await localizePrice({
+      amount: course.price ? Number(course.price) : null,
+      baseCurrency: course.baseCurrency,
+      countryCode: requestCountry.countryCode,
+      source: requestCountry.source,
+    });
+    return toCardProps(course, price);
+  }));
   const categoryNames = categories.map((c) => c.name);
   const instructors = [...new Set(courses.map((c) => c.author))];
 

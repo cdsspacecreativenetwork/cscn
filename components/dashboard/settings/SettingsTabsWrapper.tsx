@@ -44,7 +44,7 @@ export const SettingsTabsWrapper: React.FC<SettingsTabsWrapperProps> = ({ initia
         
         {activeTab === 'Payouts' && userData && (
           <InstructorPayoutSettings 
-            initialMethod={userData.payoutMethod || 'BANK'}
+            initialMethod={userData.payoutMethod || ''}
             initialDetails={userData.payoutDetails || {}}
             onSaveSuccess={fetchUserData}
           />

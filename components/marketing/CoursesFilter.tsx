@@ -34,7 +34,7 @@ const CustomDropdown = ({ options, selected, onChange }: DropdownProps) => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  });
 
   return (
     <div className="relative inline-block w-fit" ref={dropdownRef}>
@@ -86,28 +86,18 @@ const CustomDropdown = ({ options, selected, onChange }: DropdownProps) => {
 };
 
 export default function CoursesFilter({ courses, categories, instructors }: CoursesFilterProps) {
-  const ALL_CATEGORIES = ['All Categories', ...(categories ?? [])];
+  const ALL_CATEGORIES = useMemo(
+    () => ['All Categories', ...Array.from(new Set(categories ?? [])).sort((a, b) => a.localeCompare(b))],
+    [categories]
+  );
   const [activeCategory, setActiveCategory] = useState<string>('All Categories');
   const [activeInstructor, setActiveInstructor] = useState<string>('All Instructors');
   const [searchQuery, setSearchQuery] = useState('');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Persistence for view preference
-  useEffect(() => {
-    const savedView = localStorage.getItem('cscn-view-preference');
-    if (savedView === 'grid' || savedView === 'list') {
-      setView(savedView);
-    }
-    setIsMounted(true);
-  }, []);
-
-  // Only write to localStorage after mount to avoid overwriting with default value
-  useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('cscn-view-preference', view);
-    }
-  }, [view, isMounted]);
+  const [view, setView] = useState<'grid' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'grid';
+    const savedView = window.localStorage.getItem('cscn-view-preference');
+    return savedView === 'grid' || savedView === 'list' ? savedView : 'grid';
+  });
 
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   const [isLoading, setIsLoading] = useState(false);
@@ -132,15 +122,18 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
     });
   }, [courses, activeCategory, activeInstructor, debouncedSearch]);
 
-  useEffect(() => {
-    setVisibleCount(INITIAL_VISIBLE_COUNT);
-  }, [activeCategory, activeInstructor, searchQuery]);
-
   const paginatedCourses = useMemo(() => {
     return filteredCourses.slice(0, visibleCount);
   }, [filteredCourses, visibleCount]);
 
   const hasMore = visibleCount < filteredCourses.length;
+  const loadMore = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setVisibleCount(prev => prev + LOAD_MORE_INCREMENT);
+      setIsLoading(false);
+    }, 600);
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -159,12 +152,19 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
     return () => observer.disconnect();
   }, [hasMore, isLoading]);
 
-  const loadMore = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setVisibleCount(prev => prev + LOAD_MORE_INCREMENT);
-      setIsLoading(false);
-    }, 600);
+  const handleCategoryChange = (value: string) => {
+    setActiveCategory(value);
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  };
+
+  const handleInstructorChange = (value: string) => {
+    setActiveInstructor(value);
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  };
+
+  const handleViewChange = (value: 'grid' | 'list') => {
+    setView(value);
+    localStorage.setItem('cscn-view-preference', value);
   };
 
   return (
@@ -175,7 +175,10 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
           type="text"
           placeholder="Search our 100+ courses"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setVisibleCount(INITIAL_VISIBLE_COUNT);
+          }}
           className="w-full bg-white border border-stroke-ii rounded-2xl px-6 py-5 text-lg font-inter text-navy placeholder:text-text-mute focus:outline-none focus:ring-2 focus:ring-primary/5 focus:border-primary transition-all pr-16"
         />
         <div className="absolute right-7 top-1/2 -translate-y-1/2">
@@ -196,27 +199,27 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
             <CustomDropdown
               options={ALL_CATEGORIES}
               selected={activeCategory}
-              onChange={setActiveCategory}
+              onChange={handleCategoryChange}
             />
 
             {/* Instructor Dropdown */}
             <CustomDropdown
               options={['All Instructors', ...instructors]}
               selected={activeInstructor}
-              onChange={setActiveInstructor}
+              onChange={handleInstructorChange}
             />
 
             {/* View Toggle */}
             <div className="flex items-center bg-white border border-stroke-ii rounded-sm gap-1.5 px-3 py-1.5">
               <button
-                onClick={() => setView('grid')}
+                onClick={() => handleViewChange('grid')}
                 className={`w-8 h-8 items-center justify-center flex rounded-[4px] transition-all cursor-pointer ${view === 'grid' ? 'bg-[#F4F6FB]' : 'hover:bg-gray-50 opacity-40'}`}
               >
                 <Image src="/assets/courses/grid-view.svg" alt="Grid" width={20} height={20} />
               </button>
               <div className="w-[1px] h-9.5 bg-stroke-ii opacity-50" />
               <button
-                onClick={() => setView('list')}
+                onClick={() => handleViewChange('list')}
                 className={`w-8 h-8 items-center justify-center flex rounded-[4px] cursor-pointer transition-all ${view === 'list' ? 'bg-[#F4F6FB]' : 'hover:bg-gray-50 opacity-40'}`}
               >
                 <Image src="/assets/courses/menu-01.svg" alt="List" width={20} height={20} />
@@ -226,7 +229,7 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
       </div>
 
       {/* Grid/List Content */}
-      <div className={`flex flex-col gap-12 transition-opacity duration-300 ${isMounted ? 'opacity-100' : 'opacity-0'}`}>
+      <div className="flex flex-col gap-12 transition-opacity duration-300">
         <motion.div
           layout
           className={view === 'grid'

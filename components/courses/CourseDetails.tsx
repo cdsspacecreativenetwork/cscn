@@ -8,6 +8,7 @@ interface CourseDetailsProps {
   ratingAverage: number;
   ratingCount: number;
   price: string;
+  localizedPrice?: string | null;
   description: string;
   instructor: {
     name: string;
@@ -33,6 +34,7 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
   ratingAverage,
   ratingCount,
   price,
+  localizedPrice,
   description,
   instructor,
   requirements = [],
@@ -67,6 +69,9 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
           <div className="flex mlg:hidden flex-col justify-center gap-1">
             <span className="text-[12px] font-medium text-[#4B5563] tracking-[-0.12px] leading-normal">Price</span>
             <span className="text-[20px] font-semibold text-[#040B37] tracking-[-0.2px] leading-normal">{price}</span>
+            {localizedPrice && (
+              <span className="text-[11px] font-semibold text-[#6B7280] tracking-[-0.11px] leading-normal">{localizedPrice}</span>
+            )}
           </div>
         </div>
 
@@ -75,6 +80,9 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
           <div className="hidden mlg:flex flex-col justify-center gap-1">
             <span className="text-[12px] font-medium text-[#4B5563] tracking-[-0.12px] leading-normal">Price</span>
             <span className="text-[24px] font-semibold text-[#040B37] tracking-[-0.24px] leading-normal">{price}</span>
+            {localizedPrice && (
+              <span className="text-[11px] font-semibold text-[#6B7280] tracking-[-0.11px] leading-normal">{localizedPrice}</span>
+            )}
           </div>
 
           <div className="w-[1px] h-11 bg-[#C8D1E0] hidden mlg:block"></div>

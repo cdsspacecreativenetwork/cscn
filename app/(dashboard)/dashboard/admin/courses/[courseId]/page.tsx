@@ -56,13 +56,13 @@ export default async function AdminCourseDetailPage({ params, searchParams }: Pr
 
   return (
     <CourseStudio
-      course={course}
+      course={JSON.parse(JSON.stringify(course))}
       categories={categories.map((c) => ({ id: c.id, name: c.name }))}
       analytics={analytics}
       initialTab={tab ?? 'settings'}
       isAdmin={true}
       callerRole="OWNER"
-      latestReview={latestReview}
+      latestReview={JSON.parse(JSON.stringify(latestReview))}
       currentUserId={session.user.id}
       openFeedbackCount={openFeedbackCount}
       initialRosterData={JSON.parse(JSON.stringify(rosterData))}

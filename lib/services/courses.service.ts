@@ -1,5 +1,6 @@
 import {
   getPublishedCourses,
+  getFeaturedPublishedCourses,
   getCategories,
   getCourseBySlug,
   getUserEnrollment,
@@ -22,6 +23,10 @@ export { COURSES_PAGE_SIZE };
 
 export async function listCourses(page = 1, categorySlug?: string) {
   return getPublishedCourses(page, categorySlug);
+}
+
+export async function listFeaturedCourses(limit = 8) {
+  return getFeaturedPublishedCourses(limit);
 }
 
 export async function listCategories() {
@@ -60,7 +65,7 @@ export async function getCoursePreview(slug: string, userId: string, userRole?: 
         },
     select: {
       id: true, title: true, slug: true, description: true, shortDesc: true,
-      thumbnail: true, status: true, previewCount: true, includes: true,
+      thumbnail: true, promoVideo: true, status: true, previewCount: true, price: true, baseCurrency: true, includes: true,
       requirements: true,
       _count: { select: { enrollments: true } },
       instructor: { select: { name: true, image: true, headline: true } },
@@ -139,18 +144,20 @@ export async function getLessonAccess(lessonId: string, userId: string | undefin
 export async function completeLessonForUser(
   userId: string,
   lessonId: string
-): Promise<{ error?: string; newlyUnlockedAchievements?: any[] }> {
+): Promise<{ error?: string; newlyUnlockedAchievements?: unknown[] }> {
   const lesson = await db.lesson.findUnique({
     where: { id: lessonId },
     select: {
       id: true,
+      isPublished: true,
       module: {
-        select: { course: { select: { id: true, slug: true } } },
+        select: { isPublished: true, course: { select: { id: true, slug: true } } },
       },
     },
   });
 
   if (!lesson) return { error: "Lesson not found" };
+  if (!lesson.isPublished || !lesson.module.isPublished) return { error: "Lesson is not available yet" };
 
   const { id: courseId, slug: courseSlug } = lesson.module.course;
 
@@ -204,12 +211,12 @@ export async function completeLessonForUser(
 
   // Auto-complete enrollment when all lessons are done
   const [totalLessons, completedCount] = await Promise.all([
-    db.lesson.count({ where: { module: { courseId } } }),
+    db.lesson.count({ where: { isPublished: true, module: { courseId, isPublished: true } } }),
     db.lessonProgress.count({
       where: {
         userId,
         percentComplete: { gte: 100 },
-        lesson: { module: { courseId } },
+        lesson: { isPublished: true, module: { courseId, isPublished: true } },
       },
     }),
   ]);
@@ -233,6 +240,34 @@ export async function completeLessonForUser(
   return { newlyUnlockedAchievements };
 }
 
+const WATCH_SEGMENT_SECONDS = 30;
+const WATCH_HEARTBEAT_SECONDS = 15;
+
+async function recordLessonWatchSegment(userId: string, lessonId: string, currentTime: number) {
+  if (!Number.isFinite(currentTime) || currentTime < 0) return;
+
+  const segmentIndex = Math.max(0, Math.floor(currentTime / WATCH_SEGMENT_SECONDS));
+
+  await db.lessonWatchSegment.upsert({
+    where: {
+      lessonId_userId_segmentIndex: {
+        lessonId,
+        userId,
+        segmentIndex,
+      },
+    },
+    create: {
+      lessonId,
+      userId,
+      segmentIndex,
+      secondsWatched: WATCH_HEARTBEAT_SECONDS,
+    },
+    update: {
+      secondsWatched: { increment: WATCH_HEARTBEAT_SECONDS },
+    },
+  });
+}
+
 export async function updateLessonPlaybackProgress(
   userId: string,
   lessonId: string,
@@ -242,15 +277,17 @@ export async function updateLessonPlaybackProgress(
     where: { id: lessonId },
     select: {
       id: true,
+      isPublished: true,
       contentType: true,
       duration: true,
       module: {
-        select: { course: { select: { id: true } } },
+        select: { isPublished: true, course: { select: { id: true } } },
       },
     },
   });
 
   if (!lesson) return { error: "Lesson not found" };
+  if (!lesson.isPublished || !lesson.module.isPublished) return { error: "Lesson is not available yet" };
   if (lesson.contentType !== "VIDEO") return { error: "Playback progress is only available for video lessons." };
 
   const enrollment = await getUserEnrollment(userId, lesson.module.course.id);
@@ -262,6 +299,8 @@ export async function updateLessonPlaybackProgress(
   const safePercent = Number.isFinite(data.percentComplete)
     ? Math.min(100, Math.max(0, Math.round(data.percentComplete)))
     : 0;
+
+  await recordLessonWatchSegment(userId, lessonId, safeSeek);
 
   const existingProgress = await db.lessonProgress.findUnique({
     where: { userId_lessonId: { userId, lessonId } },

@@ -25,7 +25,7 @@ const DEFAULT_INSTRUCTORS: Instructor[] = [
   {
     name: 'Ayomide\nAjayi',
     role: 'Digital Designer',
-    image: '/assets/instructors/Frame 2147238910-3.svg',
+    image: '/assets/instructors/img.svg',
     slug: 'ayomide-ajayi',
   },
   {
@@ -37,7 +37,7 @@ const DEFAULT_INSTRUCTORS: Instructor[] = [
   {
     name: 'Baribor\nDuba',
     role: 'Product Designer',
-    image: '/assets/instructors/img.svg',
+    image: '/assets/instructors/img.png',
     slug: 'baribor-duba',
   }
 ];
@@ -51,7 +51,7 @@ export default function InstructorSection({ instructors = DEFAULT_INSTRUCTORS }:
       transition={{ duration: 0.8 }}
       className="py-24 bg-white overflow-hidden"
     >
-      <div className="mx-auto max-w-[1102px]">
+      <div className="mx-auto w-full max-w-[83rem] px-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
           <motion.h2 
             initial={{ opacity: 0, x: -20 }}

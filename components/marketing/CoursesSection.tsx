@@ -1,10 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
 import CourseCard, { type CourseCardProps } from '@/components/ui/CourseCard';
-import Button from '@/components/ui/Button';
-
 import { motion } from 'framer-motion';
 
 interface CoursesSectionProps {
@@ -17,7 +13,7 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
     count === 1 ? 'grid-cols-1 max-w-[300px] mx-auto' :
     count === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-[640px] mx-auto' :
     count === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-[960px] mx-auto' :
-    'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4';
+    'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   return (
     <motion.section
@@ -27,7 +23,7 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
       transition={{ duration: 0.8 }}
       className="py-25 bg-white overflow-hidden"
     >
-      <div className="mx-auto max-w-[1328px]">
+      <div className="mx-auto w-full max-w-[83rem] px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -39,7 +35,7 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
           </h2>
         </motion.div>
 
-        <div className={`grid gap-6 ${gridCols}`}>
+        <div className={`homepage-course-grid grid gap-6 ${gridCols}`}>
           {initialCourses.map((course, i) => (
             <motion.div 
               key={course.id}
@@ -48,7 +44,14 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
             >
-              <CourseCard {...course} showLevel={false} />
+              <CourseCard
+                {...course}
+                showMeta={false}
+                showRating={false}
+                showPrice={false}
+                thumbnailHover="out"
+                showLevel={false}
+              />
             </motion.div>
           ))}
         </div>
@@ -61,7 +64,7 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
           >
             <div className="text-4xl mb-4">🚀</div>
             <h3 className="text-xl font-bold text-navy mb-2">More courses coming soon!</h3>
-            <p className="text-text-mute">We're currently preparing new content.</p>
+            <p className="text-text-mute">We&apos;re currently preparing new content.</p>
           </motion.div>
         )}
       </div>

@@ -18,7 +18,7 @@ export default function BenefitSection() {
 
   return (
     <section className="py-24 bg-white overflow-hidden no-select" onContextMenu={handleContextMenu}>
-      <div className="">
+      <div className="mx-auto w-full max-w-[83rem] px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl lg:text-[3rem] font-semibold text-navy leading-[1.2] tracking-tight font-inter">
             One class can change <br className="hidden md:block" /> everything.
@@ -30,7 +30,7 @@ export default function BenefitSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="max-w-[1328px] mx-auto"
+          className="w-full"
         >
           <div className="flex flex-col lg:flex-row items-stretch justify-center gap-6">
             {/* Left Column Section */}

@@ -55,7 +55,7 @@ export default function CommunitySection({
       transition={{ duration: 0.8 }}
       className="py-24 bg-white overflow-hidden"
     >
-      <div className="max-w-[1200px] mx-auto px-4">
+      <div className="mx-auto w-full max-w-[83rem] px-4">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 md:mb-16 gap-6 md:gap-8 px-0">
           <div className="flex flex-col gap-4 md:gap-6 w-full lg:max-w-[650px]">

@@ -8,11 +8,15 @@ import { EnrollButton } from '@/components/courses/EnrollButton';
 import Link from 'next/link';
 import { generateTapbackAvatar } from '@/lib/avatar';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { getRequestCountry, localizePrice } from '@/lib/localization/pricing';
 
 interface Props {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ preview?: string }>;
 }
+
+type SessionUserWithRole = { role?: string };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -28,6 +32,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
   const { slug } = await params;
   const { preview } = await searchParams;
   const session = await auth();
+  const requestCountry = getRequestCountry(await headers());
 
   const isPreviewMode = preview === 'true';
 
@@ -37,8 +42,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
 
   if (isPreviewMode) {
     if (!session?.user?.id) redirect(`/signin?callbackUrl=/courses/${slug}?preview=true`);
-    // @ts-ignore
-    const userRole = session.user.role as string | undefined;
+    const userRole = (session.user as typeof session.user & SessionUserWithRole).role;
     const previewCourse = await getCoursePreview(slug, session.user.id, userRole);
     if (!previewCourse) notFound();
     course = previewCourse;
@@ -54,6 +58,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
   const userId = session?.user?.id;
 
   const firstLesson = course.modules[0]?.lessons[0];
+  const sessionRole = (session?.user as SessionUserWithRole | undefined)?.role;
 
   const courseModules = course.modules.map((mod, modIdx) => ({
     id: mod.id,
@@ -83,6 +88,12 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
 
   const toStringArray = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  const localizedPrice = await localizePrice({
+    amount: course.price ? Number(course.price) : null,
+    baseCurrency: course.baseCurrency,
+    countryCode: requestCountry.countryCode,
+    source: requestCountry.source,
+  });
 
   const enrollCta = enrollment ? (
     <div className="border border-[#648efc] p-[2px] rounded-full w-full mlg:w-auto">
@@ -117,8 +128,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
           Preview mode — this course is not yet visible to the public.{' '}
           <Link
             href={
-              // @ts-ignore
-              session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN'
+              sessionRole === 'ADMIN' || sessionRole === 'SUPER_ADMIN'
                 ? `/dashboard/admin/courses/${course!.id}`
                 : `/dashboard/instructor/courses/${course!.id}`
             }
@@ -133,8 +143,9 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
         courseDescription={course.shortDesc ?? course.description.slice(0, 200)}
         instructorName={course.instructor.name ?? 'CSCN Instructor'}
         instructorImage={instructorImage}
-        publishDate={new Date(course.modules[0]?.lessons[0]?.id ? Date.now() : Date.now()).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        publishDate="Available now"
         videoThumbnail={course.thumbnail ?? '/assets/default-course.jpg'}
+        videoUrl={course.promoVideo ?? undefined}
       />
 
       <div className="px-4 md:px-[clamp(20px,11.57vw,200px)] w-full flex justify-center">
@@ -152,7 +163,8 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
               enrolledCount={course._count.enrollments.toLocaleString()}
               ratingAverage={course.ratingAverage ?? 0}
               ratingCount={course.ratingCount ?? 0}
-              price="Free"
+              price={localizedPrice.baseLabel}
+              localizedPrice={localizedPrice.approximateLabel}
               description={course.description}
               instructor={{
                 name: course.instructor.name ?? 'CSCN Instructor',

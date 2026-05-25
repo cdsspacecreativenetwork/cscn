@@ -6,11 +6,19 @@ import Link from 'next/link';
 import {
   BookOpen, Users, Star, Search, ChevronDown,
   Eye, MoreHorizontal, CheckCircle2, XCircle,
-  AlertCircle, Archive, RotateCcw, Loader2,
-  GraduationCap, ClipboardList, Layers, Pencil,
+  AlertCircle, Archive, RotateCcw, Loader2, ArrowUp, ArrowDown,
+  GraduationCap, ClipboardList, Layers, Pencil, CreditCard,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { reviewCourseAction, toggleFeatureAction, adminArchiveCourseAction, adminRestoreCourseAction } from '@/actions/admin-courses';
+import {
+  reviewCourseAction,
+  toggleFeatureAction,
+  adminArchiveCourseAction,
+  adminRestoreCourseAction,
+  approvePricingProposalAction,
+  rejectPricingProposalAction,
+  reorderFeaturedCoursesAction,
+} from '@/actions/admin-courses';
 import InstructorCourseList from '@/components/dashboard/instructor/InstructorCourseList';
 import type { ReviewStatus } from '@prisma/client';
 
@@ -18,7 +26,7 @@ import type { ReviewStatus } from '@prisma/client';
 
 type CourseStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'PENDING_REVIEW';
 type Difficulty = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-type Tab = 'all' | 'review' | 'mine';
+type Tab = 'all' | 'review' | 'featured' | 'mine';
 
 interface AdminCourse {
   id: string;
@@ -31,7 +39,24 @@ interface AdminCourse {
   createdAt: string;
   updatedAt: string;
   instructorId: string;
-  instructor: { id: string; name: string | null; image: string | null };
+  instructor: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    payoutSetup?: boolean;
+    payoutDetails?: unknown;
+  };
+  price: number | null;
+  baseCurrency: string;
+  pricingProposal: {
+    id: string;
+    proposedPrice: number | null;
+    currentPriceSnapshot: number | null;
+    currency: string;
+    status: string;
+    createdAt: string;
+    submittedBy: { name: string | null; email: string };
+  } | null;
   category: string | null;
   enrollments: number;
   lessons: number;
@@ -40,6 +65,7 @@ interface AdminCourse {
 interface Props {
   courses: AdminCourse[];
   adminId: string;
+  permissions: { canManageCourses: boolean; canManageBilling: boolean };
   categories: { id: string; name: string }[];
 }
 
@@ -71,6 +97,27 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function formatPrice(value: number | null, currency = 'NGN'): string {
+  return value === null ? 'Free' : `${currency.toUpperCase()} ${value.toLocaleString()}`;
+}
+
+function getInstructorPayoutMeta(course: AdminCourse) {
+  const details = (course.instructor.payoutDetails || {}) as {
+    payoutCountry?: unknown;
+    preferredCurrency?: unknown;
+  };
+  const country =
+    typeof details.payoutCountry === 'string' && details.payoutCountry
+      ? details.payoutCountry
+      : 'Not set';
+  const currency =
+    typeof details.preferredCurrency === 'string' && details.preferredCurrency
+      ? details.preferredCurrency.toUpperCase()
+      : course.baseCurrency.toUpperCase();
+  const ready = Boolean(course.instructor.payoutSetup && country !== 'Not set' && currency);
+  return { country, currency, ready };
+}
+
 function InstructorAvatar({ instructor, size = 'sm' }: { instructor: AdminCourse['instructor']; size?: 'sm' | 'md' }) {
   const dim = size === 'md' ? 'w-8 h-8' : 'w-6 h-6';
   const text = size === 'md' ? 'text-xs' : 'text-[10px]';
@@ -92,8 +139,9 @@ function InstructorAvatar({ instructor, size = 'sm' }: { instructor: AdminCourse
 
 // ─── Card Action Menu (used in grid cards) ────────────────────────────────────
 
-function CardActionMenu({ course, onArchive, onRestore }: {
+function CardActionMenu({ course, canManageCourses, onArchive, onRestore }: {
   course: AdminCourse;
+  canManageCourses: boolean;
   onArchive: (id: string) => void;
   onRestore: (id: string) => void;
 }) {
@@ -135,21 +183,25 @@ function CardActionMenu({ course, onArchive, onRestore }: {
           >
             <Layers size={15} /> View Studio
           </Link>
-          <div className="my-1 border-t border-stroke" />
-          {course.status !== 'ARCHIVED' ? (
-            <button
-              onClick={() => { setOpen(false); onArchive(course.id); }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-amber-600 hover:bg-amber-50 transition-colors"
-            >
-              <Archive size={15} /> Archive
-            </button>
-          ) : (
-            <button
-              onClick={() => { setOpen(false); onRestore(course.id); }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-emerald-600 hover:bg-emerald-50 transition-colors"
-            >
-              <RotateCcw size={15} /> Restore
-            </button>
+          {canManageCourses && (
+            <>
+              <div className="my-1 border-t border-stroke" />
+              {course.status !== 'ARCHIVED' ? (
+                <button
+                  onClick={() => { setOpen(false); onArchive(course.id); }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-amber-600 hover:bg-amber-50 transition-colors"
+                >
+                  <Archive size={15} /> Archive
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setOpen(false); onRestore(course.id); }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-emerald-600 hover:bg-emerald-50 transition-colors"
+                >
+                  <RotateCcw size={15} /> Restore
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
@@ -159,8 +211,9 @@ function CardActionMenu({ course, onArchive, onRestore }: {
 
 // ─── Table Action Menu (used in list view) ────────────────────────────────────
 
-function TableActionMenu({ course, onArchive, onRestore }: {
+function TableActionMenu({ course, canManageCourses, onArchive, onRestore }: {
   course: AdminCourse;
+  canManageCourses: boolean;
   onArchive: (id: string) => void;
   onRestore: (id: string) => void;
 }) {
@@ -201,21 +254,25 @@ function TableActionMenu({ course, onArchive, onRestore }: {
           >
             <Layers size={14} /> View Studio
           </Link>
-          <div className="my-1 border-t border-stroke" />
-          {course.status !== 'ARCHIVED' ? (
-            <button
-              onClick={() => { setOpen(false); onArchive(course.id); }}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-amber-600 hover:bg-amber-50 transition-colors"
-            >
-              <Archive size={14} /> Archive
-            </button>
-          ) : (
-            <button
-              onClick={() => { setOpen(false); onRestore(course.id); }}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-emerald-600 hover:bg-emerald-50 transition-colors"
-            >
-              <RotateCcw size={14} /> Restore
-            </button>
+          {canManageCourses && (
+            <>
+              <div className="my-1 border-t border-stroke" />
+              {course.status !== 'ARCHIVED' ? (
+                <button
+                  onClick={() => { setOpen(false); onArchive(course.id); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-amber-600 hover:bg-amber-50 transition-colors"
+                >
+                  <Archive size={14} /> Archive
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setOpen(false); onRestore(course.id); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-emerald-600 hover:bg-emerald-50 transition-colors"
+                >
+                  <RotateCcw size={14} /> Restore
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
@@ -225,8 +282,9 @@ function TableActionMenu({ course, onArchive, onRestore }: {
 
 // ─── Grid Card ────────────────────────────────────────────────────────────────
 
-function AdminCourseCard({ course, onFeatureToggle, onArchive, onRestore }: {
+function AdminCourseCard({ course, canManageCourses, onFeatureToggle, onArchive, onRestore }: {
   course: AdminCourse;
+  canManageCourses: boolean;
   onFeatureToggle: (id: string, order: number | null) => void;
   onArchive: (id: string) => void;
   onRestore: (id: string) => void;
@@ -254,6 +312,7 @@ function AdminCourseCard({ course, onFeatureToggle, onArchive, onRestore }: {
 
       {/* Action buttons — overlaid on the top-right corner */}
       <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+        {canManageCourses && (
         <button
           onClick={() => onFeatureToggle(course.id, course.featuredOrder)}
           title={isFeatured ? `Featured #${course.featuredOrder} — click to remove` : 'Add to featured'}
@@ -265,7 +324,8 @@ function AdminCourseCard({ course, onFeatureToggle, onArchive, onRestore }: {
         >
           <Star size={15} fill={isFeatured ? 'currentColor' : 'none'} />
         </button>
-        <CardActionMenu course={course} onArchive={onArchive} onRestore={onRestore} />
+        )}
+        <CardActionMenu course={course} canManageCourses={canManageCourses} onArchive={onArchive} onRestore={onRestore} />
       </div>
 
       {/* Content */}
@@ -296,8 +356,9 @@ function AdminCourseCard({ course, onFeatureToggle, onArchive, onRestore }: {
 
 // ─── Table Row ────────────────────────────────────────────────────────────────
 
-function CourseRow({ course, onFeatureToggle, onArchive, onRestore }: {
+function CourseRow({ course, canManageCourses, onFeatureToggle, onArchive, onRestore }: {
   course: AdminCourse;
+  canManageCourses: boolean;
   onFeatureToggle: (id: string, order: number | null) => void;
   onArchive: (id: string) => void;
   onRestore: (id: string) => void;
@@ -353,16 +414,18 @@ function CourseRow({ course, onFeatureToggle, onArchive, onRestore }: {
         {relativeTime(course.updatedAt)}
       </td>
       <td className="py-4 pr-1">
-        <button
-          onClick={() => onFeatureToggle(course.id, course.featuredOrder)}
-          title={isFeatured ? `Featured #${course.featuredOrder}` : 'Add to featured'}
-          className={`p-1.5 rounded-lg transition-all ${isFeatured ? 'text-amber-400 hover:text-amber-500' : 'text-slate-300 hover:text-amber-400'}`}
-        >
-          <Star size={15} fill={isFeatured ? 'currentColor' : 'none'} />
-        </button>
+        {canManageCourses && (
+          <button
+            onClick={() => onFeatureToggle(course.id, course.featuredOrder)}
+            title={isFeatured ? `Featured #${course.featuredOrder}` : 'Add to featured'}
+            className={`p-1.5 rounded-lg transition-all ${isFeatured ? 'text-amber-400 hover:text-amber-500' : 'text-slate-300 hover:text-amber-400'}`}
+          >
+            <Star size={15} fill={isFeatured ? 'currentColor' : 'none'} />
+          </button>
+        )}
       </td>
       <td className="py-4 pr-4">
-        <TableActionMenu course={course} onArchive={onArchive} onRestore={onRestore} />
+        <TableActionMenu course={course} canManageCourses={canManageCourses} onArchive={onArchive} onRestore={onRestore} />
       </td>
     </tr>
   );
@@ -370,10 +433,26 @@ function CourseRow({ course, onFeatureToggle, onArchive, onRestore }: {
 
 // ─── Review Card ──────────────────────────────────────────────────────────────
 
-function ReviewCard({ course, onReviewDone }: { course: AdminCourse; onReviewDone: () => void }) {
+function ReviewCard({
+  course,
+  permissions,
+  onCourseReviewDone,
+  onPricingDone,
+}: {
+  course: AdminCourse;
+  permissions: Props['permissions'];
+  onCourseReviewDone: () => void;
+  onPricingDone: (approved: boolean) => void;
+}) {
   const [active, setActive] = useState<ReviewStatus | null>(null);
+  const [pricingDecision, setPricingDecision] = useState<'reject' | null>(null);
   const [comment, setComment] = useState('');
+  const [pricingNote, setPricingNote] = useState('');
   const [pending, startTransition] = useTransition();
+  const hasCourseReview = course.status === 'PENDING_REVIEW';
+  const hasPricingReview = course.pricingProposal?.status === 'PENDING';
+  const payoutMeta = getInstructorPayoutMeta(course);
+  const reviewCurrency = course.pricingProposal?.currency ?? course.baseCurrency;
 
   const handleConfirm = () => {
     if (!active) return;
@@ -385,7 +464,29 @@ function ReviewCard({ course, onReviewDone }: { course: AdminCourse; onReviewDon
         : active === 'CHANGES_REQUESTED' ? 'Changes requested.'
         : 'Course rejected.'
       );
-      onReviewDone();
+      onCourseReviewDone();
+    });
+  };
+
+  const handlePricingApprove = () => {
+    if (!course.pricingProposal) return;
+    startTransition(async () => {
+      const res = await approvePricingProposalAction(course.pricingProposal!.id);
+      if (res.error) { toast.error(res.error); return; }
+      toast.success('Pricing approved.');
+      onPricingDone(true);
+    });
+  };
+
+  const handlePricingReject = () => {
+    if (!course.pricingProposal) return;
+    startTransition(async () => {
+      const res = await rejectPricingProposalAction(course.pricingProposal!.id, pricingNote);
+      if (res.error) { toast.error(res.error); return; }
+      toast.success('Pricing proposal rejected.');
+      setPricingDecision(null);
+      setPricingNote('');
+      onPricingDone(false);
     });
   };
 
@@ -401,7 +502,7 @@ function ReviewCard({ course, onReviewDone }: { course: AdminCourse; onReviewDon
             </div>
           )}
           <span className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-            IN REVIEW
+            {hasCourseReview ? 'IN REVIEW' : 'PRICE REVIEW'}
           </span>
         </div>
 
@@ -418,33 +519,137 @@ function ReviewCard({ course, onReviewDone }: { course: AdminCourse; onReviewDon
               <span className="text-[11px] text-text-mute flex items-center gap-1">
                 <BookOpen size={11} /> {course.lessons} lessons
               </span>
+              <span className="text-[11px] text-text-mute flex items-center gap-1">
+                <CreditCard size={11} /> {formatPrice(course.price, course.baseCurrency)}
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {hasCourseReview && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                  <ClipboardList size={12} /> Content pending
+                </span>
+              )}
+              {hasPricingReview && course.pricingProposal && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1C4ED1]/20 bg-[#EEF3FF] px-2.5 py-1 text-[11px] font-bold text-[#1C4ED1]">
+                  <CreditCard size={12} />
+                  Price: {formatPrice(course.pricingProposal.proposedPrice, reviewCurrency)}
+                </span>
+              )}
+              {hasPricingReview && (
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                    payoutMeta.ready
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}
+                >
+                  {payoutMeta.ready ? 'Payout ready' : 'Payout incomplete'}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="flex items-center justify-between mt-3 flex-wrap gap-3">
             <span className="text-[11px] text-text-mute">Updated {relativeTime(course.updatedAt)}</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               <Link
                 href={`/dashboard/admin/courses/${course.id}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stroke bg-white text-[12px] font-semibold text-navy hover:bg-background hover:border-primary/30 transition-all"
               >
                 <Pencil size={12} /> Edit
               </Link>
-              {(Object.entries(REVIEW_CONFIG) as [ReviewStatus, typeof REVIEW_CONFIG[ReviewStatus]][]).map(([key, cfg]) => (
-                <button
-                  key={key}
-                  onClick={() => setActive((v) => (v === key ? null : key))}
-                  disabled={pending}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-semibold transition-all disabled:opacity-50
-                    ${active === key ? 'ring-2 ring-offset-1 ring-current' : ''} ${cfg.classes}`}
-                >
-                  {cfg.icon} {cfg.label}
-                </button>
-              ))}
+              {hasCourseReview && permissions.canManageCourses && (
+                <div className="flex items-center gap-1.5 rounded-[10px] border border-stroke bg-[#FAFBFF] p-1">
+                  <span className="px-2 text-[10px] font-bold uppercase tracking-wide text-text-mute">
+                    Content
+                  </span>
+                  {(Object.entries(REVIEW_CONFIG) as [ReviewStatus, typeof REVIEW_CONFIG[ReviewStatus]][]).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      onClick={() => { setPricingDecision(null); setActive((v) => (v === key ? null : key)); }}
+                      disabled={pending || (key === 'APPROVED' && hasPricingReview)}
+                      title={key === 'APPROVED' && hasPricingReview ? 'Resolve the pending price before publishing.' : undefined}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border bg-white text-[12px] font-semibold transition-all disabled:opacity-50
+                        ${active === key ? 'ring-2 ring-offset-1 ring-current' : ''} ${cfg.classes}`}
+                    >
+                      {cfg.icon} {cfg.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {hasPricingReview && permissions.canManageBilling && (
+                <div className="flex items-center gap-1.5 rounded-[10px] border border-[#1C4ED1]/15 bg-[#F8FAFF] p-1">
+                  <span className="px-2 text-[10px] font-bold uppercase tracking-wide text-[#1C4ED1]">
+                    Pricing
+                  </span>
+                  <button
+                    onClick={handlePricingApprove}
+                    disabled={pending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-emerald-200 bg-white text-[12px] font-semibold text-emerald-700 hover:bg-emerald-50 transition-all disabled:opacity-50"
+                  >
+                    <CheckCircle2 size={14} /> Approve Price
+                  </button>
+                  <button
+                    onClick={() => { setActive(null); setPricingDecision((v) => (v === 'reject' ? null : 'reject')); }}
+                    disabled={pending}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-red-200 bg-white text-[12px] font-semibold text-red-600 hover:bg-red-50 transition-all disabled:opacity-50 ${
+                      pricingDecision === 'reject' ? 'ring-2 ring-offset-1 ring-red-500' : ''
+                    }`}
+                  >
+                    <XCircle size={14} /> Reject Price
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {hasPricingReview && course.pricingProposal && (
+        <details className="border-t border-stroke bg-[#FAFBFF] px-6 py-3">
+          <summary className="cursor-pointer select-none text-[12px] font-bold uppercase tracking-wide text-[#1C4ED1]">
+            Pricing details
+          </summary>
+          <div className="mt-3 grid gap-2 text-[12px] font-medium text-text-body sm:grid-cols-2 lg:grid-cols-4">
+            <span>Current: <strong className="text-navy">{formatPrice(course.pricingProposal.currentPriceSnapshot, reviewCurrency)}</strong></span>
+            <span>Proposed: <strong className="text-navy">{formatPrice(course.pricingProposal.proposedPrice, reviewCurrency)}</strong></span>
+            <span>Instructor region: <strong className="text-navy">{payoutMeta.country}</strong></span>
+            <span>Payout currency: <strong className="text-navy">{payoutMeta.currency}</strong></span>
+          </div>
+        </details>
+      )}
+
+      {pricingDecision === 'reject' && (
+        <div className="border-t border-stroke px-6 py-4 bg-[#FAFBFF] space-y-3">
+          <label className="text-[12px] font-semibold text-navy uppercase tracking-wide">
+            Rejection note for pricing
+          </label>
+          <textarea
+            value={pricingNote}
+            onChange={(e) => setPricingNote(e.target.value)}
+            placeholder="Example: Please adjust the launch price or explain the premium positioning."
+            rows={2}
+            className="w-full px-4 py-3 text-sm text-navy border border-stroke bg-white rounded-[8px] resize-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-text-mute transition-all"
+          />
+          <div className="flex items-center justify-end gap-2.5">
+            <button
+              onClick={() => { setPricingDecision(null); setPricingNote(''); }}
+              disabled={pending}
+              className="px-4 py-2 text-sm font-medium text-text-body hover:text-navy border border-stroke rounded-[8px] hover:bg-background transition-all disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handlePricingReject}
+              disabled={pending}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-[8px] bg-red-600 hover:bg-red-700 transition-all disabled:opacity-60"
+            >
+              {pending ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+              Reject Pricing
+            </button>
+          </div>
+        </div>
+      )}
 
       {active && (
         <div className="border-t border-stroke px-6 py-4 bg-[#FAFBFF] space-y-3">
@@ -489,20 +694,19 @@ function ReviewCard({ course, onReviewDone }: { course: AdminCourse; onReviewDon
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function AdminCourseList({ courses: initialCourses, adminId, categories }: Props) {
+export default function AdminCourseList({ courses: initialCourses, adminId, permissions, categories }: Props) {
   const [courses, setCourses] = useState(initialCourses);
   const [activeTab, setActiveTab] = useState<Tab>('all');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<CourseStatus | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [view, setView] = useState<'grid' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'grid';
+    const saved = window.localStorage.getItem('admin-course-view');
+    return saved === 'grid' || saved === 'list' ? saved : 'grid';
+  });
   const [featurePending, startFeature] = useTransition();
   const [archivePending, startArchive] = useTransition();
-
-  useEffect(() => {
-    const saved = localStorage.getItem('admin-course-view');
-    if (saved === 'grid' || saved === 'list') setView(saved);
-  }, []);
 
   const handleViewChange = (v: 'grid' | 'list') => {
     setView(v);
@@ -512,16 +716,26 @@ export default function AdminCourseList({ courses: initialCourses, adminId, cate
   const stats = useMemo(() => ({
     total: courses.length,
     published: courses.filter((c) => c.status === 'PUBLISHED').length,
-    pendingReview: courses.filter((c) => c.status === 'PENDING_REVIEW').length,
+    pendingReview: courses.filter((c) => c.status === 'PENDING_REVIEW' || c.pricingProposal?.status === 'PENDING').length,
     featured: courses.filter((c) => c.featuredOrder !== null).length,
   }), [courses]);
 
   const myCourses = useMemo(() => courses.filter((c) => c.instructorId === adminId), [courses, adminId]);
-  const reviewQueue = useMemo(() => courses.filter((c) => c.status === 'PENDING_REVIEW'), [courses]);
+  const reviewQueue = useMemo(
+    () => courses.filter((c) => c.status === 'PENDING_REVIEW' || c.pricingProposal?.status === 'PENDING'),
+    [courses]
+  );
+  const featuredCourses = useMemo(
+    () =>
+      courses
+        .filter((c) => c.featuredOrder !== null)
+        .sort((a, b) => (a.featuredOrder ?? 999) - (b.featuredOrder ?? 999)),
+    [courses]
+  );
 
   const filteredAll = useMemo(() => {
-    // PENDING_REVIEW courses live exclusively in the Review Queue tab
-    let list = courses.filter((c) => c.status !== 'PENDING_REVIEW');
+    // Course and pricing reviews live exclusively in the Review Queue tab
+    let list = courses.filter((c) => c.status !== 'PENDING_REVIEW' && c.pricingProposal?.status !== 'PENDING');
     if (statusFilter !== 'ALL') list = list.filter((c) => c.status === statusFilter);
     if (categoryFilter) list = list.filter((c) => c.category === categoryFilter);
     if (search.trim()) {
@@ -550,6 +764,34 @@ export default function AdminCourseList({ courses: initialCourses, adminId, cate
     });
   };
 
+  const handleFeaturedMove = (courseId: string, direction: -1 | 1) => {
+    const currentIndex = featuredCourses.findIndex((course) => course.id === courseId);
+    const targetIndex = currentIndex + direction;
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= featuredCourses.length) return;
+
+    const nextFeatured = [...featuredCourses];
+    const [moved] = nextFeatured.splice(currentIndex, 1);
+    nextFeatured.splice(targetIndex, 0, moved);
+    const orderedIds = nextFeatured.map((course) => course.id);
+
+    setCourses((prev) =>
+      prev.map((course) => {
+        const nextIndex = orderedIds.indexOf(course.id);
+        return nextIndex === -1 ? course : { ...course, featuredOrder: nextIndex + 1 };
+      })
+    );
+
+    startFeature(async () => {
+      const res = await reorderFeaturedCoursesAction(orderedIds);
+      if (res.error) {
+        toast.error(res.error);
+        setCourses(initialCourses);
+        return;
+      }
+      toast.success('Featured order updated.');
+    });
+  };
+
   const handleArchive = (id: string) => {
     startArchive(async () => {
       const res = await adminArchiveCourseAction(id);
@@ -571,6 +813,7 @@ export default function AdminCourseList({ courses: initialCourses, adminId, cate
   const tabs: { id: Tab; label: string; count: number; accent?: string }[] = [
     { id: 'all',    label: 'All Courses',  count: courses.length },
     { id: 'review', label: 'Review Queue', count: stats.pendingReview, accent: stats.pendingReview > 0 ? 'amber' : undefined },
+    { id: 'featured', label: 'Featured', count: stats.featured },
     { id: 'mine',   label: 'My Courses',   count: myCourses.length },
   ];
 
@@ -694,9 +937,102 @@ export default function AdminCourseList({ courses: initialCourses, adminId, cate
                 <ReviewCard
                   key={course.id}
                   course={course}
-                  onReviewDone={() => setCourses((prev) => prev.filter((c) => c.id !== course.id))}
+                  permissions={permissions}
+                  onCourseReviewDone={() => setCourses((prev) => prev.filter((c) => c.id !== course.id))}
+                  onPricingDone={(approved) =>
+                    setCourses((prev) =>
+                      prev.map((c) =>
+                        c.id === course.id
+                          ? {
+                              ...c,
+                              price: approved ? course.pricingProposal?.proposedPrice ?? c.price : c.price,
+                              baseCurrency: approved ? course.pricingProposal?.currency ?? c.baseCurrency : c.baseCurrency,
+                              pricingProposal: null,
+                            }
+                          : c
+                      )
+                    )
+                  }
                 />
               ))
+            )}
+          </div>
+        )}
+
+        {/* ── Featured Courses Tab ── */}
+        {activeTab === 'featured' && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[#D8E0EE] bg-white p-5">
+              <h2 className="text-[18px] font-bold text-navy">Homepage Featured Courses</h2>
+              <p className="mt-1 text-sm font-medium text-text-mute">
+                The homepage shows featured published courses in this order. Use the star on any course card to add or remove it.
+              </p>
+            </div>
+
+            {featuredCourses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 gap-3 rounded-2xl border border-stroke bg-white">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Star size={26} className="text-primary" />
+                </div>
+                <p className="font-semibold text-navy">No featured courses yet</p>
+                <p className="text-sm text-text-mute">Go to All Courses and click the star on a published course.</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-stroke bg-white overflow-hidden">
+                {featuredCourses.map((course, index) => (
+                  <div key={course.id} className="flex items-center gap-4 border-b border-stroke last:border-0 p-4">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-black text-primary">
+                      {index + 1}
+                    </div>
+                    <div className="relative h-16 w-24 overflow-hidden rounded-[8px] bg-background shrink-0">
+                      {course.thumbnail ? (
+                        <Image src={course.thumbnail} alt={course.title} fill className="object-cover" unoptimized />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
+                          <BookOpen size={18} className="text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-navy">{course.title}</p>
+                      <p className="mt-0.5 text-xs font-medium text-text-mute">
+                        {course.category ?? 'Uncategorized'} · {course.status}
+                      </p>
+                    </div>
+                    {permissions.canManageCourses && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={index === 0 || featurePending}
+                          onClick={() => handleFeaturedMove(course.id, -1)}
+                          className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-stroke text-navy transition-colors hover:bg-background disabled:opacity-40"
+                          title="Move up"
+                        >
+                          <ArrowUp size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={index === featuredCourses.length - 1 || featurePending}
+                          onClick={() => handleFeaturedMove(course.id, 1)}
+                          className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-stroke text-navy transition-colors hover:bg-background disabled:opacity-40"
+                          title="Move down"
+                        >
+                          <ArrowDown size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={featurePending}
+                          onClick={() => handleFeatureToggle(course.id, course.featuredOrder)}
+                          className="flex h-9 items-center gap-2 rounded-[8px] border border-red-200 px-3 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
+                        >
+                          <XCircle size={14} />
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -794,6 +1130,7 @@ export default function AdminCourseList({ courses: initialCourses, adminId, cate
                   <AdminCourseCard
                     key={course.id}
                     course={course}
+                    canManageCourses={permissions.canManageCourses}
                     onFeatureToggle={handleFeatureToggle}
                     onArchive={handleArchive}
                     onRestore={handleRestore}
@@ -824,6 +1161,7 @@ export default function AdminCourseList({ courses: initialCourses, adminId, cate
                         <CourseRow
                           key={course.id}
                           course={course}
+                          canManageCourses={permissions.canManageCourses}
                           onFeatureToggle={handleFeatureToggle}
                           onArchive={handleArchive}
                           onRestore={handleRestore}

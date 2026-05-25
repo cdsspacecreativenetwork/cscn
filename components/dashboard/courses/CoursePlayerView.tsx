@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { CourseHeader } from './CourseHeader';
 import { VideoPlayer } from './VideoPlayer';
 import { TranscriptSidebar } from './TranscriptSidebar';
@@ -7,6 +8,7 @@ import { CourseTabs } from './CourseTabs';
 import { CourseContentSidebar } from './CourseContentSidebar';
 import { CourseRatingPanel } from './CourseRatingPanel';
 import { ArticleContent } from './ArticleContent';
+import { LessonNotesPanel } from './LessonNotesPanel';
 import type { SidebarModule, PlayerLesson } from '@/types/player';
 
 function ArticleReader({ title, body }: { title: string; body: string | null }) {
@@ -75,6 +77,25 @@ export const CoursePlayerView = ({
   ratingSummary,
   userRating,
 }: CoursePlayerViewProps) => {
+  const [currentPlaybackTime, setCurrentPlaybackTime] = useState(lesson.progress?.lastSeekTime ?? 0);
+  const [seekRequest, setSeekRequest] = useState<{ id: number; seconds: number } | null>(null);
+  const canWriteNotes = canWatch && isEnrolled && !isPreviewMode;
+
+  const handleSeekToNote = (seconds: number) => {
+    setCurrentPlaybackTime(seconds);
+    setSeekRequest({ id: Date.now(), seconds });
+  };
+
+  const notesPanel = (
+    <LessonNotesPanel
+      lessonId={lesson.id}
+      initialNotes={lesson.notes}
+      currentTime={currentPlaybackTime}
+      canWrite={canWriteNotes}
+      onSeek={handleSeekToNote}
+    />
+  );
+
   return (
     <div className="p-6 lg:p-10 flex flex-col gap-8 max-w-[1728px] mx-auto w-full overflow-x-hidden font-jakarta">
       {isPreviewMode && (
@@ -115,7 +136,10 @@ export const CoursePlayerView = ({
               videoUrl={lesson.videoUrl}
               muxPlaybackId={lesson.muxPlaybackId}
               muxToken={lesson.muxToken}
+              timestamps={lesson.timestamps}
               initialProgress={lesson.progress}
+              seekRequest={seekRequest}
+              onPlaybackTimeChange={setCurrentPlaybackTime}
               canWatch={canWatch}
               isAuthenticated={isAuthenticated}
               isEnrolled={isEnrolled}
@@ -125,16 +149,18 @@ export const CoursePlayerView = ({
           )}
         </div>
         {lesson.contentType === 'VIDEO' ? (
-          <div className="w-full lg:w-[28%] min-w-[300px]">
+          <div className="flex w-full min-w-[300px] flex-col gap-4 lg:w-[28%]">
             <TranscriptSidebar transcript={lesson.transcript} />
+            {notesPanel}
           </div>
         ) : (
-          <div className="w-full lg:w-[28%] min-w-[300px]">
+          <div className="flex w-full min-w-[300px] flex-col gap-4 lg:w-[28%]">
             <CourseContentSidebar
               modules={modules}
               courseSlug={courseSlug}
               currentLessonId={lesson.id}
             />
+            {notesPanel}
           </div>
         )}
       </div>

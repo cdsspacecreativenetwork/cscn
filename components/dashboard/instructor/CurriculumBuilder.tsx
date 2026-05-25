@@ -11,11 +11,12 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
   GripVertical, Plus, ChevronDown, ChevronRight,
-  Video, Lock, Eye, Trash2, Pencil, X, AlertTriangle,
+  Video, Lock, Eye, Trash2, Pencil, X, AlertTriangle, BadgeCheck, BadgeX,
 } from 'lucide-react';
 import {
   createModuleAction, updateModuleAction, deleteModuleAction, reorderModulesAction,
   createLessonAction, reorderLessonsAction, deleteLessonAction, moveAndReorderLessonsAction,
+  updateLessonPublishStateAction, updateModulePublishStateAction,
 } from '@/actions/instructor';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
@@ -25,14 +26,14 @@ import { LessonTypeIcon } from '@/components/dashboard/courses/LessonTypeIcon';
 interface Lesson {
   id: string; title: string; position: number;
   videoUrl: string | null; duration: number | null;
-  isPreview: boolean; transcript: string | null;
+  isPublished: boolean; isPreview: boolean; transcript: string | null;
   bodyContent: string | null;
   contentType: string;
   resources: { id: string; title: string; url: string; type: string }[];
   muxStatus: string;
   muxPlaybackId: string | null;
 }
-interface Module { id: string; title: string; position: number; lessons: Lesson[] }
+interface Module { id: string; title: string; position: number; isPublished: boolean; lessons: Lesson[] }
 
 interface Props { courseId: string; courseTitle: string; courseSlug: string; initialModules: Module[]; isAdmin?: boolean; isLocked?: boolean }
 
@@ -92,9 +93,11 @@ function ConfirmModal({
 function SortableLesson({
   lesson, isSelected, isReadOnly,
   onSelect, onDelete,
+  onPublishToggle,
 }: {
   lesson: Lesson; isSelected: boolean; isReadOnly: boolean;
   onSelect: () => void; onDelete: () => void;
+  onPublishToggle: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: lesson.id, disabled: isReadOnly });
@@ -125,11 +128,27 @@ function SortableLesson({
         {lesson.title}
       </span>
       <div className="flex items-center gap-1 shrink-0">
+        <span className={`hidden 2xl:inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+          lesson.isPublished ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+        }`}>
+          {lesson.isPublished ? 'Live' : 'Draft'}
+        </span>
         {lesson.isPreview
           ? <Eye size={12} className="text-primary/60" aria-label="Preview" />
           : <Lock size={12} className="text-text-mute/50" aria-label="Locked" />
         }
         {lesson.duration && <span className="text-[11px] text-text-mute">{lesson.duration}m</span>}
+        {!isReadOnly && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onPublishToggle(); }}
+            className={`p-1 transition-colors rounded ml-1 ${
+              lesson.isPublished ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-600 hover:bg-amber-50'
+            }`}
+            title={lesson.isPublished ? 'Move lesson to draft' : 'Publish lesson'}
+          >
+            {lesson.isPublished ? <BadgeCheck size={12} /> : <BadgeX size={12} />}
+          </button>
+        )}
         {!isReadOnly && (
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
@@ -149,6 +168,7 @@ function SortableModule({
   mod, courseId, selectedId, isReadOnly,
   onSelectLesson, onLessonDelete,
   onModuleRename, onModuleDelete, onAddLesson,
+  onModulePublishToggle, onLessonPublishToggle,
 }: {
   mod: Module; courseId: string; selectedId: string | null; isReadOnly: boolean;
   onSelectLesson: (l: Lesson) => void;
@@ -156,6 +176,8 @@ function SortableModule({
   onModuleRename: (moduleId: string, title: string) => void;
   onModuleDelete: (moduleId: string) => void;
   onAddLesson: (moduleId: string) => void;
+  onModulePublishToggle: (moduleId: string, isPublished: boolean) => void;
+  onLessonPublishToggle: (lessonId: string, isPublished: boolean) => void;
 }) {
   const [open, setOpen] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -205,6 +227,22 @@ function SortableModule({
         )}
 
         <span className="text-[11px] text-text-mute shrink-0 ml-1">{mod.lessons.length} lessons</span>
+        <span className={`hidden 2xl:inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+          mod.isPublished ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+        }`}>
+          {mod.isPublished ? 'Live' : 'Draft'}
+        </span>
+        {!isReadOnly && (
+          <button
+            onClick={() => onModulePublishToggle(mod.id, !mod.isPublished)}
+            className={`p-1.5 rounded transition-colors shrink-0 ${
+              mod.isPublished ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-600 hover:bg-amber-50'
+            }`}
+            title={mod.isPublished ? 'Move module to draft' : 'Publish module'}
+          >
+            {mod.isPublished ? <BadgeCheck size={13} /> : <BadgeX size={13} />}
+          </button>
+        )}
         {!isReadOnly && (
           <button onClick={() => setEditing(true)} className="p-1.5 text-text-mute hover:text-primary rounded transition-colors shrink-0">
             <Pencil size={13} />
@@ -229,6 +267,7 @@ function SortableModule({
                 isReadOnly={isReadOnly}
                 onSelect={() => onSelectLesson(lesson)}
                 onDelete={() => onLessonDelete(lesson.id, mod.id)}
+                onPublishToggle={() => onLessonPublishToggle(lesson.id, !lesson.isPublished)}
               />
             ))}
           </SortableContext>
@@ -408,6 +447,7 @@ export default function CurriculumBuilder({ courseId, courseTitle, courseSlug, i
       id: tempId,
       title: newTitle,
       position: modules.length + 1,
+      isPublished: false,
       lessons: [],
     };
 
@@ -432,6 +472,7 @@ export default function CurriculumBuilder({ courseId, courseTitle, courseSlug, i
       id: tempId,
       title: newTitle,
       position: (modules.find((m) => m.id === moduleId)?.lessons.length ?? 0) + 1,
+      isPublished: false,
       isPreview: false,
       duration: null,
       videoUrl: null,
@@ -475,6 +516,26 @@ export default function CurriculumBuilder({ courseId, courseTitle, courseSlug, i
         setSelectedLesson((current) => current?.id === tempId ? null : current);
         toast.error('Failed to add lesson.');
       });
+  };
+
+  const handleLessonPublishToggle = (lessonId: string, isPublished: boolean) => {
+    setModules((prev) =>
+      prev.map((m) => ({
+        ...m,
+        lessons: m.lessons.map((l) => (l.id === lessonId ? { ...l, isPublished } : l)),
+      }))
+    );
+    setSelectedLesson((current) => current?.id === lessonId ? { ...current, isPublished } : current);
+    updateLessonPublishStateAction(lessonId, courseId, isPublished)
+      .then(() => toast.success(isPublished ? 'Lesson published.' : 'Lesson moved to draft.'))
+      .catch(() => toast.error('Failed to update lesson visibility.'));
+  };
+
+  const handleModulePublishToggle = (moduleId: string, isPublished: boolean) => {
+    setModules((prev) => prev.map((m) => (m.id === moduleId ? { ...m, isPublished } : m)));
+    updateModulePublishStateAction(moduleId, courseId, isPublished)
+      .then(() => toast.success(isPublished ? 'Module published.' : 'Module moved to draft.'))
+      .catch(() => toast.error('Failed to update module visibility.'));
   };
 
   const handleModuleRename = (moduleId: string, title: string) => {
@@ -586,6 +647,8 @@ export default function CurriculumBuilder({ courseId, courseTitle, courseSlug, i
                     onModuleRename={handleModuleRename}
                     onModuleDelete={handleModuleDelete}
                     onAddLesson={handleAddLesson}
+                    onModulePublishToggle={handleModulePublishToggle}
+                    onLessonPublishToggle={handleLessonPublishToggle}
                   />
                 ))}
               </SortableContext>

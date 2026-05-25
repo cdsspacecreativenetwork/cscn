@@ -106,7 +106,7 @@ export default function ReviewsSection() {
           100% { transform: translateY(0); }
         }
       `}} />
-      <div className="max-w-[1200px] mx-auto px-4">
+      <div className="mx-auto w-full max-w-[83rem] px-4">
         <div className="flex flex-col items-center text-center mb-16 gap-4">
           <h2 className="text-[48px] font-semibold text-[#040B37] leading-[1.24] tracking-tight font-inter">
             Discover your next skill

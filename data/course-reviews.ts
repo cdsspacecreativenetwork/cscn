@@ -31,19 +31,45 @@ export async function submitCourseReview(
 ) {
   const reviewer = await db.user.findUnique({
     where: { id: reviewerId },
-    select: { role: true },
+    select: { role: true, canManageCourses: true },
   });
   if (!reviewer || (reviewer.role !== "ADMIN" && reviewer.role !== "SUPER_ADMIN")) {
     throw new Error("Only admins can review courses.");
   }
+  if (reviewer.role !== "SUPER_ADMIN" && !reviewer.canManageCourses) {
+    throw new Error("You do not have permission to approve courses.");
+  }
 
   const course = await db.course.findUnique({
     where: { id: courseId },
-    select: { title: true, instructorId: true, status: true },
+    select: {
+      title: true,
+      instructorId: true,
+      status: true,
+      price: true,
+      instructor: { select: { payoutSetup: true, payoutDetails: true } },
+    },
   });
   if (!course) throw new Error("Course not found.");
   if (course.status !== "PENDING_REVIEW") {
     throw new Error("Only courses pending review can be reviewed.");
+  }
+
+  if (status === "APPROVED") {
+    const pendingPricing = await db.coursePricingProposal.findFirst({
+      where: { courseId, status: "PENDING" },
+      select: { id: true },
+    });
+    if (pendingPricing) {
+      throw new Error("Approve or reject the pending course price before publishing this course.");
+    }
+
+    if (course.price && Number(course.price) > 0) {
+      const payoutDetails = (course.instructor.payoutDetails as { payoutCountry?: unknown; preferredCurrency?: unknown }) || {};
+      if (!course.instructor.payoutSetup || !payoutDetails.payoutCountry || !payoutDetails.preferredCurrency) {
+        throw new Error("Complete the instructor payout region and payout setup before publishing a paid course.");
+      }
+    }
   }
 
   const newCourseStatus = REVIEW_TO_COURSE_STATUS[status];

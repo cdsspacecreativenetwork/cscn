@@ -12,6 +12,10 @@ export default async function AdminCoursesPage() {
 
   const { role, id: adminId } = session.user;
   if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') redirect('/dashboard');
+  const adminPermissions = session.user as typeof session.user & {
+    canManageCourses?: boolean;
+    canManageBilling?: boolean;
+  };
 
   const [rawCourses, categories] = await Promise.all([
     getAllCoursesAdmin(adminId),
@@ -33,6 +37,19 @@ export default async function AdminCoursesPage() {
     updatedAt: c.updatedAt.toISOString(),
     instructorId: c.instructorId,
     instructor: c.instructor,
+    price: c.price ? Number(c.price) : null,
+    baseCurrency: c.baseCurrency,
+    pricingProposal: c.pricingProposals[0]
+      ? {
+          id: c.pricingProposals[0].id,
+          proposedPrice: c.pricingProposals[0].proposedPrice ? Number(c.pricingProposals[0].proposedPrice) : null,
+          currentPriceSnapshot: c.pricingProposals[0].currentPriceSnapshot ? Number(c.pricingProposals[0].currentPriceSnapshot) : null,
+          currency: c.pricingProposals[0].currency,
+          status: c.pricingProposals[0].status,
+          createdAt: c.pricingProposals[0].createdAt.toISOString(),
+          submittedBy: c.pricingProposals[0].submittedBy,
+        }
+      : null,
     category: c.category?.name ?? null,
     enrollments: c._count.enrollments,
     lessons: totalLessons(c),
@@ -43,6 +60,10 @@ export default async function AdminCoursesPage() {
       <AdminCourseList
         courses={courses}
         adminId={adminId}
+        permissions={{
+          canManageCourses: role === 'SUPER_ADMIN' || Boolean(adminPermissions.canManageCourses),
+          canManageBilling: role === 'SUPER_ADMIN' || Boolean(adminPermissions.canManageBilling),
+        }}
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
       />
     </div>

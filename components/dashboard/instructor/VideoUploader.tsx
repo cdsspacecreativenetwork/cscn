@@ -115,8 +115,6 @@ export default function VideoUploader({
     if (file) handleFile(file);
   };
 
-                  console.log("🚀 ~ VideoUploader ~ playbackId:", playbackId)
-                  console.log("🚀 ~ VideoUploader ~ previewToken:", previewToken)
   return (
     <>
       {/* Preview modal */}

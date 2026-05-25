@@ -1,9 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import {
-  getLessonAccess,
-  getPlayerData,
-  getCourseDetail,
   enrollUser,
 } from '@/lib/services/courses.service';
 import { CoursePlayerView } from '@/components/dashboard/courses/CoursePlayerView';
@@ -17,12 +14,36 @@ interface Props {
   searchParams: Promise<{ autoEnroll?: string }>;
 }
 
+function normalizeTimestamps(value: unknown): Array<{ time: string; label: string }> {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const record = item as Record<string, unknown>;
+      const time = typeof record.time === 'string' ? record.time : '';
+      const label = typeof record.label === 'string' ? record.label : '';
+      return time && label ? { time, label } : null;
+    })
+    .filter((item): item is { time: string; label: string } => !!item);
+}
+
+function getVideoTimestamps(bodyContent: string | null) {
+  if (!bodyContent) return [];
+  try {
+    const parsed = JSON.parse(bodyContent) as { timestamps?: unknown };
+    return normalizeTimestamps(parsed.timestamps);
+  } catch {
+    return [];
+  }
+}
+
 function buildSidebarModules(
   modules: Array<{
     id: string;
     title: string;
     position: number;
-    lessons: Array<{ id: string; title: string; duration: number | null; contentType: string; isPreview: boolean }>;
+    isPublished: boolean;
+    lessons: Array<{ id: string; title: string; duration: number | null; contentType: string; isPreview: boolean; isPublished: boolean }>;
   }>,
   isEnrolled: boolean,
   currentLessonId: string,
@@ -80,6 +101,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
           id: true,
           title: true,
           position: true,
+          isPublished: true,
           lessons: {
             orderBy: { position: "asc" },
             select: {
@@ -88,6 +110,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
               duration: true,
               contentType: true,
               isPreview: true,
+              isPublished: true,
             },
           },
         },
@@ -120,6 +143,15 @@ export default async function WatchPage({ params, searchParams }: Props) {
 
   // Security: non-creators/non-admins cannot access draft courses!
   if (courseDetail.status !== 'PUBLISHED' && !isAuthorizedPreview) {
+    notFound();
+  }
+
+  const currentModule = courseDetail.modules.find((mod) =>
+    mod.lessons.some((moduleLesson) => moduleLesson.id === lessonId)
+  );
+  const currentLessonShell = currentModule?.lessons.find((moduleLesson) => moduleLesson.id === lessonId);
+  if (!currentModule || !currentLessonShell) notFound();
+  if (!isAuthorizedPreview && (!currentModule.isPublished || !currentLessonShell.isPublished || !lesson.isPublished)) {
     notFound();
   }
 
@@ -171,9 +203,18 @@ export default async function WatchPage({ params, searchParams }: Props) {
   const isEnrolled = !!enrollment;
   const isAuthenticated = !!userId;
   const canWatch = lesson.isPreview || isEnrolled || isAuthorizedPreview;
+  const visibleModules = isAuthorizedPreview
+    ? courseDetail.modules
+    : courseDetail.modules
+        .filter((mod) => mod.isPublished)
+        .map((mod) => ({
+          ...mod,
+          lessons: mod.lessons.filter((moduleLesson) => moduleLesson.isPublished),
+        }))
+        .filter((mod) => mod.lessons.length > 0);
 
   const sidebarModules = buildSidebarModules(
-    courseDetail.modules,
+    visibleModules,
     isEnrolled,
     lessonId,
     completedSet,
@@ -194,6 +235,20 @@ export default async function WatchPage({ params, searchParams }: Props) {
     userId ? getUserCourseRating(courseDetail.id, userId) : Promise.resolve(null),
   ]);
 
+  const lessonNotes = userId && canWatch && isEnrolled && !isAuthorizedPreview
+    ? await db.lessonNote.findMany({
+        where: { userId, lessonId },
+        orderBy: [{ timestamp: "asc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          body: true,
+          timestamp: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+    : [];
+
   // Generate signed Mux playback token (RS256) scoped to this lesson's duration
   let muxToken: string | null = null;
   if (canWatch && lesson.muxPlaybackId) {
@@ -206,6 +261,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
     videoUrl: canWatch ? lesson.videoUrl : null,
     muxPlaybackId: canWatch ? lesson.muxPlaybackId ?? null : null,
     muxToken,
+    timestamps: canWatch ? getVideoTimestamps(lesson.bodyContent) : [],
     duration: lesson.duration,
     transcript: canWatch ? lesson.transcript : null,
     bodyContent: canWatch ? lesson.bodyContent : null,
@@ -225,6 +281,13 @@ export default async function WatchPage({ params, searchParams }: Props) {
           type: r.type,
         }))
       : [],
+    notes: lessonNotes.map((note) => ({
+      id: note.id,
+      body: note.body,
+      timestamp: note.timestamp,
+      createdAt: note.createdAt.toISOString(),
+      updatedAt: note.updatedAt.toISOString(),
+    })),
   };
 
   return (

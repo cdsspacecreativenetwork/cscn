@@ -8,6 +8,8 @@ type DbPublicCourse = {
   thumbnail: string | null;
   difficulty: string;
   previewCount: number;
+  price: unknown;
+  baseCurrency: string;
   category: { name: string; slug: string } | null;
   instructor: {
     id: string;
@@ -21,7 +23,10 @@ type DbPublicCourse = {
   ratingCount?: number;
 };
 
-export function toCardProps(course: DbPublicCourse): CourseCardProps {
+export function toCardProps(
+  course: DbPublicCourse,
+  priceLabels?: { baseLabel: string; approximateLabel: string | null }
+): CourseCardProps {
   const totalLessons = course.modules.reduce(
     (sum, m) => sum + m._count.lessons,
     0
@@ -42,5 +47,7 @@ export function toCardProps(course: DbPublicCourse): CourseCardProps {
     rating: course.ratingAverage && course.ratingAverage > 0 ? course.ratingAverage : 0,
     reviews: course.ratingCount ?? 0,
     level: course.difficulty.charAt(0) + course.difficulty.slice(1).toLowerCase(),
+    priceLabel: priceLabels?.baseLabel,
+    localizedPriceLabel: priceLabels?.approximateLabel ?? undefined,
   };
 }

@@ -88,6 +88,8 @@ export const updatePayoutSettings = async (data: {
   }
 
   const existingDetails = (dbUser.payoutDetails as any) || {};
+  const payoutCountry = String(data.payoutDetails?.payoutCountry ?? existingDetails.payoutCountry ?? "NG");
+  const preferredCurrency = String(data.payoutDetails?.preferredCurrency ?? existingDetails.preferredCurrency ?? "NGN");
 
   await db.user.update({
     where: { id: dbUser.id },
@@ -97,6 +99,8 @@ export const updatePayoutSettings = async (data: {
       payoutDetails: {
         ...existingDetails,
         ...data.payoutDetails,
+        payoutCountry,
+        preferredCurrency,
       },
     }
   });

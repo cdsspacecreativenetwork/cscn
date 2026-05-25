@@ -52,13 +52,13 @@ export default async function CourseStudioPage({ params, searchParams }: Props) 
 
   return (
     <CourseStudio
-      course={course}
+      course={JSON.parse(JSON.stringify(course))}
       categories={categories.map((c) => ({ id: c.id, name: c.name }))}
       analytics={analytics}
       initialTab={tab ?? 'settings'}
       isAdmin={isAdmin}
       callerRole={callerRole}
-      latestReview={latestReview}
+      latestReview={JSON.parse(JSON.stringify(latestReview))}
       currentUserId={session.user.id}
       openFeedbackCount={openFeedbackCount}
       initialRosterData={JSON.parse(JSON.stringify(rosterData))}

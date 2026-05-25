@@ -38,6 +38,8 @@ model User {
   taughtCourses     Course[]             @relation("InstructorCourses")
   enrollments       Enrollment[]
   progress          LessonProgress[]
+  lessonNotes       LessonNote[]
+  watchSegments     LessonWatchSegment[]
   courseInstructors CourseInstructor[]
   notifications     Notification[]
   courseReviews     CourseReview[]
@@ -45,6 +47,8 @@ model User {
   dailyActivities   DailyActivity[]
   ratings           CourseRating[]
   examAttempts      ExamAttempt[]
+  pricingProposals  CoursePricingProposal[] @relation("PricingProposalSubmitter")
+  reviewedPricingProposals CoursePricingProposal[] @relation("PricingProposalReviewer")
 
   // Streak & Gamification relations
   currentStreak     Int                 @default(0)
@@ -173,6 +177,7 @@ model Course {
   status       CourseStatus @default(DRAFT)
   previewCount Int          @default(1)
   price        Decimal?     @db.Decimal(10, 2)
+  baseCurrency String       @default("NGN")
   duration     Int? // total minutes, computed on publish
   requirements Json? // String[] — what students need before starting
   includes     Json? // String[] — what the course provides (video hours, cert, etc.)
@@ -199,6 +204,7 @@ model Course {
   reviews       CourseReview[]
   feedbackItems CourseFeedbackItem[]
   ratings       CourseRating[]
+  pricingProposals CoursePricingProposal[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -241,6 +247,8 @@ model Lesson {
 
   resources LessonResource[]
   progress  LessonProgress[]
+  notes     LessonNote[]
+  watchSegments LessonWatchSegment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -320,6 +328,67 @@ enum EnrollmentStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+model LessonNote {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  body      String   @db.Text
+  timestamp Float?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, lessonId])
+  @@index([lessonId])
+}
+
+model LessonWatchSegment {
+  id             String   @id @default(cuid())
+  userId         String
+  lessonId       String
+  segmentIndex   Int
+  secondsWatched Int      @default(0)
+  lastSeenAt     DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson         Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, userId, segmentIndex])
+  @@index([lessonId, segmentIndex])
+  @@index([userId])
+}
+
+model CoursePricingProposal {
+  id                   String                @id @default(cuid())
+  courseId             String
+  proposedPrice        Decimal?              @db.Decimal(10, 2)
+  currentPriceSnapshot Decimal?              @db.Decimal(10, 2)
+  currency             String                @default("NGN")
+  status               PricingProposalStatus @default(PENDING)
+  submittedById        String
+  reviewedById         String?
+  adminNote            String?               @db.Text
+  reviewedAt           DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submittedBy User   @relation("PricingProposalSubmitter", fields: [submittedById], references: [id])
+  reviewedBy  User?  @relation("PricingProposalReviewer", fields: [reviewedById], references: [id])
+
+  @@index([courseId])
+  @@index([status])
+  @@index([submittedById])
+}
+
+enum PricingProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum MuxVideoStatus {

@@ -5,6 +5,19 @@ export interface PlayerResource {
   type: string;
 }
 
+export interface PlayerTimestamp {
+  time: string;
+  label: string;
+}
+
+export interface PlayerNote {
+  id: string;
+  body: string;
+  timestamp: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SidebarLesson {
   id: string;
   title: string;
@@ -29,6 +42,7 @@ export interface PlayerLesson {
   videoUrl: string | null;
   muxPlaybackId: string | null;
   muxToken: string | null;
+  timestamps: PlayerTimestamp[];
   duration: number | null;
   transcript: string | null;
   bodyContent: string | null;
@@ -39,4 +53,5 @@ export interface PlayerLesson {
     isCompleted: boolean;
   } | null;
   resources: PlayerResource[];
+  notes: PlayerNote[];
 }

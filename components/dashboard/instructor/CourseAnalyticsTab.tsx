@@ -15,6 +15,12 @@ interface AnalyticsData {
   completionRate: number;
   lessonCompletions: { lessonId: string; title: string; moduleTitle: string; count: number }[];
   enrollmentsOverTime: { date: string; count: number }[];
+  watchDropOff: {
+    lessonId: string;
+    title: string;
+    moduleTitle: string;
+    segments: { segmentIndex: number; label: string; viewers: number; secondsWatched: number }[];
+  }[];
 }
 
 interface Props {
@@ -94,6 +100,10 @@ export default function CourseAnalyticsTab({ courseId, data }: Props) {
     .slice(0, 10);
 
   const chartData = analytics.enrollmentsOverTime.filter((_, i) => i % 3 === 0 || i === analytics.enrollmentsOverTime.length - 1);
+  const watchLesson = [...(analytics.watchDropOff ?? [])]
+    .sort((a, b) => b.segments.reduce((sum, item) => sum + item.viewers, 0) - a.segments.reduce((sum, item) => sum + item.viewers, 0))
+    .find((lesson) => lesson.segments.length > 0);
+  const watchData = watchLesson?.segments.slice(0, 20) ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -152,6 +162,40 @@ export default function CourseAnalyticsTab({ courseId, data }: Props) {
           </ResponsiveContainer>
         </div>
       )}
+
+      <div className="bg-white rounded-2xl border border-stroke p-6">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-navy">Video Watch Drop-off</h3>
+            <p className="mt-1 text-xs font-medium text-text-mute">
+              30-second viewer buckets from playback heartbeats.
+            </p>
+          </div>
+          {watchLesson && (
+            <span className="rounded-[8px] bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+              {watchLesson.title}
+            </span>
+          )}
+        </div>
+        {!watchLesson ? (
+          <div className="flex items-center justify-center rounded-[8px] bg-background py-12 text-sm font-medium text-text-mute">
+            Watch data will appear after enrolled learners play video lessons.
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={watchData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E3E8F4" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9CA3AF' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{ borderRadius: '12px', border: '1px solid #E3E8F4', fontSize: 12 }}
+                formatter={(value, name) => [value, name === 'viewers' ? 'Viewers' : name]}
+              />
+              <Bar dataKey="viewers" fill="#1C4ED1" radius={[6, 6, 0, 0]} name="Viewers" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 export async function getCourseAnalyticsAdmin(courseId: string) {
-  const [enrollments, lessonProgressRows, lessons] = await Promise.all([
+  const [enrollments, lessonProgressRows, lessons, watchSegments] = await Promise.all([
     db.enrollment.findMany({
       where: { courseId },
       select: { status: true, enrolledAt: true },
@@ -17,7 +17,14 @@ export async function getCourseAnalyticsAdmin(courseId: string) {
     db.lesson.findMany({
       where: { module: { courseId } },
       orderBy: [{ module: { position: "asc" } }, { position: "asc" }],
-      select: { id: true, title: true, module: { select: { title: true } } },
+      select: { id: true, title: true, contentType: true, module: { select: { title: true } } },
+    }),
+    db.lessonWatchSegment.groupBy({
+      by: ["lessonId", "segmentIndex"],
+      where: { lesson: { module: { courseId } } },
+      _count: { userId: true },
+      _sum: { secondsWatched: true },
+      orderBy: [{ lessonId: "asc" }, { segmentIndex: "asc" }],
     }),
   ]);
 
@@ -55,6 +62,30 @@ export async function getCourseAnalyticsAdmin(courseId: string) {
     count,
   }));
 
+  const watchSegmentMap = new Map<string, { segmentIndex: number; label: string; viewers: number; secondsWatched: number }[]>();
+  for (const segment of watchSegments) {
+    const startSeconds = segment.segmentIndex * 30;
+    const endSeconds = startSeconds + 30;
+    const label = `${Math.floor(startSeconds / 60)}:${String(startSeconds % 60).padStart(2, "0")}-${Math.floor(endSeconds / 60)}:${String(endSeconds % 60).padStart(2, "0")}`;
+    const current = watchSegmentMap.get(segment.lessonId) ?? [];
+    current.push({
+      segmentIndex: segment.segmentIndex,
+      label,
+      viewers: segment._count.userId,
+      secondsWatched: segment._sum.secondsWatched ?? 0,
+    });
+    watchSegmentMap.set(segment.lessonId, current);
+  }
+
+  const watchDropOff = lessons
+    .filter((lesson) => lesson.contentType === "VIDEO")
+    .map((lesson) => ({
+      lessonId: lesson.id,
+      title: lesson.title,
+      moduleTitle: lesson.module.title,
+      segments: watchSegmentMap.get(lesson.id) ?? [],
+    }));
+
   return {
     totalEnrollments,
     activeEnrollments,
@@ -62,6 +93,7 @@ export async function getCourseAnalyticsAdmin(courseId: string) {
     completionRate,
     lessonCompletions,
     enrollmentsOverTime,
+    watchDropOff,
   };
 }
 
@@ -85,7 +117,23 @@ export async function getAllCoursesAdmin(adminId: string) {
       createdAt: true,
       updatedAt: true,
       instructorId: true,
-      instructor: { select: { id: true, name: true, image: true } },
+      instructor: { select: { id: true, name: true, image: true, payoutSetup: true, payoutDetails: true } },
+      price: true,
+      baseCurrency: true,
+      pricingProposals: {
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          proposedPrice: true,
+          currentPriceSnapshot: true,
+          currency: true,
+          status: true,
+          createdAt: true,
+          submittedBy: { select: { name: true, email: true } },
+        },
+      },
       category: { select: { name: true } },
       _count: { select: { enrollments: true } },
       modules: { select: { _count: { select: { lessons: true } } } },
@@ -99,10 +147,31 @@ import { checkAndAwardAchievements } from "@/lib/services/achievements.service";
 export async function adminToggleCoursePublish(courseId: string) {
   const course = await db.course.findUnique({
     where: { id: courseId },
-    select: { status: true, instructorId: true },
+    select: {
+      status: true,
+      instructorId: true,
+      price: true,
+      instructor: { select: { payoutSetup: true, payoutDetails: true } },
+      pricingProposals: {
+        where: { status: "PENDING" },
+        select: { id: true },
+        take: 1,
+      },
+    },
   });
   if (!course) throw new Error("Not found");
   const newStatus = course.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+
+  if (newStatus === "PUBLISHED" && course.pricingProposals.length > 0) {
+    throw new Error("Approve or reject the pending course price before publishing this course.");
+  }
+
+  if (newStatus === "PUBLISHED" && course.price && Number(course.price) > 0) {
+    const payoutDetails = (course.instructor.payoutDetails as { payoutCountry?: unknown; preferredCurrency?: unknown }) || {};
+    if (!course.instructor.payoutSetup || !payoutDetails.payoutCountry || !payoutDetails.preferredCurrency) {
+      throw new Error("Complete the instructor payout region and payout setup before publishing a paid course.");
+    }
+  }
   
   const updated = await db.course.update({
     where: { id: courseId },
@@ -132,6 +201,7 @@ export async function getStudioCourseAdmin(courseId: string) {
       description: true,
       shortDesc: true,
       thumbnail: true,
+      promoVideo: true,
       difficulty: true,
       status: true,
       previewCount: true,
@@ -143,6 +213,22 @@ export async function getStudioCourseAdmin(courseId: string) {
       metaTitle: true,
       metaDescription: true,
       price: true,
+      baseCurrency: true,
+      instructor: { select: { payoutDetails: true } },
+      pricingProposals: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          proposedPrice: true,
+          currentPriceSnapshot: true,
+          currency: true,
+          status: true,
+          adminNote: true,
+          createdAt: true,
+          reviewedAt: true,
+        },
+      },
       finalExamId: true,
       modules: {
         orderBy: { position: "asc" },
@@ -150,6 +236,7 @@ export async function getStudioCourseAdmin(courseId: string) {
           id: true,
           title: true,
           position: true,
+          isPublished: true,
           lessons: {
             orderBy: { position: "asc" },
             select: {
@@ -158,6 +245,7 @@ export async function getStudioCourseAdmin(courseId: string) {
               position: true,
               videoUrl: true,
               duration: true,
+              isPublished: true,
               isPreview: true,
               transcript: true,
               bodyContent: true,

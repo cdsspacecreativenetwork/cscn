@@ -107,6 +107,7 @@ export async function getStudioCourse(courseId: string, userId: string) {
       description: true,
       shortDesc: true,
       thumbnail: true,
+      promoVideo: true,
       difficulty: true,
       status: true,
       previewCount: true,
@@ -118,6 +119,22 @@ export async function getStudioCourse(courseId: string, userId: string) {
       metaTitle: true,
       metaDescription: true,
       price: true,
+      baseCurrency: true,
+      instructor: { select: { payoutDetails: true } },
+      pricingProposals: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          proposedPrice: true,
+          currentPriceSnapshot: true,
+          currency: true,
+          status: true,
+          adminNote: true,
+          createdAt: true,
+          reviewedAt: true,
+        },
+      },
       finalExamId: true,
       modules: {
         orderBy: { position: "asc" },
@@ -125,6 +142,7 @@ export async function getStudioCourse(courseId: string, userId: string) {
           id: true,
           title: true,
           position: true,
+          isPublished: true,
           lessons: {
             orderBy: { position: "asc" },
             select: {
@@ -133,6 +151,7 @@ export async function getStudioCourse(courseId: string, userId: string) {
               position: true,
               videoUrl: true,
               duration: true,
+              isPublished: true,
               isPreview: true,
               transcript: true,
               bodyContent: true,
@@ -152,11 +171,86 @@ export async function getStudioCourse(courseId: string, userId: string) {
 
 // ── Analytics ────────────────────────────────────────────────────────────────
 
+function normalizePrice(value: number | null | undefined) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error("Enter a valid course price.");
+  }
+  return Number(value.toFixed(2));
+}
+
+function decimalToNumber(value: unknown) {
+  if (value === null || value === undefined) return null;
+  return Number(value);
+}
+
+function getPreferredCurrency(payoutDetails: unknown, fallback = "NGN") {
+  const details = (payoutDetails as { preferredCurrency?: unknown }) || {};
+  const currency = typeof details.preferredCurrency === "string" ? details.preferredCurrency : fallback;
+  return currency.toUpperCase();
+}
+
+async function submitCoursePricingProposal(
+  courseId: string,
+  userId: string,
+  proposedPrice: number | null
+) {
+  await requireCourseAccess(courseId, userId, "OWNER");
+
+  const course = await db.course.findUnique({
+    where: { id: courseId },
+    select: {
+      price: true,
+      baseCurrency: true,
+      instructor: { select: { payoutDetails: true } },
+    },
+  });
+  if (!course) throw new Error("Course not found");
+  const currency = getPreferredCurrency(course.instructor.payoutDetails, course.baseCurrency);
+
+  const currentPrice = decimalToNumber(course.price);
+  if ((currentPrice ?? null) === (proposedPrice ?? null)) {
+    return null;
+  }
+
+  const existingPending = await db.coursePricingProposal.findFirst({
+    where: { courseId, status: "PENDING" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+
+  if (existingPending) {
+    return db.coursePricingProposal.update({
+      where: { id: existingPending.id },
+      data: {
+        proposedPrice,
+        currentPriceSnapshot: course.price,
+        currency,
+        submittedById: userId,
+        adminNote: null,
+      },
+      select: { id: true },
+    });
+  }
+
+  return db.coursePricingProposal.create({
+    data: {
+      courseId,
+      proposedPrice,
+      currentPriceSnapshot: course.price,
+      currency,
+      submittedById: userId,
+    },
+    select: { id: true },
+  });
+}
+
 export async function getCourseAnalytics(courseId: string, userId: string) {
   const role = await getCourseRole(courseId, userId);
   if (!role) return null;
 
-  const [enrollments, lessonProgressRows, lessons] = await Promise.all([
+  const [enrollments, lessonProgressRows, lessons, watchSegments] = await Promise.all([
     db.enrollment.findMany({
       where: { courseId },
       select: { status: true, enrolledAt: true },
@@ -172,7 +266,14 @@ export async function getCourseAnalytics(courseId: string, userId: string) {
     db.lesson.findMany({
       where: { module: { courseId } },
       orderBy: [{ module: { position: "asc" } }, { position: "asc" }],
-      select: { id: true, title: true, module: { select: { title: true } } },
+      select: { id: true, title: true, contentType: true, module: { select: { title: true } } },
+    }),
+    db.lessonWatchSegment.groupBy({
+      by: ["lessonId", "segmentIndex"],
+      where: { lesson: { module: { courseId } } },
+      _count: { userId: true },
+      _sum: { secondsWatched: true },
+      orderBy: [{ lessonId: "asc" }, { segmentIndex: "asc" }],
     }),
   ]);
 
@@ -210,6 +311,30 @@ export async function getCourseAnalytics(courseId: string, userId: string) {
     count,
   }));
 
+  const watchSegmentMap = new Map<string, { segmentIndex: number; label: string; viewers: number; secondsWatched: number }[]>();
+  for (const segment of watchSegments) {
+    const startSeconds = segment.segmentIndex * 30;
+    const endSeconds = startSeconds + 30;
+    const label = `${Math.floor(startSeconds / 60)}:${String(startSeconds % 60).padStart(2, "0")}-${Math.floor(endSeconds / 60)}:${String(endSeconds % 60).padStart(2, "0")}`;
+    const current = watchSegmentMap.get(segment.lessonId) ?? [];
+    current.push({
+      segmentIndex: segment.segmentIndex,
+      label,
+      viewers: segment._count.userId,
+      secondsWatched: segment._sum.secondsWatched ?? 0,
+    });
+    watchSegmentMap.set(segment.lessonId, current);
+  }
+
+  const watchDropOff = lessons
+    .filter((lesson) => lesson.contentType === "VIDEO")
+    .map((lesson) => ({
+      lessonId: lesson.id,
+      title: lesson.title,
+      moduleTitle: lesson.module.title,
+      segments: watchSegmentMap.get(lesson.id) ?? [],
+    }));
+
   return {
     totalEnrollments,
     activeEnrollments,
@@ -217,6 +342,7 @@ export async function getCourseAnalytics(courseId: string, userId: string) {
     completionRate,
     lessonCompletions,
     enrollmentsOverTime,
+    watchDropOff,
   };
 }
 
@@ -241,6 +367,12 @@ export async function createCourse(
     slug = `${base}-${attempt}`;
   }
 
+  const owner = await db.user.findUnique({
+    where: { id: userId },
+    select: { payoutDetails: true },
+  });
+  const baseCurrency = getPreferredCurrency(owner?.payoutDetails);
+
   const course = await db.course.create({
     data: {
       title: data.title,
@@ -249,6 +381,7 @@ export async function createCourse(
       difficulty: data.difficulty ?? "BEGINNER",
       categoryId: data.categoryId ?? null,
       instructorId: userId,
+      baseCurrency,
       status: "DRAFT",
     },
     select: { id: true, slug: true },
@@ -270,6 +403,7 @@ export async function updateCourseSettings(
     shortDesc?: string;
     description?: string;
     thumbnail?: string;
+    promoVideo?: string | null;
     difficulty?: Difficulty;
     categoryId?: string | null;
     previewCount?: number;
@@ -284,16 +418,24 @@ export async function updateCourseSettings(
   }
 ) {
   await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
-  return db.course.update({
+  const { price, ...settingsData } = data;
+  const normalizedPrice = normalizePrice(price);
+  const pricingProposal =
+    normalizedPrice !== undefined
+      ? await submitCoursePricingProposal(courseId, userId, normalizedPrice)
+      : null;
+
+  const course = await db.course.update({
     where: { id: courseId },
     data: {
-      ...data,
-      requirements: data.requirements ?? undefined,
-      includes: data.includes ?? undefined,
-      price: data.price !== undefined ? data.price : undefined,
-      finalExamId: data.finalExamId !== undefined ? data.finalExamId : undefined,
+      ...settingsData,
+      requirements: settingsData.requirements ?? undefined,
+      includes: settingsData.includes ?? undefined,
+      finalExamId: settingsData.finalExamId !== undefined ? settingsData.finalExamId : undefined,
     },
   });
+
+  return { course, pricingProposal };
 }
 
 // OWNER only
@@ -322,14 +464,26 @@ export async function deleteCourse(courseId: string, userId: string) {
 
 export async function createModule(courseId: string, userId: string, title: string) {
   await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
-  const last = await db.module.findFirst({
-    where: { courseId },
-    orderBy: { position: "desc" },
-    select: { position: true },
-  });
+  const [course, last] = await Promise.all([
+    db.course.findUnique({
+      where: { id: courseId },
+      select: { status: true },
+    }),
+    db.module.findFirst({
+      where: { courseId },
+      orderBy: { position: "desc" },
+      select: { position: true },
+    }),
+  ]);
+  if (!course) throw new Error("Course not found");
   const mod = await db.module.create({
-    data: { title, courseId, position: (last?.position ?? 0) + 1 },
-    select: { id: true, title: true, position: true },
+    data: {
+      title,
+      courseId,
+      position: (last?.position ?? 0) + 1,
+      isPublished: course.status !== "PUBLISHED",
+    },
+    select: { id: true, title: true, position: true, isPublished: true },
   });
   return { ...mod, lessons: [] as never[] };
 }
@@ -372,7 +526,7 @@ export async function reorderModules(
 export async function createLesson(moduleId: string, userId: string, title: string) {
   const mod = await db.module.findUnique({
     where: { id: moduleId },
-    select: { courseId: true },
+    select: { courseId: true, course: { select: { status: true } } },
   });
   if (!mod) throw new Error("Module not found");
   await requireCourseAccess(mod.courseId, userId, "CO_INSTRUCTOR");
@@ -383,15 +537,48 @@ export async function createLesson(moduleId: string, userId: string, title: stri
     select: { position: true },
   });
   const lesson = await db.lesson.create({
-    data: { title, moduleId, position: (last?.position ?? 0) + 1 },
+    data: {
+      title,
+      moduleId,
+      position: (last?.position ?? 0) + 1,
+      isPublished: mod.course.status !== "PUBLISHED",
+    },
     select: {
-      id: true, title: true, position: true, isPreview: true,
+      id: true, title: true, position: true, isPublished: true, isPreview: true,
       duration: true, videoUrl: true, contentType: true, transcript: true,
       bodyContent: true,
       muxStatus: true, muxPlaybackId: true,
     },
   });
   return { ...lesson, resources: [] as { id: string; title: string; url: string; type: string }[] };
+}
+
+export async function updateLessonPublishState(lessonId: string, userId: string, isPublished: boolean) {
+  const lesson = await db.lesson.findUnique({
+    where: { id: lessonId },
+    select: { module: { select: { courseId: true } } },
+  });
+  if (!lesson) throw new Error("Lesson not found");
+  await requireCourseAccess(lesson.module.courseId, userId, "CO_INSTRUCTOR");
+  return db.lesson.update({
+    where: { id: lessonId },
+    data: { isPublished },
+    select: { id: true, isPublished: true },
+  });
+}
+
+export async function updateModulePublishState(moduleId: string, userId: string, isPublished: boolean) {
+  const mod = await db.module.findUnique({
+    where: { id: moduleId },
+    select: { courseId: true },
+  });
+  if (!mod) throw new Error("Module not found");
+  await requireCourseAccess(mod.courseId, userId, "CO_INSTRUCTOR");
+  return db.module.update({
+    where: { id: moduleId },
+    data: { isPublished },
+    select: { id: true, isPublished: true },
+  });
 }
 
 export async function updateLesson(

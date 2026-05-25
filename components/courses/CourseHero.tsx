@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 
 interface CourseHeroProps {
@@ -11,6 +11,18 @@ interface CourseHeroProps {
   publishDate: string;
   videoThumbnail: string;
   videoUrl?: string;
+}
+
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
 }
 
 export const CourseHero: React.FC<CourseHeroProps> = ({
@@ -25,6 +37,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const youtubeId = extractYouTubeId(videoUrl);
 
   const togglePlay = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -59,17 +72,27 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
     <div className="bg-[#040B37] w-full px-[clamp(16px,5vw,200px)] py-[clamp(16px,2vw,24px)] relative overflow-hidden">
       {/* Video Frame */}
       <div className="relative w-full aspect-video md:h-[clamp(400px,46.3vw,800px)] border-[clamp(2px,0.46vw,8px)] border-[#0E1648] rounded-[clamp(12px,1.39vw,24px)] overflow-hidden bg-black group shadow-2xl">
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          poster={videoThumbnail}
-          className="w-full h-full object-cover cursor-pointer"
-          onEnded={() => setIsPlaying(false)}
-          onClick={() => togglePlay()}
-        />
+        {youtubeId ? (
+          <iframe
+            src={`https://www.youtube.com/embed/${youtubeId}?rel=0&modestbranding=1`}
+            title={courseTitle}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="absolute inset-0 h-full w-full"
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            poster={videoThumbnail}
+            className="w-full h-full object-cover cursor-pointer"
+            onEnded={() => setIsPlaying(false)}
+            onClick={() => togglePlay()}
+          />
+        )}
 
         {/* Content Overlay Card - Only visible on Tablet/Desktop when not playing */}
-        {!isPlaying && (
+        {!isPlaying && !youtubeId && (
           <div className="hidden md:block absolute left-[clamp(20px,2.78vw,48px)] bottom-[clamp(40px,5.56vw,96px)] w-full max-w-[280px] mlg:max-w-[clamp(300px,28.07vw,485px)] backdrop-blur-md bg-[rgba(0,0,0,0.64)] p-4 mlg:p-[clamp(16px,1.39vw,24px)] rounded-[16px] border border-white/10 z-10 transition-opacity duration-500">
             <h1 className="text-[16px] mlg:text-[clamp(20px,1.85vw,32px)] font-bold text-white tracking-tight leading-[1.24] mb-3 mlg:mb-6">
               {courseTitle}
@@ -106,6 +129,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
         )}
 
         {/* Video Control Pill - Scaled for screens */}
+        {!youtubeId && (
         <div
           onClick={(e) => e.stopPropagation()}
           className={`absolute bottom-4 md:bottom-6 lg:bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-[6px] md:gap-[5px] lg:gap-[10px] bg-[rgba(0,0,0,0.48)] backdrop-blur-xl p-[3px] md:p-[2px] rounded-[100px] shadow-[0_4px_30px_rgba(0,0,0,0.5)] z-20 transition-all duration-300 ${!isPlaying ? 'hidden md:flex' : 'flex'
@@ -138,21 +162,27 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
 
           {/* Right Controls */}
           <div className="flex items-center gap-[2px] md:gap-[5px] lg:gap-[10px]">
-            {[
-              { icon: 'volume.svg', action: toggleMute, active: isMuted },
-              { icon: 'fullscreen.svg', action: toggleFullscreen },
-              { icon: 'settings.svg', action: () => { } }
-            ].map((ctrl, i) => (
-              <button
-                key={i}
-                onClick={ctrl.action}
-                className={`w-[28px] h-[28px] md:w-[36px] lg:w-[56px] h-[28px] md:h-[36px] lg:h-[56px] flex items-center justify-center bg-[rgba(0,0,0,0.2)] hover:bg-white/10 rounded-[100px] transition-all relative group/ctrl cursor-pointer ${ctrl.active ? 'opacity-40' : 'opacity-100'}`}
-              >
-                <Image src={`/assets/video-controls/${ctrl.icon}`} alt="" fill className="object-contain" />
-              </button>
-            ))}
+            <button
+              onClick={toggleMute}
+              className={`w-[28px] h-[28px] md:w-[36px] lg:w-[56px] h-[28px] md:h-[36px] lg:h-[56px] flex items-center justify-center bg-[rgba(0,0,0,0.2)] hover:bg-white/10 rounded-[100px] transition-all relative group/ctrl cursor-pointer ${isMuted ? 'opacity-40' : 'opacity-100'}`}
+            >
+              <Image src="/assets/video-controls/volume.svg" alt="" fill className="object-contain" />
+            </button>
+            <button
+              onClick={toggleFullscreen}
+              className="w-[28px] h-[28px] md:w-[36px] lg:w-[56px] h-[28px] md:h-[36px] lg:h-[56px] flex items-center justify-center bg-[rgba(0,0,0,0.2)] hover:bg-white/10 rounded-[100px] transition-all relative group/ctrl cursor-pointer"
+            >
+              <Image src="/assets/video-controls/fullscreen.svg" alt="" fill className="object-contain" />
+            </button>
+            <button
+              type="button"
+              className="w-[28px] h-[28px] md:w-[36px] lg:w-[56px] h-[28px] md:h-[36px] lg:h-[56px] flex items-center justify-center bg-[rgba(0,0,0,0.2)] hover:bg-white/10 rounded-[100px] transition-all relative group/ctrl cursor-pointer"
+            >
+              <Image src="/assets/video-controls/settings.svg" alt="" fill className="object-contain" />
+            </button>
           </div>
         </div>
+        )}
       </div>
 
       {/* Mobile Info Section (Udemy style stacking) */}

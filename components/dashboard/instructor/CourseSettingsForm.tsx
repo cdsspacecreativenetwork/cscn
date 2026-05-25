@@ -1,6 +1,6 @@
 import { useState, useTransition, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { X, Plus, ChevronDown, Camera, ImageIcon, CheckCircle2, XCircle } from 'lucide-react';
+import { X, Plus, ChevronDown, Camera, ImageIcon, CheckCircle2, XCircle, Clock3 } from 'lucide-react';
 import { updateCourseSettingsAction, uploadThumbnailAction, getAvailableExamsAction } from '@/actions/instructor';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
@@ -20,13 +20,26 @@ interface Props {
   course: {
     id: string; title: string; shortDesc: string | null;
     description: string; thumbnail: string | null;
+    promoVideo?: string | null;
     difficulty: string; categoryId: string | null;
     previewCount: number; requirements: unknown; includes: unknown;
     certificateEnabled: boolean;
     examGated: boolean;
     metaTitle: string | null;
     metaDescription: string | null;
-    price: any;
+    price: unknown;
+    baseCurrency?: string;
+    instructor?: { payoutDetails?: { preferredCurrency?: unknown } | null };
+    pricingProposals?: {
+      id: string;
+      proposedPrice: unknown;
+      currentPriceSnapshot: unknown;
+      currency: string;
+      status: string;
+      adminNote: string | null;
+      createdAt: Date | string;
+      reviewedAt: Date | string | null;
+    }[];
     finalExamId: string | null;
   };
   categories: { id: string; name: string }[];
@@ -89,6 +102,10 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
   const [uploading, startUpload] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const latestPricingProposal = course.pricingProposals?.[0] ?? null;
+  const pendingPricingProposal =
+    latestPricingProposal?.status === 'PENDING' ? latestPricingProposal : null;
+  const displayPrice = pendingPricingProposal?.proposedPrice ?? course.price;
 
   const [title, setTitle] = useState(course.title);
   const [shortDesc, setShortDesc] = useState(course.shortDesc ?? '');
@@ -97,6 +114,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
   const [categoryId, setCategoryId] = useState(course.categoryId ?? '');
   const [previewCount, setPreviewCount] = useState(course.previewCount);
   const [thumbnail, setThumbnail] = useState(course.thumbnail ?? '');
+  const [promoVideo, setPromoVideo] = useState(course.promoVideo ?? '');
   const [requirements, setRequirements] = useState<string[]>(toStringArray(course.requirements));
   const [includes, setIncludes] = useState<string[]>(toStringArray(course.includes));
 
@@ -104,7 +122,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
   const [examGated, setExamGated] = useState(course.examGated ?? false);
   const [metaTitle, setMetaTitle] = useState(course.metaTitle ?? '');
   const [metaDescription, setMetaDescription] = useState(course.metaDescription ?? '');
-  const [price, setPrice] = useState<string>(course.price ? String(course.price) : '');
+  const [price, setPrice] = useState<string>(displayPrice ? String(displayPrice) : '');
   const [finalExamId, setFinalExamId] = useState(course.finalExamId ?? '');
   const [availableExams, setAvailableExams] = useState<{ id: string; title: string; duration: number }[]>([]);
 
@@ -117,19 +135,24 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
   const handleSave = () => {
     startSave(async () => {
       try {
-        await updateCourseSettingsAction(course.id, {
+        const result = await updateCourseSettingsAction(course.id, {
           title, shortDesc: shortDesc || undefined, description,
           difficulty, categoryId: categoryId || null,
           previewCount, requirements, includes,
           certificateEnabled, examGated,
           metaTitle: metaTitle || null,
           metaDescription: metaDescription || null,
+          promoVideo: promoVideo.trim() || null,
           price: price ? parseFloat(price) : null,
           finalExamId: finalExamId || null,
         });
-        toast.success('Settings saved.');
-      } catch {
-        toast.error('Failed to save settings.');
+        toast.success(
+          result?.pricingProposalSubmitted
+            ? 'Settings saved. Pricing is pending admin approval.'
+            : 'Settings saved.'
+        );
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to save settings.');
       }
     });
   };
@@ -192,6 +215,13 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
     set(list.filter((_, idx) => idx !== i));
 
   const reviewBanner = latestReview ? REVIEW_BANNER[latestReview.status] : null;
+  const proposalCurrency = String(
+    latestPricingProposal?.currency ?? course.baseCurrency ?? course.instructor?.payoutDetails?.preferredCurrency ?? 'NGN'
+  ).toUpperCase();
+  const proposedPriceLabel =
+    latestPricingProposal?.proposedPrice
+      ? `${proposalCurrency} ${Number(latestPricingProposal.proposedPrice).toLocaleString()}`
+      : 'Free';
 
   return (
     <div className="flex flex-col gap-6">
@@ -259,22 +289,63 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
               disabled={isLocked}
               className={`${inputCls} w-28`} />
           </Field>
+
+          <Field label="Course Trailer" hint="Paste a YouTube, Vimeo, or hosted trailer URL. Use this for your public course preview video.">
+            <input
+              value={promoVideo}
+              onChange={(e) => setPromoVideo(e.target.value)}
+              disabled={isLocked}
+              className={inputCls}
+              placeholder="https://youtube.com/watch?v=..."
+            />
+          </Field>
         </div>
 
         {/* Course Pricing */}
         <div className="bg-white rounded-2xl border border-stroke p-6 flex flex-col gap-4">
           <div>
             <h2 className="font-semibold text-navy text-base">Course Pricing</h2>
-            <p className="text-sm text-text-mute mt-0.5">Determine how learners access your course.</p>
+            <p className="text-sm text-text-mute mt-0.5">Set the price learners should see after admin approval.</p>
           </div>
-          <div className="flex gap-3 bg-[#F4F6FB] p-1 rounded-xl w-fit">
+          <div className="grid gap-3">
+            {latestPricingProposal && (
+              <div className={`rounded-[8px] border p-3 ${
+                latestPricingProposal.status === 'PENDING'
+                  ? 'border-amber-200 bg-amber-50'
+                  : latestPricingProposal.status === 'APPROVED'
+                    ? 'border-emerald-200 bg-emerald-50'
+                    : 'border-red-200 bg-red-50'
+              }`}>
+                <div className={`flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide ${
+                  latestPricingProposal.status === 'PENDING'
+                    ? 'text-amber-700'
+                    : latestPricingProposal.status === 'APPROVED'
+                      ? 'text-emerald-700'
+                      : 'text-red-700'
+                }`}>
+                  {latestPricingProposal.status === 'PENDING' ? <Clock3 size={14} /> : <CheckCircle2 size={14} />}
+                  {latestPricingProposal.status === 'PENDING'
+                    ? 'Pending approval'
+                    : latestPricingProposal.status === 'APPROVED'
+                      ? 'Last approved'
+                      : 'Rejected proposal'}
+                </div>
+                <p className="mt-2 text-[20px] font-bold text-navy">{proposedPriceLabel}</p>
+                {latestPricingProposal.adminNote && (
+                  <p className="mt-1 text-xs font-medium text-red-700">{latestPricingProposal.adminNote}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 bg-[#F4F6FB] p-1 rounded-full w-fit">
             <button
               type="button"
               disabled={isLocked}
               onClick={() => setPrice('')}
-              className={`px-4 py-2 rounded-sm cursor-pointer text-sm font-semibold transition-all ${
+              className={`px-5 py-2 rounded-full cursor-pointer text-sm font-semibold transition-all ${
                 price === ''
-                  ? 'bg-white text-navy shadow-sm'
+                  ? 'bg-[#1C4ED1] text-white shadow-sm'
                   : 'text-[#9CA3AF] hover:text-navy'
               }`}
             >
@@ -284,9 +355,9 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
               type="button"
               disabled={isLocked}
               onClick={() => setPrice('4999.00')}
-              className={`px-4 py-2 rounded-sm cursor-pointer text-sm font-semibold transition-all ${
+              className={`px-5 py-2 rounded-full cursor-pointer text-sm font-semibold transition-all ${
                 price !== ''
-                  ? 'bg-white text-navy shadow-sm'
+                  ? 'bg-[#1C4ED1] text-white shadow-sm'
                   : 'text-[#9CA3AF] hover:text-navy'
               }`}
             >
@@ -295,9 +366,11 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
           </div>
 
           {price !== '' && (
-            <Field label="Price (₦)" hint="Set the enrollment fee for your course.">
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-navy select-none">₦</span>
+            <Field label="Proposed Price" hint="Changing this creates a pricing proposal for admin approval.">
+              <div className="flex w-full max-w-[360px] overflow-hidden rounded-[8px] border border-stroke bg-white focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+                <span className="flex min-w-[72px] items-center justify-center border-r border-stroke bg-[#F8FAFF] px-4 text-sm font-bold text-[#1C4ED1] select-none">
+                  {proposalCurrency}
+                </span>
                 <input
                   type="number"
                   min={0}
@@ -305,7 +378,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   disabled={isLocked}
-                  className={`${inputCls} pl-8 w-44`}
+                  className="min-w-0 flex-1 border-0 bg-white px-4 py-2.5 text-sm font-medium text-navy placeholder:text-text-mute focus:outline-none disabled:bg-[#F4F6FB] disabled:text-[#9CA3AF]"
                   placeholder="0.00"
                 />
               </div>

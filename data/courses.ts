@@ -45,6 +45,8 @@ export async function getPublishedCourses(page = 1, categorySlug?: string) {
         thumbnail: true,
         difficulty: true,
         previewCount: true,
+        price: true,
+        baseCurrency: true,
         category: { select: { name: true, slug: true } },
         instructor: { select: { id: true, name: true, image: true, headline: true } },
         _count: { select: { modules: true, enrollments: true } },
@@ -72,6 +74,45 @@ export async function getPublishedCourses(page = 1, categorySlug?: string) {
   };
 }
 
+export async function getFeaturedPublishedCourses(limit = 8) {
+  const courses = await db.course.findMany({
+    where: {
+      status: "PUBLISHED",
+      featuredOrder: { not: null },
+    },
+    orderBy: [{ featuredOrder: "asc" }, { updatedAt: "desc" }],
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      shortDesc: true,
+      thumbnail: true,
+      promoVideo: true,
+      difficulty: true,
+      previewCount: true,
+      price: true,
+      baseCurrency: true,
+      category: { select: { name: true, slug: true } },
+      instructor: { select: { id: true, name: true, image: true, headline: true } },
+      _count: { select: { modules: true, enrollments: true } },
+      modules: {
+        select: {
+          _count: { select: { lessons: true } },
+        },
+      },
+    },
+  });
+
+  const ratingMap = await getRatingMap(courses.map((course) => course.id));
+
+  return courses.map((course) => ({
+    ...course,
+    ratingAverage: ratingMap.get(course.id)?.average ?? 0,
+    ratingCount: ratingMap.get(course.id)?.count ?? 0,
+  }));
+}
+
 export async function getCategories() {
   return db.category.findMany({ orderBy: { name: "asc" } });
 }
@@ -91,6 +132,8 @@ export async function getCourseBySlug(slug: string) {
       promoVideo: true,
       difficulty: true,
       previewCount: true,
+      price: true,
+      baseCurrency: true,
       requirements: true,
       includes: true,
       category: { select: { name: true, slug: true } },
@@ -104,12 +147,14 @@ export async function getCourseBySlug(slug: string) {
         },
       },
       modules: {
+        where: { isPublished: true },
         orderBy: { position: "asc" },
         select: {
           id: true,
           title: true,
           position: true,
           lessons: {
+            where: { isPublished: true },
             orderBy: { position: "asc" },
             select: {
               id: true,
@@ -193,6 +238,7 @@ export async function getLessonWithAccess(
   });
 
   if (!lesson || lesson.module.course.status !== "PUBLISHED") return null;
+  if (!lesson.isPublished || !lesson.module.isPublished) return null;
 
   const course = lesson.module.course;
 
@@ -272,12 +318,14 @@ export async function getCourseForPlayer(slug: string, userId: string) {
       slug: true,
       instructorId: true,
       modules: {
+        where: { isPublished: true },
         orderBy: { position: "asc" },
         select: {
           id: true,
           title: true,
           position: true,
           lessons: {
+            where: { isPublished: true },
             orderBy: { position: "asc" },
             select: {
               id: true,

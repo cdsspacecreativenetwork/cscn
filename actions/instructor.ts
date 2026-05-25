@@ -15,6 +15,8 @@ import {
   reorderModules,
   createLesson,
   updateLesson,
+  updateLessonPublishState,
+  updateModulePublishState,
   deleteLesson,
   reorderLessons,
   moveAndReorderLessons,
@@ -64,6 +66,7 @@ export async function updateCourseSettingsAction(
     shortDesc?: string;
     description?: string;
     thumbnail?: string;
+    promoVideo?: string | null;
     difficulty?: Difficulty;
     categoryId?: string | null;
     previewCount?: number;
@@ -78,9 +81,11 @@ export async function updateCourseSettingsAction(
   }
 ) {
   const userId = await requireInstructor();
-  await updateCourseSettings(courseId, userId, data);
+  const result = await updateCourseSettings(courseId, userId, data);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
   revalidatePath("/dashboard/instructor/courses");
+  revalidatePath("/dashboard/admin/courses");
+  return { pricingProposalSubmitted: !!result.pricingProposal };
 }
 
 export async function togglePublishAction(courseId: string) {
@@ -229,6 +234,30 @@ export async function updateLessonAction(
   const userId = await requireInstructor();
   await updateLesson(lessonId, userId, data);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+}
+
+export async function updateLessonPublishStateAction(
+  lessonId: string,
+  courseId: string,
+  isPublished: boolean
+) {
+  const userId = await requireInstructor();
+  const result = await updateLessonPublishState(lessonId, userId, isPublished);
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  revalidatePath(`/dashboard/admin/courses/${courseId}`);
+  return result;
+}
+
+export async function updateModulePublishStateAction(
+  moduleId: string,
+  courseId: string,
+  isPublished: boolean
+) {
+  const userId = await requireInstructor();
+  const result = await updateModulePublishState(moduleId, userId, isPublished);
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  revalidatePath(`/dashboard/admin/courses/${courseId}`);
+  return result;
 }
 
 export async function deleteLessonAction(lessonId: string, courseId: string) {
