@@ -22,6 +22,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  hasBorder?: boolean; // Controls whether gradient or other variants render with the outer decorative border
 }
 
 const Spinner = () => (
@@ -41,10 +42,10 @@ const Spinner = () => (
 );
 
 const roundnessMap: Record<string, string> = {
-  sm:   'rounded-[8px]',
+  sm:   'rounded-[6px]',
   md:   'rounded-[8px]',
-  lg:   'rounded-[8px]',
-  full: 'rounded-[8px]',
+  lg:   'rounded-[12px]',
+  full: 'rounded-full',
 };
 
 function getRounded(rounded: string): string {
@@ -81,6 +82,7 @@ export default function Button({
   rightIcon,
   className = '',
   disabled,
+  hasBorder = true,
   ...props
 }: ButtonProps) {
 
@@ -89,11 +91,26 @@ export default function Button({
 
   /* ── Gradient variant ─────────────────────────────────────────────────── */
   if (variant === 'gradient') {
-    return (
-      <div className={`border border-[#648efc] p-[2px] ${roundedClass} ${className}`}>
+    if (hasBorder) {
+      return (
+        <div className={`inline-flex border border-[#648efc] p-[2px] ${roundedClass} ${className} shrink-0 items-center justify-center`}>
+          <button
+            disabled={isDisabled}
+            className={`flex items-center justify-center w-full bg-gradient-to-r from-[#0035C1] to-[#0575FF] ${roundedClass} ${gradientSizeMap[size]} font-jakarta font-medium tracking-[-0.16px] whitespace-nowrap leading-normal text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer`}
+            {...props}
+          >
+            {loading && <Spinner />}
+            {!loading && leftIcon  && <span className="mr-2 shrink-0">{leftIcon}</span>}
+            {children}
+            {!loading && rightIcon && <span className="ml-2 shrink-0">{rightIcon}</span>}
+          </button>
+        </div>
+      );
+    } else {
+      return (
         <button
           disabled={isDisabled}
-          className={`flex items-center justify-center w-full bg-linear-to-r from-[#0035C1] to-[#0575FF] ${roundedClass} ${gradientSizeMap[size]} font-jakarta font-medium tracking-[-0.16px] whitespace-nowrap leading-normal text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer`}
+          className={`inline-flex items-center justify-center bg-gradient-to-r from-[#0035C1] to-[#0575FF] ${roundedClass} ${gradientSizeMap[size]} font-jakarta font-medium tracking-[-0.16px] whitespace-nowrap leading-normal text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${className}`}
           {...props}
         >
           {loading && <Spinner />}
@@ -101,8 +118,8 @@ export default function Button({
           {children}
           {!loading && rightIcon && <span className="ml-2 shrink-0">{rightIcon}</span>}
         </button>
-      </div>
-    );
+      );
+    }
   }
 
   /* ── All other variants ───────────────────────────────────────────────── */
@@ -117,7 +134,7 @@ export default function Button({
   return (
     <button
       disabled={isDisabled}
-      className={`inline-flex items-center justify-center font-jakarta font-semibold tracking-[-0.01em] cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeMap[size]} ${roundedClass} ${className}`}
+      className={`inline-flex items-center justify-center font-jakarta font-semibold tracking-[-0.01em] whitespace-nowrap cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeMap[size]} ${roundedClass} ${className}`}
       {...props}
     >
       {loading && <Spinner />}

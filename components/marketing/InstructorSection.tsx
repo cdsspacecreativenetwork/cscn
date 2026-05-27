@@ -42,7 +42,9 @@ const DEFAULT_INSTRUCTORS: Instructor[] = [
   }
 ];
 
-export default function InstructorSection({ instructors = DEFAULT_INSTRUCTORS }: InstructorSectionProps) {
+export default function InstructorSection({ instructors = [] }: InstructorSectionProps) {
+  const displayInstructors = [...instructors, ...DEFAULT_INSTRUCTORS].slice(0, 4);
+
   return (
     <motion.section 
       initial={{ opacity: 0 }}
@@ -72,7 +74,7 @@ export default function InstructorSection({ instructors = DEFAULT_INSTRUCTORS }:
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {instructors.map((instructor, i) => (
+          {displayInstructors.map((instructor, i) => (
             <Link key={i} href={`/instructor/${instructor.slug}`} className="block">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}

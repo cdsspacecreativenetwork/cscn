@@ -61,7 +61,7 @@ export function UserRoleSelect({
   };
 
   return (
-    <div className="flex items-center gap-4 min-w-[180px]">
+    <div className="flex min-w-[180px] items-center gap-3 whitespace-nowrap">
       <CustomSelect
         options={options}
         value={role}
@@ -72,7 +72,7 @@ export function UserRoleSelect({
       
       {feedback && (
         <span
-          className={`text-[11px] font-semibold transition-all ${feedback.type === "success" ? "text-emerald-600" : "text-red-500"}`}
+          className={`whitespace-nowrap text-[11px] font-semibold transition-all ${feedback.type === "success" ? "text-emerald-600" : "text-red-500"}`}
         >
           {feedback.text}
         </span>

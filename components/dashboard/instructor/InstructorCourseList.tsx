@@ -4,11 +4,11 @@ import { useState, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Eye, Trash2, Pencil, BookOpen, Users } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Check, ChevronDown, Plus, Eye, Trash2, Pencil, BookOpen, Users } from 'lucide-react';
 import { createCourseAction, deleteCourseAction } from '@/actions/instructor';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
-import SelectInput from '@/components/ui/SelectInput';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 type CourseStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'PENDING_REVIEW';
@@ -57,6 +57,7 @@ export default function InstructorCourseList({ courses, categories, studioPath =
   const [showModal, setShowModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('');
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const [filter, setFilter] = useState<CourseStatus | 'ALL'>('ALL');
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null);
 
@@ -72,7 +73,9 @@ export default function InstructorCourseList({ courses, categories, studioPath =
         });
         toast.success('Course created!');
         setShowModal(false);
+        setCategoryOpen(false);
         setNewTitle('');
+        setNewCategory('');
         router.push(`${studioPath}/${result.courseId}`);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to create course.');
@@ -131,6 +134,7 @@ export default function InstructorCourseList({ courses, categories, studioPath =
           variant="gradient"
           size="sm"
           rounded="[10px]"
+          hasBorder={false}
           leftIcon={<Plus size={15} />}
           onClick={() => setShowModal(true)}
         >
@@ -170,6 +174,7 @@ export default function InstructorCourseList({ courses, categories, studioPath =
             variant="gradient"
             size="sm"
             rounded="[10px]"
+            hasBorder={false}
             onClick={() => setShowModal(true)}
           >
             Create your first course
@@ -260,14 +265,14 @@ export default function InstructorCourseList({ courses, categories, studioPath =
       )}
 
       {/* New Course Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 flex flex-col gap-5">
+      {showModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#040B37]/45 p-4 backdrop-blur-sm">
+          <div className="flex w-full max-w-md flex-col gap-5 rounded-[20px] border border-white/80 bg-white p-5 shadow-[0_24px_80px_rgba(4,11,55,0.22)] md:p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-navy">Create New Course</h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-text-mute hover:text-navy transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] text-text-mute transition-colors hover:bg-background hover:text-navy"
               >
                 ✕
               </button>
@@ -287,23 +292,73 @@ export default function InstructorCourseList({ courses, categories, studioPath =
                 />
               </div>
 
-              <SelectInput
-                label="Category"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-              >
-                <option value="">Select a category</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </SelectInput>
+              <div className="relative flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-navy">Category</label>
+                <button
+                  type="button"
+                  onClick={() => setCategoryOpen((open) => !open)}
+                  className={`flex py-3 w-full items-center justify-between rounded-[10px] border bg-white px-4 text-left text-sm font-medium transition-all ${
+                    categoryOpen
+                      ? 'border-primary ring-4 ring-primary/10'
+                      : 'border-stroke hover:border-primary/40'
+                  }`}
+                >
+                  <span className={newCategory ? 'text-navy' : 'text-text-mute'}>
+                    {categories.find((category) => category.id === newCategory)?.name ?? 'Select a category'}
+                  </span>
+                  <ChevronDown
+                    size={17}
+                    className={`text-text-mute transition-transform ${categoryOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {categoryOpen && (
+                  <div className="absolute left-0 right-0 top-[74px] z-[130] overflow-hidden rounded-[14px] border border-stroke bg-white shadow-[0_18px_50px_rgba(4,11,55,0.16)]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewCategory('');
+                        setCategoryOpen(false);
+                      }}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-navy transition-colors hover:bg-[#F8FAFF]"
+                    >
+                      Select a category
+                      {!newCategory && <Check size={16} className="text-primary" />}
+                    </button>
+                    <div className="max-h-[260px] overflow-y-auto py-1">
+                      {categories.map((category) => {
+                        const active = newCategory === category.id;
+                        return (
+                          <button
+                            type="button"
+                            key={category.id}
+                            onClick={() => {
+                              setNewCategory(category.id);
+                              setCategoryOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium transition-colors ${
+                              active
+                                ? 'bg-[#EEF3FF] text-primary'
+                                : 'text-navy hover:bg-[#F8FAFF]'
+                            }`}
+                          >
+                            {category.name}
+                            {active && <Check size={16} className="text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-3 pt-1">
               <Button
                 variant="outline"
                 size="sm"
-                rounded="xl"
+                rounded="[10px]"
+                hasBorder={false}
                 className="flex-1"
                 onClick={() => setShowModal(false)}
               >
@@ -312,7 +367,8 @@ export default function InstructorCourseList({ courses, categories, studioPath =
               <Button
                 variant="primary"
                 size="sm"
-                rounded="xl"
+                rounded="[10px]"
+                hasBorder={false}
                 className="flex-1"
                 onClick={handleCreate}
                 disabled={!newTitle.trim()}
@@ -322,7 +378,8 @@ export default function InstructorCourseList({ courses, categories, studioPath =
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

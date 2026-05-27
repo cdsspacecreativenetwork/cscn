@@ -8,6 +8,7 @@ import { UserRole } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { assertEmailVerifiedByUserId } from "@/lib/trust-gates";
+import { getInstructorRoleTransitionData } from "@/lib/instructor-onboarding";
 
 export const createInvite = async (role: UserRole, email?: string) => {
   const session = await auth();
@@ -68,7 +69,10 @@ export const claimInvite = async (token: string) => {
     await db.$transaction([
       db.user.update({
         where: { id: session.user.id },
-        data: { role: invite.role },
+        data: {
+          role: invite.role,
+          ...getInstructorRoleTransitionData(invite.role),
+        },
       }),
       db.inviteToken.update({
         where: { token },
@@ -79,7 +83,7 @@ export const claimInvite = async (token: string) => {
     return { error: "Failed to claim invite. Please try again." };
   }
 
-  redirect("/dashboard");
+  redirect(invite.role === "INSTRUCTOR" ? "/dashboard/profile?setup=instructor" : "/dashboard");
 };
 
 export const deleteInvite = async (id: string) => {

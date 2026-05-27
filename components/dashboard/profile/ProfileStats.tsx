@@ -13,12 +13,21 @@ const StatCard = ({ value, label }: { value: string; label: string }) => (
   </div>
 );
 
-export const ProfileStats = () => {
+type ProfileStatItem = {
+  value: string;
+  label: string;
+};
+
+type ProfileStatsProps = {
+  items: ProfileStatItem[];
+};
+
+export const ProfileStats = ({ items }: ProfileStatsProps) => {
   return (
     <div className="grid grid-cols-3 gap-4 md:gap-6 w-full max-w-[1200px]">
-      <StatCard value="0" label="Courses" />
-      <StatCard value="0" label="Certs" />
-      <StatCard value="0" label="Hours" />
+      {items.map((item) => (
+        <StatCard key={item.label} value={item.value} label={item.label} />
+      ))}
     </div>
   );
 };

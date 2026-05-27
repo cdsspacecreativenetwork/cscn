@@ -6,6 +6,7 @@ import { UserRole } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { assertEmailVerifiedByUserId } from "@/lib/trust-gates";
+import { getInstructorRoleTransitionData } from "@/lib/instructor-onboarding";
 
 const isSuperAdmin = (role: string | undefined) => role === "SUPER_ADMIN";
 const isAdminOrAbove = (role: string | undefined) =>
@@ -53,7 +54,10 @@ export const changeUserRole = async (userId: string, newRole: string) => {
   try {
     await db.user.update({
       where: { id: userId },
-      data: { role: newRole as UserRole },
+      data: {
+        role: newRole as UserRole,
+        ...getInstructorRoleTransitionData(newRole),
+      },
     });
     revalidatePath("/dashboard/admin/users");
     return { success: "Role updated successfully" };

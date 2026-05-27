@@ -11,6 +11,7 @@ import { InstructorDashboardData } from '@/lib/services/dashboard.service';
 import { toast } from 'sonner';
 import CreatorReadinessCard from '@/components/dashboard/CreatorReadinessCard';
 import type { CreatorReadiness } from '@/lib/trust-gates';
+import Button from '@/components/ui/Button';
 
 interface Props {
   data: InstructorDashboardData;
@@ -24,6 +25,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
 
   const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
   const [dismissedRecs, setDismissedRecs] = React.useState<string[]>([]);
+  const [brokenThumbnailIds, setBrokenThumbnailIds] = React.useState<string[]>([]);
 
   const userName = user?.name?.split(' ')[0] ?? 'Instructor';
 
@@ -54,50 +56,11 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
     closeModals();
   };
 
-  // Mock recommendations structured identical to student dashboard
-  const fallbackRecommendations = [
-    {
-      id: 'rec-1',
-      title: 'Build Dynamic User Interfaces (UI) for Websites',
-      slug: 'build-dynamic-ui',
-      firstLessonId: 'mock-first-lesson',
-      shortDesc: 'Master the foundational skills and practical techniques needed to excel in this field.',
-      difficulty: 'BEGINNER',
-      category: 'UI/UX DESIGN',
-      activity: 'Activity: Create variations of your paper wireframes',
-      type: 'Video',
-      duration: '5 minutes',
-      thumbnail: '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
-    },
-    {
-      id: 'rec-2',
-      title: 'Designing for IOS Interfaces (UI) for beginners',
-      slug: 'designing-ios-ui',
-      firstLessonId: 'mock-first-lesson',
-      shortDesc: 'Master the foundational skills and practical techniques needed to excel in this field.',
-      difficulty: 'BEGINNER',
-      category: 'MOBILE DEV',
-      activity: 'Activity: Create responsive grids',
-      type: 'Video',
-      duration: '5 minutes',
-      thumbnail: '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
-    },
-    {
-      id: 'rec-3',
-      title: 'Color Theory 303 (Advanced Lesson For UI Designers)',
-      slug: 'color-theory-303',
-      firstLessonId: 'mock-first-lesson',
-      shortDesc: 'Master the foundational skills and practical techniques needed to excel in this field.',
-      difficulty: 'ADVANCED',
-      category: 'DESIGN THEORY',
-      activity: 'Activity: Understanding Colors and User Needs',
-      type: 'Reading',
-      duration: '10 minutes',
-      thumbnail: '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
-    }
-  ];
-
-  const visibleRecs = fallbackRecommendations.filter(r => !dismissedRecs.includes(r.id));
+  const visibleRecs = data.recommendations.filter(r => !dismissedRecs.includes(r.id));
+  const currentLearning = data.studentEnrollments.slice(0, 1);
+  const markThumbnailBroken = (courseId: string) => {
+    setBrokenThumbnailIds((current) => current.includes(courseId) ? current : [...current, courseId]);
+  };
 
   return (
     <div className="p-[clamp(16px,2.78vw,48px)] space-y-[clamp(32px,4.6vw,80px)] max-w-[1728px] mx-auto font-jakarta">
@@ -111,13 +74,16 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
             {currentDate}
           </p>
         </div>
-        <button 
+        <Button
+          variant="primary"
+          size="sm"
+          rounded="[10px]"
+          hasBorder={false}
           onClick={() => router.push('/dashboard/instructor/courses')}
-          className="bg-[#1C4ED1] text-white px-[clamp(12px,1vw,20px)] py-[clamp(8px,0.65vw,12px)] rounded-[8px] flex items-center gap-[clamp(4px,0.46vw,8px)] font-semibold hover:bg-[#1C4ED1]/90 transition-all shrink-0 cursor-pointer shadow-[0px_2px_4px_rgba(28,78,209,0.2)]"
+          leftIcon={<Plus size={18} className="sm:w-[20px] sm:h-[20px]" />}
         >
-          <Plus size={18} className="sm:w-[20px] sm:h-[20px]" />
-          <span className="text-[clamp(13px,0.92vw,16px)] whitespace-nowrap">Manage Studio</span>
-        </button>
+          Manage Studio
+        </Button>
       </div>
 
       {creatorReadiness && <CreatorReadinessCard readiness={creatorReadiness} />}
@@ -200,19 +166,25 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
           </div>
           
           <div className="flex flex-col sm:flex-row lg:flex-col gap-4 w-full lg:w-auto shrink-0">
-            <button 
+            <Button
+              variant="primary"
+              size="md"
+              rounded="[10px]"
+              hasBorder={false}
               onClick={() => router.push('/dashboard/instructor/courses')}
-              className="bg-[#1C4ED1] text-white px-6 py-3 rounded-[8px] font-semibold text-[15px] hover:bg-[#1C4ED1]/90 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0px_2px_4px_rgba(28,78,209,0.2)]"
+              leftIcon={<Plus size={18} />}
             >
-              <Plus size={18} />
               Create Course Draft
-            </button>
-            <button 
+            </Button>
+            <Button
+              variant="outline"
+              size="md"
+              rounded="[10px]"
+              hasBorder={false}
               onClick={() => router.push('/dashboard/profile')}
-              className="bg-white border border-[#E3E8F4] text-[#4B5563] px-6 py-3 rounded-[8px] font-semibold text-[15px] hover:bg-[#F4F6FB] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               Edit Profile Bio
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
@@ -239,12 +211,21 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                 >
                   {/* Thumbnail */}
                   <div className="relative aspect-[16/9] w-full rounded-[8px] overflow-hidden mb-4 bg-[#F4F6FB]">
-                    <Image
-                      src={course.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg"}
-                      alt={course.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    {course.thumbnail ? (
+                      <Image
+                        src={course.thumbnail}
+                        alt={course.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,_rgba(28,78,209,0.14),_transparent_42%),linear-gradient(135deg,#F8FAFF_0%,#EEF3FF_100%)] text-center">
+                        <BookOpen size={26} className="text-[#1C4ED1]/60" />
+                        <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#1C4ED1]">
+                          Add thumbnail
+                        </span>
+                      </div>
+                    )}
                     {/* Status Pill */}
                     <div className="absolute top-3 right-3 z-10">
                       <span className={`px-2.5 py-1 rounded-sm text-[11px] font-semibold tracking-wide uppercase shadow-sm ${
@@ -267,9 +248,9 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                         <Users size={16} className="text-[#9CA3AF]" />
                         <span className="text-[14px] font-medium text-[#4B5563]">{course.enrollmentCount.toLocaleString()} Students</span>
                       </div>
-                      <div className="flex items-center gap-1 text-[#9CA3AF]">
-                        <span className="text-[14px] font-semibold text-[#040B37]">${course.price || 49}</span>
-                      </div>
+                      <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#9CA3AF]">
+                        {course.status === 'PUBLISHED' ? 'Live course' : 'Setup needed'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -308,7 +289,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                 </div>
 
                 <div className="space-y-6">
-                  {data.studentEnrollments.map((enrollment) => (
+                  {currentLearning.map((enrollment) => (
                     <div 
                       key={enrollment.id}
                       className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[12px] p-6 flex flex-col gap-6 shadow-sm hover:shadow-[0px_4px_12px_rgba(23,26,31,0.06)] transition-all duration-300"
@@ -385,23 +366,32 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
               </div>
 
               {/* Announcements */}
-              <div className="mlg:col-span-1 space-y-6">
+              <div className="mlg:col-span-1 space-y-6 mlg:pt-[42px]">
                 <div className="bg-white border border-[#E3E8F4] rounded-[12px] overflow-hidden shadow-sm">
                   <div className="px-6 py-4 border-b border-[#E3E8F4] bg-[#F4F6FB]/30">
                     <h2 className="text-[16px] font-semibold text-[#040B37]">Announcements</h2>
                   </div>
                   <div className="divide-y divide-[#E3E8F4]">
-                    {data.announcements.map((ann) => (
-                      <div key={ann.id} className="p-5 flex gap-4 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
-                        <div className="w-10 h-10 bg-[#F4F6FB] rounded-xl flex items-center justify-center text-[18px] shrink-0 group-hover:scale-105 transition-transform">
-                          {ann.emoji}
+                    {data.announcements.length > 0 ? (
+                      data.announcements.map((ann) => (
+                        <div key={ann.id} className="p-5 flex gap-4 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
+                          <div className="w-10 h-10 bg-[#F4F6FB] rounded-xl flex items-center justify-center text-[18px] shrink-0 group-hover:scale-105 transition-transform">
+                            {ann.emoji}
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{ann.title}</p>
+                            <p className="text-[11px] font-medium text-[#9CA3AF]">{ann.time}</p>
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-1.5">
-                          <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{ann.title}</p>
-                          <p className="text-[11px] font-medium text-[#9CA3AF]">{ann.time}</p>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="p-6 text-center">
+                        <p className="text-[14px] font-semibold text-[#4B5563]">No announcements right now</p>
+                        <p className="mt-1 text-[12px] font-medium text-[#9CA3AF]">
+                          Platform updates will appear here when they are published.
+                        </p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -430,18 +420,35 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
             {visibleRecs.map((course: any, i) => (
               <div
                 key={course.id || i}
-                className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[16px] overflow-hidden flex flex-col justify-between min-h-[420px] w-full shadow-sm hover:shadow-[0px_6px_20px_rgba(23,26,31,0.08)] transition-all duration-300 group relative"
+                className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[16px] overflow-hidden flex flex-col w-full shadow-sm hover:shadow-[0px_6px_20px_rgba(23,26,31,0.08)] transition-all duration-300 group relative"
               >
                 {/* Thumbnail Container */}
                 <div className="relative aspect-[16/9] w-full bg-[#F4F6FB] overflow-hidden shrink-0">
-                  <Image 
-                    src={course.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg"} 
-                    alt={course.title} 
-                    fill 
-                    className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                    onClick={() => router.push(`/courses/${course.slug}`)}
-                  />
+                  {course.thumbnail && !brokenThumbnailIds.includes(course.id) ? (
+                    <Image
+                      src={course.thumbnail}
+                      alt={course.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                      onClick={() => router.push(`/courses/${course.slug}`)}
+                      onError={() => markThumbnailBroken(course.id)}
+                    />
+                  ) : (
+                    <div
+                      className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,_rgba(28,78,209,0.16),_transparent_42%),linear-gradient(135deg,#F8FAFF_0%,#EEF3FF_100%)]"
+                      onClick={() => router.push(`/courses/${course.slug}`)}
+                    >
+                      <BookOpen size={28} className="text-[#1C4ED1]/60" />
+                      <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#1C4ED1]">
+                        Course preview
+                      </span>
+                    </div>
+                  )}
                   
+                  <span className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#1C4ED1] shadow-sm backdrop-blur-sm">
+                    {course.difficulty?.toLowerCase() || 'beginner'}
+                  </span>
+
                   {/* Floating Options Button */}
                   <div className="absolute top-3 right-3 z-10">
                     <button 
@@ -488,31 +495,23 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                 </div>
 
                 {/* Card Content Wrapper */}
-                <div className="p-6 flex flex-col flex-1 justify-between gap-4">
+                <div className="p-5 flex flex-col flex-1 gap-4">
                   
                   {/* Category & Title */}
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-bold tracking-wider text-[#1C4ED1] uppercase">
-                      {course.category || "UI/UX DESIGN"} • {course.difficulty || "BEGINNER"}
-                    </span>
+                  <div>
                     <h3 
                       className="text-[17px] font-bold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors line-clamp-2 cursor-pointer"
                       onClick={() => router.push(`/courses/${course.slug}`)}
                     >
                       {course.title}
                     </h3>
-                    <p className="text-[13px] font-medium text-[#4B5563] leading-relaxed line-clamp-2">
-                      {course.shortDesc || "Master the foundational skills and practical techniques needed to excel in this field."}
-                    </p>
                   </div>
 
                   {/* Activity & Meta Box */}
-                  <div className="flex flex-col gap-3">
+                  <div className="mt-auto flex flex-col gap-3">
                     {/* Meta Tags */}
                     <div className="flex items-center gap-2 text-[11px] font-medium text-[#9CA3AF]">
                       <span>8 Weeks Est.</span>
-                      <span className="w-1 h-1 rounded-full bg-[#E3E8F4]"></span>
-                      <span className="capitalize">{course.difficulty?.toLowerCase() || 'beginner'}</span>
                     </div>
 
                     {/* Activity Box */}
@@ -534,12 +533,20 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                           <span>{course.type} ({course.duration})</span>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => openStartModal(course)}
-                        className="bg-[#1C4ED1] text-white px-3 py-2 rounded-[8px] text-[10px] font-semibold whitespace-nowrap hover:bg-[#163fa3] transition-all cursor-pointer shadow-sm shrink-0"
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        rounded="[10px]"
+                        hasBorder={false}
+                        onClick={() => openStartModal({
+                          ...course,
+                          image: course.thumbnail || '/assets/default-course.jpg',
+                          description: course.shortDesc || undefined,
+                        })}
+                        className="shrink-0 px-3 py-2 text-[10px]"
                       >
                         Get started
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>

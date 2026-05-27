@@ -144,17 +144,30 @@ export async function getCourseBySlug(slug: string) {
           image: true,
           headline: true,
           bio: true,
+          publicProfileSlug: true,
+        },
+      },
+      instructors: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              headline: true,
+              publicProfileSlug: true,
+            },
+          },
         },
       },
       modules: {
-        where: { isPublished: true },
         orderBy: { position: "asc" },
         select: {
           id: true,
           title: true,
           position: true,
+          isPublished: true,
           lessons: {
-            where: { isPublished: true },
             orderBy: { position: "asc" },
             select: {
               id: true,
@@ -162,6 +175,7 @@ export async function getCourseBySlug(slug: string) {
               position: true,
               duration: true,
               isPreview: true,
+              isPublished: true,
               contentType: true,
             },
           },
@@ -173,9 +187,20 @@ export async function getCourseBySlug(slug: string) {
 
   if (!course) return null;
 
+  const publishedModules = course.modules
+    .filter((module) => module.isPublished)
+    .map((module) => ({
+      ...module,
+      lessons: module.lessons.filter((lesson) => lesson.isPublished),
+    }))
+    .filter((module) => module.lessons.length > 0);
+
+  const modules = publishedModules.length > 0 ? publishedModules : course.modules;
+
   const ratingMap = await getRatingMap([course.id]);
   return {
     ...course,
+    modules,
     ratingAverage: ratingMap.get(course.id)?.average ?? 0,
     ratingCount: ratingMap.get(course.id)?.count ?? 0,
   };

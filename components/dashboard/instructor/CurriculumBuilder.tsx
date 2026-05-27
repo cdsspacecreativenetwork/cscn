@@ -21,15 +21,17 @@ import {
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
 import LessonEditor from './LessonEditor';
+import type { LessonQuiz } from './QuizLessonBuilder';
 import { LessonTypeIcon } from '@/components/dashboard/courses/LessonTypeIcon';
 
 interface Lesson {
   id: string; title: string; position: number;
   videoUrl: string | null; duration: number | null;
-  isPublished: boolean; isPreview: boolean; transcript: string | null;
+  isPublished: boolean; isPreview: boolean; overview: string | null; transcript: string | null;
   bodyContent: string | null;
   contentType: string;
   resources: { id: string; title: string; url: string; type: string }[];
+  quiz: LessonQuiz;
   muxStatus: string;
   muxPlaybackId: string | null;
 }
@@ -476,11 +478,13 @@ export default function CurriculumBuilder({ courseId, courseTitle, courseSlug, i
       isPreview: false,
       duration: null,
       videoUrl: null,
+      overview: null,
       contentType: 'VIDEO',
       transcript: null,
       bodyContent: null,
       muxStatus: 'idle',
       muxPlaybackId: null,
+      quiz: null,
       resources: [],
     };
 

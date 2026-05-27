@@ -8,7 +8,7 @@ export interface CourseData {
   status: string;
   enrollmentCount: number;
   rating?: number;
-  price?: number;
+  price?: number | null;
 }
 
 export interface EnrollmentData {
@@ -53,7 +53,22 @@ export interface InstructorDashboardData {
   studentEnrollments: EnrollmentData[];
   announcements: AnnouncementData[];
   schedule: ScheduleData[];
+  recommendations: RecommendationData[];
   isNewInstructor: boolean;
+}
+
+export interface RecommendationData {
+  id: string;
+  title: string;
+  slug: string;
+  firstLessonId?: string;
+  shortDesc: string | null;
+  difficulty: string;
+  category: string;
+  activity: string;
+  type: string;
+  duration: string;
+  thumbnail: string | null;
 }
 
 export interface StudentDashboardData {
@@ -63,7 +78,7 @@ export interface StudentDashboardData {
   learningStreak: string;
   activeEnrollments: EnrollmentData[];
   announcements: AnnouncementData[];
-  recommendations: any[];
+  recommendations: RecommendationData[];
   schedule: ScheduleData[];
 }
 
@@ -78,60 +93,150 @@ function formatDateString(date: Date | null): string {
   return `${diffDays} days ago`;
 }
 
-// Figma Mocks for graceful fallbacks
-const FALLBACK_ANNOUNCEMENTS: AnnouncementData[] = [
-  { id: '1', emoji: '📢', title: 'New AI Tools module added to the Web Dev course', time: 'Today, 10:00 AM', body: 'Explore the newly added AI tools module designed to accelerate your web development workflow.' },
-  { id: '2', emoji: '🎁', title: 'Pro members get 30% off on certification exams this week', time: 'Yesterday', body: 'Use code PROCERT30 at checkout to claim your exclusive discount on all pro certification exams.' },
-  { id: '3', emoji: '📅', title: 'Live Q&A with Product team April 20 at 3PM GMT', time: '2 days ago', body: 'Join our monthly community town hall and get your questions answered directly by the core product team.' },
-];
+const difficultyRank = { BEGINNER: 1, INTERMEDIATE: 2, ADVANCED: 3 } as const;
 
-const FALLBACK_SCHEDULE: ScheduleData[] = [
-  { id: '1', time: '2:00 PM', duration: '1h', title: 'React: State Management', type: 'Live Session' },
-  { id: '2', time: '4:30 PM', duration: '3h:30m', title: 'UX Research Quiz', type: 'Assignment · 3 questions' },
-  { id: '3', time: '6:00 PM', duration: '7h:30m', title: 'Figma Workshop', type: 'Recorded · Self-paced' },
-];
-
-const FALLBACK_RECOMMENDATIONS = [
-  {
-    id: 'rec-1',
-    title: 'Build Dynamic User Interfaces (UI) for Websites',
-    slug: 'build-dynamic-ui',
-    firstLessonId: 'mock-first-lesson',
-    shortDesc: 'Master the foundational skills and practical techniques needed to excel in this field.',
-    difficulty: 'BEGINNER',
-    category: 'UI/UX DESIGN',
-    activity: 'Activity: Create variations of your paper wireframes',
-    type: 'Video',
-    duration: '5 minutes',
-    thumbnail: '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
-  },
-  {
-    id: 'rec-2',
-    title: 'Designing for IOS Interfaces (UI) for beginners',
-    slug: 'designing-ios-ui',
-    firstLessonId: 'mock-first-lesson',
-    shortDesc: 'Master the foundational skills and practical techniques needed to excel in this field.',
-    difficulty: 'BEGINNER',
-    category: 'MOBILE DEV',
-    activity: 'Activity: Create responsive grids',
-    type: 'Video',
-    duration: '5 minutes',
-    thumbnail: '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
-  },
-  {
-    id: 'rec-3',
-    title: 'Color Theory 303 (Advanced Lesson For UI Designers)',
-    slug: 'color-theory-303',
-    firstLessonId: 'mock-first-lesson',
-    shortDesc: 'Master the foundational skills and practical techniques needed to excel in this field.',
-    difficulty: 'ADVANCED',
-    category: 'DESIGN THEORY',
-    activity: 'Activity: Understanding Colors and User Needs',
-    type: 'Reading',
-    duration: '10 minutes',
-    thumbnail: '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
+function getSafeThumbnail(thumbnail: string | null) {
+  if (!thumbnail) return null;
+  if (thumbnail.includes("img.youtube.com") || thumbnail.includes("i.ytimg.com")) {
+    return thumbnail.replace("maxresdefault.jpg", "hqdefault.jpg");
   }
-];
+  return thumbnail;
+}
+
+function getNextDifficulty(difficulties: string[]) {
+  const highest = Math.max(0, ...difficulties.map((difficulty) => difficultyRank[difficulty as keyof typeof difficultyRank] ?? 0));
+  if (highest <= 1) return "INTERMEDIATE";
+  if (highest === 2) return "ADVANCED";
+  return "ADVANCED";
+}
+
+async function getRecommendedCourses(userId: string, limit = 3): Promise<RecommendationData[]> {
+  const enrollments = await db.enrollment.findMany({
+    where: { userId, status: { not: "CANCELLED" } },
+    select: {
+      status: true,
+      course: {
+        select: {
+          id: true,
+          categoryId: true,
+          difficulty: true,
+        },
+      },
+    },
+  });
+
+  const preferredCategoryIds = new Set(
+    enrollments
+      .map((enrollment) => enrollment.course.categoryId)
+      .filter((categoryId): categoryId is string => Boolean(categoryId))
+  );
+  const completedCategoryIds = new Set(
+    enrollments
+      .filter((enrollment) => enrollment.status === "COMPLETED")
+      .map((enrollment) => enrollment.course.categoryId)
+      .filter((categoryId): categoryId is string => Boolean(categoryId))
+  );
+  const nextDifficulty = getNextDifficulty(enrollments.map((enrollment) => enrollment.course.difficulty));
+
+  const candidates = await db.course.findMany({
+    where: {
+      status: "PUBLISHED",
+      instructorId: { not: userId },
+      enrollments: { none: { userId } },
+      modules: {
+        some: {
+          isPublished: true,
+          lessons: { some: { isPublished: true } },
+        },
+      },
+    },
+    orderBy: [
+      { featuredOrder: "asc" },
+      { updatedAt: "desc" },
+    ],
+    take: 40,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      thumbnail: true,
+      shortDesc: true,
+      difficulty: true,
+      updatedAt: true,
+      featuredOrder: true,
+      categoryId: true,
+      category: { select: { name: true } },
+      _count: { select: { enrollments: true, ratings: true } },
+      modules: {
+        where: { isPublished: true },
+        orderBy: { position: "asc" },
+        take: 1,
+        select: {
+          lessons: {
+            where: { isPublished: true },
+            orderBy: { position: "asc" },
+            take: 1,
+            select: { id: true, title: true, contentType: true, duration: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (candidates.length === 0) return [];
+
+  const ratingRows = await db.courseRating.groupBy({
+    by: ["courseId"],
+    where: { courseId: { in: candidates.map((course) => course.id) } },
+    _avg: { rating: true },
+  });
+  const ratingMap = new Map(ratingRows.map((row) => [row.courseId, row._avg.rating ?? 0]));
+  const now = Date.now();
+
+  return candidates
+    .map((course) => {
+      const sameCategoryBoost = course.categoryId && preferredCategoryIds.has(course.categoryId) ? 45 : 0;
+      const completedPathBoost = course.categoryId && completedCategoryIds.has(course.categoryId) ? 12 : 0;
+      const difficultyBoost = course.difficulty === nextDifficulty ? 20 : 0;
+      const featuredBoost = course.featuredOrder ? Math.max(0, 18 - course.featuredOrder) : 0;
+      const popularityBoost = Math.min(course._count.enrollments, 100) * 0.18;
+      const ratingBoost = (ratingMap.get(course.id) ?? 0) * 5;
+      const freshnessDays = Math.max(0, (now - course.updatedAt.getTime()) / (1000 * 60 * 60 * 24));
+      const freshnessBoost = Math.max(0, 10 - freshnessDays / 14);
+      const coldStartBoost = enrollments.length === 0 ? 8 : 0;
+
+      return {
+        course,
+        score:
+          sameCategoryBoost +
+          completedPathBoost +
+          difficultyBoost +
+          featuredBoost +
+          popularityBoost +
+          ratingBoost +
+          freshnessBoost +
+          coldStartBoost,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ course }) => {
+      const firstLesson = course.modules[0]?.lessons[0];
+      return {
+        id: course.id,
+        title: course.title,
+        slug: course.slug,
+        shortDesc: course.shortDesc,
+        difficulty: course.difficulty,
+        category: course.category?.name ?? "CSCN",
+        firstLessonId: firstLesson?.id,
+        activity: firstLesson?.title ?? "Start with the course introduction",
+        type: firstLesson?.contentType === "ARTICLE" ? "Reading" : "Video",
+        duration: firstLesson?.duration ? `${firstLesson.duration} minutes` : "Self-paced",
+        thumbnail: getSafeThumbnail(course.thumbnail),
+      };
+    });
+}
 
 export async function getInstructorDashboardData(userId: string): Promise<InstructorDashboardData> {
   // 1. Fetch courses taught by this instructor
@@ -159,24 +264,21 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
   });
 
   const distinctStudents = new Set<string>();
-  let calculatedRevenue = 0;
   let activeCoursesCount = 0;
 
   const myCourses: CourseData[] = courses.map(c => {
     if (c.status === 'PUBLISHED') activeCoursesCount++;
     c.enrollments.forEach(e => distinctStudents.add(e.userId));
     const priceNum = c.price ? Number(c.price) : 0; // Real value fallback
-    calculatedRevenue += c.enrollments.length * priceNum;
 
     return {
       id: c.id,
       title: c.title,
       slug: c.slug,
-      thumbnail: c.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg",
+      thumbnail: getSafeThumbnail(c.thumbnail),
       status: c.status,
       enrollmentCount: c._count.enrollments,
-      rating: 4.8, // Foundation fallback
-      price: priceNum,
+      price: c.price ? priceNum : null,
     };
   });
 
@@ -187,6 +289,7 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
     where: { userId, status: 'ACTIVE' },
     select: {
       id: true,
+      enrolledAt: true,
       course: {
         select: {
           id: true,
@@ -205,11 +308,32 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
         },
       },
     },
-    take: 3,
+  });
+
+  const instructorRecentWatchSegments = await db.lessonWatchSegment.findMany({
+    where: { userId },
+    orderBy: { lastSeenAt: 'desc' },
+    take: 100,
+    select: {
+      lastSeenAt: true,
+      lesson: { select: { module: { select: { courseId: true } } } },
+    },
+  });
+  const instructorLastInteractionByCourse = new Map<string, Date>();
+  for (const segment of instructorRecentWatchSegments) {
+    const courseId = segment.lesson.module.courseId;
+    if (!instructorLastInteractionByCourse.has(courseId)) {
+      instructorLastInteractionByCourse.set(courseId, segment.lastSeenAt);
+    }
+  }
+  const sortedInstructorEnrollments = [...rawEnrollments].sort((a, b) => {
+    const aTime = instructorLastInteractionByCourse.get(a.course.id)?.getTime() ?? a.enrolledAt.getTime();
+    const bTime = instructorLastInteractionByCourse.get(b.course.id)?.getTime() ?? b.enrolledAt.getTime();
+    return bTime - aTime;
   });
 
   const studentEnrollments: EnrollmentData[] = await Promise.all(
-    rawEnrollments.map(async (e) => {
+    sortedInstructorEnrollments.map(async (e) => {
       const allLessons = e.course.modules.flatMap(m => m.lessons);
       const totalLessons = allLessons.length;
 
@@ -224,24 +348,24 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
       const completedIds = new Set(progressRows.map(r => r.lessonId));
       const completedLessons = completedIds.size;
 
-      const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 50;
-      const nextLesson = allLessons.find(l => !completedIds.has(l.id)) || allLessons[0] || { id: 'no-lessons', title: "Activity: Create variations of your paper wireframes", contentType: "VIDEO", duration: 5 };
+      const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+      const nextLesson = allLessons.find(l => !completedIds.has(l.id)) || allLessons[0];
 
       return {
         id: e.id,
         courseId: e.course.id,
         title: e.course.title,
         slug: e.course.slug,
-        thumbnail: e.course.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg",
+        thumbnail: getSafeThumbnail(e.course.thumbnail),
         categoryName: e.course.category?.name || "CSCN",
         instructorName: e.course.instructor?.name || "Instructor",
         progressPercent,
         completedLessons,
-        totalLessons: totalLessons > 0 ? totalLessons : 7,
-        nextActivity: nextLesson.title,
-        nextActivityType: nextLesson.contentType === 'ARTICLE' ? 'Reading' : 'Video',
-        nextActivityDuration: nextLesson.duration ? `${nextLesson.duration} minutes` : '5 minutes',
-        nextLessonId: nextLesson.id,
+        totalLessons,
+        nextActivity: nextLesson?.title,
+        nextActivityType: nextLesson?.contentType === 'ARTICLE' ? 'Reading' : 'Video',
+        nextActivityDuration: nextLesson?.duration ? `${nextLesson.duration} minutes` : undefined,
+        nextLessonId: nextLesson?.id,
       };
     })
   );
@@ -261,7 +385,22 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
         time: formatDateString(a.publishedAt || a.createdAt),
         body: a.body,
       }))
-    : FALLBACK_ANNOUNCEMENTS;
+    : [];
+
+  const ratingAggregation = await db.courseRating.aggregate({
+    where: {
+      course: {
+        OR: [
+          { instructorId: userId },
+          { instructors: { some: { userId } } },
+        ],
+      },
+    },
+    _avg: { rating: true },
+  });
+  const avgCourseRating = ratingAggregation._avg.rating
+    ? Number(ratingAggregation._avg.rating.toFixed(1))
+    : 0;
 
   if (isNewInstructor) {
     return {
@@ -273,19 +412,21 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
       studentEnrollments: [],
       announcements,
       schedule: [],
+      recommendations: await getRecommendedCourses(userId),
       isNewInstructor: true,
     };
   }
 
   return {
     totalStudents: distinctStudents.size,
-    monthlyRevenue: calculatedRevenue,
-    avgCourseRating: activeCoursesCount > 0 ? 4.8 : 0.0,
+    monthlyRevenue: 0,
+    avgCourseRating,
     activeCoursesCount,
     myCourses,
     studentEnrollments,
     announcements,
-    schedule: FALLBACK_SCHEDULE,
+    schedule: [],
+    recommendations: await getRecommendedCourses(userId),
     isNewInstructor: false,
   };
 }
@@ -296,6 +437,7 @@ export async function getStudentDashboardData(userId: string): Promise<StudentDa
     select: {
       id: true,
       status: true,
+      enrolledAt: true,
       course: {
         select: {
           id: true,
@@ -317,12 +459,34 @@ export async function getStudentDashboardData(userId: string): Promise<StudentDa
     orderBy: { enrolledAt: 'desc' },
   });
 
+  const recentWatchSegments = await db.lessonWatchSegment.findMany({
+    where: { userId },
+    orderBy: { lastSeenAt: 'desc' },
+    take: 100,
+    select: {
+      lastSeenAt: true,
+      lesson: { select: { module: { select: { courseId: true } } } },
+    },
+  });
+  const lastInteractionByCourse = new Map<string, Date>();
+  for (const segment of recentWatchSegments) {
+    const courseId = segment.lesson.module.courseId;
+    if (!lastInteractionByCourse.has(courseId)) {
+      lastInteractionByCourse.set(courseId, segment.lastSeenAt);
+    }
+  }
+  const sortedEnrollments = [...rawEnrollments].sort((a, b) => {
+    const aTime = lastInteractionByCourse.get(a.course.id)?.getTime() ?? a.enrolledAt.getTime();
+    const bTime = lastInteractionByCourse.get(b.course.id)?.getTime() ?? b.enrolledAt.getTime();
+    return bTime - aTime;
+  });
+
   let totalHoursSpent = 0;
   let totalCompletedLessonsAcrossAll = 0;
   let totalLessonsAcrossAll = 0;
 
   const activeEnrollments: EnrollmentData[] = await Promise.all(
-    rawEnrollments.map(async (e) => {
+    sortedEnrollments.map(async (e) => {
       const allLessons = e.course.modules.flatMap(m => m.lessons);
       const totalLessons = allLessons.length;
       totalLessonsAcrossAll += totalLessons;
@@ -339,54 +503,33 @@ export async function getStudentDashboardData(userId: string): Promise<StudentDa
       const completedLessons = completedIds.size;
       totalCompletedLessonsAcrossAll += completedLessons;
 
-      // Sum duration of completed lessons
-      allLessons.forEach(l => {
-        if (completedIds.has(l.id) && l.duration) {
-          totalHoursSpent += l.duration;
-        }
-      });
-
-      const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 50;
-      const nextLesson = allLessons.find(l => !completedIds.has(l.id)) || allLessons[0] || { id: 'no-lessons', title: "Activity: Create variations of your paper wireframes", contentType: "VIDEO", duration: 5 };
+      const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+      const nextLesson = allLessons.find(l => !completedIds.has(l.id)) || allLessons[0];
 
       return {
         id: e.id,
         courseId: e.course.id,
         title: e.course.title,
         slug: e.course.slug,
-        thumbnail: e.course.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg",
+        thumbnail: getSafeThumbnail(e.course.thumbnail),
         categoryName: e.course.category?.name || "CSCN",
-        instructorName: e.course.instructor?.name || "Chris John",
+        instructorName: e.course.instructor?.name || "Instructor",
         progressPercent,
         completedLessons,
-        totalLessons: totalLessons > 0 ? totalLessons : 7,
-        nextActivity: nextLesson.title,
-        nextActivityType: nextLesson.contentType === 'ARTICLE' ? 'Reading' : 'Video',
-        nextActivityDuration: nextLesson.duration ? `${nextLesson.duration} minutes` : '5 minutes',
-        nextLessonId: nextLesson.id,
+        totalLessons,
+        nextActivity: nextLesson?.title,
+        nextActivityType: nextLesson?.contentType === 'ARTICLE' ? 'Reading' : 'Video',
+        nextActivityDuration: nextLesson?.duration ? `${nextLesson.duration} minutes` : undefined,
+        nextLessonId: nextLesson?.id,
       };
     })
   );
 
-  // Fallback if no enrollments exist yet
-  if (activeEnrollments.length === 0) {
-    activeEnrollments.push({
-      id: 'mock-enroll-1',
-      courseId: 'mock-c-1',
-      title: 'Build Dynamic User Interfaces (UI) for Websites',
-      slug: 'build-dynamic-ui',
-      thumbnail: '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
-      categoryName: 'CSCN',
-      instructorName: 'Chris John',
-      progressPercent: 50,
-      completedLessons: 2,
-      totalLessons: 7,
-      nextActivity: 'Activity: Create variations of your paper wireframes',
-      nextActivityType: 'Video',
-      nextActivityDuration: '5 minutes',
-      nextLessonId: 'mock-first-lesson',
-    });
-  }
+  const watchSummary = await db.lessonWatchSegment.aggregate({
+    where: { userId },
+    _sum: { secondsWatched: true },
+  });
+  totalHoursSpent = Math.floor((watchSummary._sum.secondsWatched ?? 0) / 3600);
 
   // Calculate streak gracefully regardless of Prisma Client generation state
   let streakRows: any[] = [];
@@ -420,8 +563,8 @@ export async function getStudentDashboardData(userId: string): Promise<StudentDa
     }
   }
 
-  const hoursSpentStr = totalHoursSpent > 0 ? `${Math.round(totalHoursSpent / 60)}h` : '124h';
-  const completionRate = totalLessonsAcrossAll > 0 ? Math.round((totalCompletedLessonsAcrossAll / totalLessonsAcrossAll) * 100) : 68;
+  const hoursSpentStr = `${totalHoursSpent}h`;
+  const completionRate = totalLessonsAcrossAll > 0 ? Math.round((totalCompletedLessonsAcrossAll / totalLessonsAcrossAll) * 100) : 0;
 
   // Announcements
   const rawAnnouncements = await db.announcement.findMany({
@@ -438,45 +581,16 @@ export async function getStudentDashboardData(userId: string): Promise<StudentDa
         time: formatDateString(a.publishedAt || a.createdAt),
         body: a.body,
       }))
-    : FALLBACK_ANNOUNCEMENTS;
-
-  // Recommendations
-  const rawRecs = await db.course.findMany({
-    where: { status: 'PUBLISHED', enrollments: { none: { userId } } },
-    orderBy: { enrollments: { _count: 'desc' } }, take: 3,
-    select: {
-      id: true, title: true, slug: true, thumbnail: true, shortDesc: true, difficulty: true,
-      modules: {
-        select: { lessons: { select: { id: true, title: true, contentType: true, duration: true }, take: 1 } },
-        take: 1
-      }
-    }
-  });
-
-  const recommendations = rawRecs.length >= 3 ? rawRecs.map(r => {
-    const firstLesson = r.modules[0]?.lessons[0] || { id: 'no-lessons', title: 'Activity: Introduction', contentType: 'VIDEO', duration: 5 };
-    return {
-      id: r.id,
-      title: r.title,
-      slug: r.slug,
-      shortDesc: r.shortDesc,
-      difficulty: r.difficulty,
-      firstLessonId: firstLesson.id,
-      activity: firstLesson.title,
-      type: firstLesson.contentType === 'ARTICLE' ? 'Reading' : 'Video',
-      duration: firstLesson.duration ? `${firstLesson.duration} minutes` : '5 minutes',
-      thumbnail: r.thumbnail || '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
-    };
-  }) : FALLBACK_RECOMMENDATIONS;
+    : [];
 
   return {
-    coursesEnrolled: rawEnrollments.length > 0 ? rawEnrollments.length : 24,
+    coursesEnrolled: rawEnrollments.length,
     hoursSpent: hoursSpentStr,
     completionRate,
-    learningStreak: streakCount > 0 ? `${streakCount}d` : '10d',
+    learningStreak: `${streakCount}d`,
     activeEnrollments,
     announcements,
-    recommendations,
-    schedule: FALLBACK_SCHEDULE,
+    recommendations: await getRecommendedCourses(userId),
+    schedule: [],
   };
 }

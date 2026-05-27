@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import type { Difficulty, CourseStatus, CourseInstructorRole, ContentType } from "@prisma/client";
 import { createNotification } from "@/data/notifications";
 import { sendCourseInviteEmail } from "@/lib/mail";
+import { getInstructorRoleTransitionData } from "@/lib/instructor-onboarding";
 
 // ── Ownership guard (OWNER only — for destructive / admin actions) ────────────
 
@@ -150,12 +151,47 @@ export async function getStudioCourse(courseId: string, userId: string) {
               title: true,
               position: true,
               videoUrl: true,
+              overview: true,
               duration: true,
               isPublished: true,
               isPreview: true,
               transcript: true,
               bodyContent: true,
               contentType: true,
+              quiz: {
+                select: {
+                  id: true,
+                  mode: true,
+                  instructions: true,
+                  passingScore: true,
+                  maxAttempts: true,
+                  showAnswers: true,
+                  gateUntilPassed: true,
+                  shuffleQuestions: true,
+                  timeLimitMinutes: true,
+                  questions: {
+                    orderBy: { position: "asc" },
+                    select: {
+                      id: true,
+                      type: true,
+                      prompt: true,
+                      explanation: true,
+                      points: true,
+                      position: true,
+                      required: true,
+                      options: {
+                        orderBy: { position: "asc" },
+                        select: {
+                          id: true,
+                          text: true,
+                          isCorrect: true,
+                          position: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
               muxStatus: true,
               muxPlaybackId: true,
               resources: {
@@ -545,12 +581,12 @@ export async function createLesson(moduleId: string, userId: string, title: stri
     },
     select: {
       id: true, title: true, position: true, isPublished: true, isPreview: true,
-      duration: true, videoUrl: true, contentType: true, transcript: true,
+      duration: true, videoUrl: true, overview: true, contentType: true, transcript: true,
       bodyContent: true,
       muxStatus: true, muxPlaybackId: true,
     },
   });
-  return { ...lesson, resources: [] as { id: string; title: string; url: string; type: string }[] };
+  return { ...lesson, quiz: null, resources: [] as { id: string; title: string; url: string; type: string }[] };
 }
 
 export async function updateLessonPublishState(lessonId: string, userId: string, isPublished: boolean) {
@@ -587,6 +623,7 @@ export async function updateLesson(
   data: {
     title?: string;
     videoUrl?: string | null;
+    overview?: string | null;
     duration?: number | null;
     isPreview?: boolean;
     transcript?: string | null;
@@ -797,7 +834,10 @@ export async function acceptCourseInvite(token: string, userId: string) {
   if (invite.role === "CO_INSTRUCTOR" && user?.role === "USER") {
     await db.user.update({
       where: { id: userId },
-      data: { role: "INSTRUCTOR" },
+      data: {
+        role: "INSTRUCTOR",
+        ...getInstructorRoleTransitionData("INSTRUCTOR"),
+      },
     });
   }
 

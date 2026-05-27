@@ -150,8 +150,21 @@ export async function adminToggleCoursePublish(courseId: string) {
     select: {
       status: true,
       instructorId: true,
+      thumbnail: true,
+      promoVideo: true,
       price: true,
       instructor: { select: { payoutSetup: true, payoutDetails: true } },
+      modules: {
+        where: { isPublished: true },
+        take: 1,
+        select: {
+          lessons: {
+            where: { isPublished: true },
+            take: 1,
+            select: { id: true },
+          },
+        },
+      },
       pricingProposals: {
         where: { status: "PENDING" },
         select: { id: true },
@@ -164,6 +177,18 @@ export async function adminToggleCoursePublish(courseId: string) {
 
   if (newStatus === "PUBLISHED" && course.pricingProposals.length > 0) {
     throw new Error("Approve or reject the pending course price before publishing this course.");
+  }
+
+  if (newStatus === "PUBLISHED") {
+    if (!course.thumbnail) {
+      throw new Error("Add a course thumbnail before publishing this course.");
+    }
+    if (!course.promoVideo) {
+      throw new Error("Add a course trailer before publishing this course.");
+    }
+    if (!course.modules.some((module) => module.lessons.length > 0)) {
+      throw new Error("Publish at least one module and one lesson before publishing this course.");
+    }
   }
 
   if (newStatus === "PUBLISHED" && course.price && Number(course.price) > 0) {
@@ -244,12 +269,42 @@ export async function getStudioCourseAdmin(courseId: string) {
               title: true,
               position: true,
               videoUrl: true,
+              overview: true,
               duration: true,
               isPublished: true,
               isPreview: true,
               transcript: true,
               bodyContent: true,
               contentType: true,
+              quiz: {
+                select: {
+                  id: true,
+                  mode: true,
+                  instructions: true,
+                  passingScore: true,
+                  maxAttempts: true,
+                  showAnswers: true,
+                  gateUntilPassed: true,
+                  shuffleQuestions: true,
+                  timeLimitMinutes: true,
+                  questions: {
+                    orderBy: { position: "asc" },
+                    select: {
+                      id: true,
+                      type: true,
+                      prompt: true,
+                      explanation: true,
+                      points: true,
+                      position: true,
+                      required: true,
+                      options: {
+                        orderBy: { position: "asc" },
+                        select: { id: true, text: true, isCorrect: true, position: true },
+                      },
+                    },
+                  },
+                },
+              },
               muxStatus: true,
               muxPlaybackId: true,
               resources: {

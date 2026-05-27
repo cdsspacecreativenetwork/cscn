@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface CourseDetailsProps {
   enrolledCount: string;
@@ -10,11 +11,12 @@ interface CourseDetailsProps {
   price: string;
   localizedPrice?: string | null;
   description: string;
-  instructor: {
+  instructors: {
     name: string;
     role: string;
     image: string;
-  };
+    href: string;
+  }[];
   requirements?: string[];
   includes?: string[];
   enrollCta?: React.ReactNode;
@@ -36,7 +38,7 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
   price,
   localizedPrice,
   description,
-  instructor,
+  instructors,
   requirements = [],
   includes = [],
   enrollCta,
@@ -158,28 +160,37 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
         </div>
       </div>
 
-      {/* Instructor Card */}
+      {/* Instructors Card */}
       <div className="bg-white rounded-[16px] p-4 sm:p-6 border border-[#E3E8F4]">
         <h3 className="text-[20px] font-semibold text-[#040B37] tracking-[-0.4px] leading-[1.24] mb-6">
-          Your Instructor
+          {instructors.length > 1 ? 'Your Instructors' : 'Your Instructor'}
         </h3>
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
-            <div className="w-12 h-12 relative rounded-full overflow-hidden border border-[#E3E8F4] shrink-0">
-              <Image src={instructor.image} alt={instructor.name} fill className="object-cover" />
+        <div className="flex flex-col gap-4">
+          {instructors.map((instructor) => (
+            <div key={instructor.href} className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-[12px] border border-[#F4F6FB] bg-[#F8FAFF] p-4">
+              <div className="flex items-center gap-4 sm:gap-5 w-full sm:w-auto">
+                <div className="w-12 h-12 relative rounded-full overflow-hidden border border-[#E3E8F4] shrink-0 bg-white">
+                  <Image src={instructor.image} alt={instructor.name} fill className="object-cover" />
+                </div>
+                <div className="flex flex-col justify-center gap-1">
+                  <span className="text-[16px] font-semibold text-[#040B37] tracking-[-0.16px] leading-normal">
+                    {instructor.name}
+                  </span>
+                  <span className="text-[14px] font-medium text-[#4B5563] tracking-[-0.14px] leading-normal">
+                    {instructor.role}
+                  </span>
+                </div>
+              </div>
+              <Link
+                href={instructor.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-5 py-3 border border-[#1C4ED1] rounded-full text-center text-[#1C4ED1] text-[14px] font-medium hover:bg-[#1C4ED1] hover:text-white transition-all cursor-pointer whitespace-nowrap leading-normal"
+              >
+                Connect
+              </Link>
             </div>
-            <div className="flex flex-col justify-center gap-1">
-              <span className="text-[16px] font-semibold text-[#040B37] tracking-[-0.16px] leading-normal">
-                {instructor.name}
-              </span>
-              <span className="text-[14px] font-medium text-[#4B5563] tracking-[-0.14px] leading-normal">
-                {instructor.role}
-              </span>
-            </div>
-          </div>
-          <button className="w-full sm:w-auto px-5 py-3 border border-[#1C4ED1] rounded-full text-[#1C4ED1] text-[14px] font-medium hover:bg-[#1C4ED1] hover:text-white transition-all cursor-pointer whitespace-nowrap leading-normal">
-            Connect
-          </button>
+          ))}
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -30,19 +31,49 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   variant = "default",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
   useEffect(() => {
+    setMounted(true);
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const updatePosition = () => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuRect({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isOpen]);
 
   const handleSelect = (optionValue: string) => {
     onChange(optionValue);
@@ -73,14 +104,17 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       </button>
 
       {/* Dropdown Menu */}
-      <AnimatePresence>
-        {isOpen && (
+      {mounted && createPortal(
+        <AnimatePresence>
+        {isOpen && menuRect && (
           <motion.div
+            ref={menuRef}
             initial={{ opacity: 0, y: 4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute z-[100] mt-2 w-full bg-white border border-[#E3E8F4] rounded-[12px] shadow-[0px_10px_40px_-10px_rgba(4,11,55,0.1)] overflow-hidden py-1.5"
+            style={{ top: menuRect.top, left: menuRect.left, width: menuRect.width }}
+            className="fixed z-[9999] bg-white border border-[#E3E8F4] rounded-[12px] shadow-[0px_18px_48px_-12px_rgba(4,11,55,0.22)] overflow-hidden py-1.5"
           >
             {options.map((option) => (
               <button
@@ -108,7 +142,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
             ))}
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

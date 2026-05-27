@@ -87,10 +87,10 @@ export default async function MyCourses() {
         </div>
         <Link
           href="/courses"
-          className="bg-[#1C4ED1] text-white px-5 py-2.5 rounded-[10px] flex items-center gap-2 font-semibold hover:bg-[#1C4ED1]/90 transition-all shrink-0 cursor-pointer shadow-[0px_2px_4px_rgba(28,78,209,0.2)] text-[14px]"
+          className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-[#1C4ED1] px-4 py-2 text-[13px] font-semibold text-white shadow-[0px_4px_12px_rgba(28,78,209,0.15)] transition-all hover:bg-[#163fa3] active:scale-[0.98]"
         >
           <Plus size={18} />
-          <span>Browse Courses</span>
+          Browse Courses
         </Link>
       </div>
 
@@ -127,12 +127,9 @@ export default async function MyCourses() {
             </svg>
           </div>
           <p className="text-text-mute font-medium">You haven&apos;t enrolled in any courses yet.</p>
-          <a
-            href="/courses"
-            className="px-6 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-[#163fa3] transition-colors"
-          >
-            Browse Courses
-          </a>
+          <p className="text-[13px] font-medium text-text-mute">
+            Use the Browse Courses button above to find your first class.
+          </p>
         </div>
       ) : (
         <MyCoursesClient courses={courses} />

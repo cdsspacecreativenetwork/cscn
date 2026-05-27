@@ -13,15 +13,17 @@ import CurriculumBuilder from './CurriculumBuilder';
 import CourseAnalyticsTab from './CourseAnalyticsTab';
 import InstructorRosterTab from './InstructorRosterTab';
 import FeedbackTab from './FeedbackTab';
+import type { LessonQuiz } from './QuizLessonBuilder';
 
 type Tab = 'settings' | 'curriculum' | 'analytics' | 'instructors' | 'feedback';
 
 interface StudioLesson {
   id: string; title: string; position: number;
   videoUrl: string | null; duration: number | null;
-  isPublished: boolean; isPreview: boolean; transcript: string | null;
+  isPublished: boolean; isPreview: boolean; overview: string | null; transcript: string | null;
   bodyContent: string | null;
   contentType: string;
+  quiz: LessonQuiz;
   resources: { id: string; title: string; url: string; type: string }[];
   muxStatus: string;
   muxPlaybackId: string | null;

@@ -9,6 +9,7 @@ import { CourseContentSidebar } from './CourseContentSidebar';
 import { CourseRatingPanel } from './CourseRatingPanel';
 import { ArticleContent } from './ArticleContent';
 import { LessonNotesPanel } from './LessonNotesPanel';
+import { QuizPlayer } from './QuizPlayer';
 import type { SidebarModule, PlayerLesson } from '@/types/player';
 
 function ArticleReader({ title, body }: { title: string; body: string | null }) {
@@ -20,22 +21,6 @@ function ArticleReader({ title, body }: { title: string; body: string | null }) 
         </div>
         <h2 className="text-2xl font-bold text-[#040B37] leading-tight">{title}</h2>
         <ArticleContent body={body} />
-      </div>
-    </div>
-  );
-}
-
-function QuizReader({ title }: { title: string }) {
-  return (
-    <div className="w-full min-h-[472px] bg-white rounded-[8px] border border-[#E3E8F4] shadow-sm p-6 lg:p-10 font-jakarta">
-      <div className="max-w-2xl mx-auto h-full flex flex-col items-center justify-center text-center gap-4 py-24">
-        <div className="inline-flex items-center w-fit px-3 py-1 rounded-[8px] bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
-          Quiz Lesson
-        </div>
-        <h2 className="text-2xl font-bold text-[#040B37] leading-tight">{title}</h2>
-        <p className="text-sm font-medium text-text-mute leading-6">
-          Quiz rendering will use a dedicated assessment layout with questions, attempts, scoring, and explanations. This placeholder prevents quiz lessons from inheriting the video/transcript layout.
-        </p>
       </div>
     </div>
   );
@@ -80,6 +65,7 @@ export const CoursePlayerView = ({
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(lesson.progress?.lastSeekTime ?? 0);
   const [seekRequest, setSeekRequest] = useState<{ id: number; seconds: number } | null>(null);
   const canWriteNotes = canWatch && isEnrolled && !isPreviewMode;
+  const isQuizLesson = lesson.contentType === 'QUIZ';
 
   const handleSeekToNote = (seconds: number) => {
     setCurrentPlaybackTime(seconds);
@@ -122,56 +108,57 @@ export const CoursePlayerView = ({
         nextLessonId={nextLessonId}
         isEnrolled={isEnrolled}
         isCompleted={isCurrentLessonCompleted}
+        allowManualComplete={!isQuizLesson}
       />
 
-      <div className="flex flex-col lg:flex-row gap-6 lg:items-start w-full">
-        <div className={`w-full ${lesson.contentType === 'VIDEO' ? 'lg:w-[72%]' : 'lg:w-[72%]'} shrink-0`}>
-          {lesson.contentType === 'ARTICLE' && canWatch ? (
-            <ArticleReader title={lesson.title} body={lesson.bodyContent} />
-          ) : lesson.contentType === 'QUIZ' && canWatch ? (
-            <QuizReader title={lesson.title} />
-          ) : (
-            <VideoPlayer
-              lessonId={lesson.id}
-              videoUrl={lesson.videoUrl}
-              muxPlaybackId={lesson.muxPlaybackId}
-              muxToken={lesson.muxToken}
-              timestamps={lesson.timestamps}
-              initialProgress={lesson.progress}
-              seekRequest={seekRequest}
-              onPlaybackTimeChange={setCurrentPlaybackTime}
-              canWatch={canWatch}
-              isAuthenticated={isAuthenticated}
-              isEnrolled={isEnrolled}
-              courseSlug={courseSlug}
-              lessonTitle={lesson.title}
+      <div className={`grid w-full grid-cols-1 gap-6 lg:items-start ${
+        isQuizLesson ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,72%)_minmax(300px,28%)]'
+      }`}>
+        <div className="flex min-w-0 flex-col gap-5">
+          <div className="w-full">
+            {lesson.contentType === 'ARTICLE' && canWatch ? (
+              <ArticleReader title={lesson.title} body={lesson.bodyContent} />
+            ) : lesson.contentType === 'QUIZ' && canWatch ? (
+              lesson.quiz ? (
+                <QuizPlayer
+                  lessonTitle={lesson.title}
+                  quiz={lesson.quiz}
+                  courseSlug={courseSlug}
+                  nextLessonId={nextLessonId}
+                  isCompleted={isCurrentLessonCompleted}
+                />
+              ) : (
+                <div className="w-full rounded-[24px] border border-[#E3E8F4] bg-white p-10 text-center text-sm font-semibold text-text-mute">
+                  This quiz has not been set up yet.
+                </div>
+              )
+            ) : (
+              <VideoPlayer
+                lessonId={lesson.id}
+                videoUrl={lesson.videoUrl}
+                muxPlaybackId={lesson.muxPlaybackId}
+                muxToken={lesson.muxToken}
+                timestamps={lesson.timestamps}
+                initialProgress={lesson.progress}
+                seekRequest={seekRequest}
+                onPlaybackTimeChange={setCurrentPlaybackTime}
+                canWatch={canWatch}
+                isAuthenticated={isAuthenticated}
+                isEnrolled={isEnrolled}
+                courseSlug={courseSlug}
+                lessonTitle={lesson.title}
+              />
+            )}
+          </div>
+
+          {!isQuizLesson && (
+            <CourseTabs
+              description={courseDescription}
+              lessonOverview={lesson.overview}
+              instructorName={instructorName}
+              resources={lesson.resources}
             />
           )}
-        </div>
-        {lesson.contentType === 'VIDEO' ? (
-          <div className="flex w-full min-w-[300px] flex-col gap-4 lg:w-[28%]">
-            <TranscriptSidebar transcript={lesson.transcript} />
-            {notesPanel}
-          </div>
-        ) : (
-          <div className="flex w-full min-w-[300px] flex-col gap-4 lg:w-[28%]">
-            <CourseContentSidebar
-              modules={modules}
-              courseSlug={courseSlug}
-              currentLessonId={lesson.id}
-            />
-            {notesPanel}
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6 lg:items-start w-full">
-        <div className="w-full lg:w-[72%] shrink-0">
-          <CourseTabs
-            description={courseDescription}
-            instructorName={instructorName}
-            resources={lesson.resources}
-          />
           {isCourseCompleted && isEnrolled && !isPreviewMode && (
             <div className="mt-6">
               <CourseRatingPanel
@@ -182,14 +169,19 @@ export const CoursePlayerView = ({
             </div>
           )}
         </div>
-        {lesson.contentType === 'VIDEO' && (
-        <div className="w-full lg:w-[28%] min-w-[300px]">
-          <CourseContentSidebar
-            modules={modules}
-            courseSlug={courseSlug}
-            currentLessonId={lesson.id}
-          />
-        </div>
+
+        {!isQuizLesson && (
+          <div className="flex w-full min-w-[300px] flex-col gap-4">
+            {lesson.contentType === 'VIDEO' && (
+              <TranscriptSidebar transcript={lesson.transcript} />
+            )}
+            {notesPanel}
+            <CourseContentSidebar
+              modules={modules}
+              courseSlug={courseSlug}
+              currentLessonId={lesson.id}
+            />
+          </div>
         )}
       </div>
     </div>

@@ -1,65 +1,107 @@
-'use client';
-
-import React from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { MENTORS, MENTORSHIP_BENEFITS, MENTORSHIP_STATS } from '@/lib/mentorship';
+import { db } from '@/lib/db';
+import { MENTORS, MENTORSHIP_BENEFITS } from '@/lib/mentorship';
 import MentorCard from '@/components/ui/MentorCard';
-
 import FAQSection from '@/components/marketing/FAQSection';
+import { generateTapbackAvatar } from '@/lib/avatar';
 
-export default function MentorshipPage() {
+function publicSlug(user: { id: string; name: string | null; publicProfileSlug: string | null }) {
+  return (
+    user.publicProfileSlug ||
+    user.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
+    user.id
+  );
+}
+
+export default async function MentorshipPage() {
+  const mentors = await db.user.findMany({
+    where: {
+      instructorProfileEnabled: true,
+      instructorVerificationStatus: 'VERIFIED',
+      publicProfileStatus: 'PUBLIC',
+      mentorshipEnabled: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      image: true,
+      headline: true,
+      publicProfileSlug: true,
+      taughtCourses: {
+        where: { status: 'PUBLISHED' },
+        select: { _count: { select: { enrollments: true } } },
+      },
+    },
+    orderBy: [{ instructorFeaturedOrder: 'asc' }, { updatedAt: 'desc' }],
+  });
+
+  const mentorCards = mentors.map((mentor) => {
+    const name = mentor.name ?? 'CSCN Mentor';
+    const students = mentor.taughtCourses.reduce((sum, course) => sum + course._count.enrollments, 0);
+    return {
+      id: mentor.id,
+      slug: publicSlug(mentor),
+      name,
+      role: mentor.headline ?? 'CSCN Instructor',
+      image: mentor.image ?? generateTapbackAvatar(name),
+      courses: mentor.taughtCourses.length,
+      students: students.toLocaleString(),
+    };
+  });
+
+  const mentorCardIds = new Set(mentorCards.map((mentor) => mentor.id));
+  const displayMentors = [
+    ...mentorCards,
+    ...MENTORS.filter((mentor) => !mentorCardIds.has(mentor.id)),
+  ].slice(0, 4);
+
+  const stats = [
+    { label: 'Available mentors', value: displayMentors.length.toLocaleString() },
+    { label: 'Published courses', value: displayMentors.reduce((sum, mentor) => sum + mentor.courses, 0).toLocaleString() },
+    { label: 'Learners reached', value: mentors.reduce((sum, mentor) => sum + mentor.taughtCourses.reduce((courseSum, course) => courseSum + course._count.enrollments, 0), 0).toLocaleString() },
+    { label: 'Verified mentors', value: mentorCards.length.toLocaleString(), isRating: true },
+  ];
+
   return (
     <main className="min-h-screen bg-background pt-[6rem] md:pt-[8.25rem] pb-24">
       <div className="max-w-[83rem] mx-auto px-4 md:px-6 lg:px-3 flex flex-col gap-16 md:gap-20">
-        
-        {/* Hero Section */}
         <div className="flex flex-col gap-10 md:gap-[48px]">
           <div className="flex flex-col gap-4 md:gap-6 max-w-[527px]">
             <h1 className="text-[32px] md:text-[48px] font-semibold text-[#040B37] tracking-[-0.02em] leading-[1.24] font-inter">
               Mentorship
             </h1>
             <p className="text-[16px] font-medium text-[#4B5563] tracking-[-0.01em] font-inter leading-relaxed">
-              Connect with experienced mentors who guide, support, and help you grow through real industry insights and practical feedback.
+              Connect with verified instructors who have opened mentorship slots for portfolio reviews, feedback, and practical career guidance.
             </p>
           </div>
 
-          {/* Stats Bar */}
           <div className="flex flex-wrap items-center gap-6 md:gap-[24px]">
-            {MENTORSHIP_STATS.map((stat, i) => (
-              <React.Fragment key={stat.label}>
+            {stats.map((stat, i) => (
+              <div key={stat.label} className="flex items-center gap-6">
                 <div className="flex flex-col gap-2.5">
                   <span className="text-[14px] font-medium text-[#4B5563] tracking-[-0.01em]">
                     {stat.label}
                   </span>
                   <div className="flex items-center gap-2">
                     {stat.isRating && (
-                      <div className="flex items-center justify-center w-[22px] h-[22px]">
-                        <Image 
-                          src="/assets/star.svg" 
-                          alt="star" 
-                          width={22} 
-                          height={22} 
-                        />
-                      </div>
+                      <Image src="/assets/star.svg" alt="" width={22} height={22} />
                     )}
                     <span className="text-[18px] font-semibold text-[#040B37] tracking-[-0.02em] leading-[1.24]">
                       {stat.value}
                     </span>
                   </div>
                 </div>
-                {i < MENTORSHIP_STATS.length - 1 && (
+                {i < stats.length - 1 && (
                   <div className="hidden md:block w-[1px] h-[47px] bg-[#C8D1E0]" />
                 )}
-              </React.Fragment>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Benefits Section */}
         <div className="flex flex-col gap-4 md:gap-[16px]">
           <h2 className="text-[24px] font-semibold text-[#040B37] tracking-[-0.02em] font-inter">
-            What You’ll Get
+            What You'll Get
           </h2>
           <div className="flex flex-wrap gap-2.5 md:gap-[10px]">
             {MENTORSHIP_BENEFITS.map((benefit) => (
@@ -73,27 +115,26 @@ export default function MentorshipPage() {
           </div>
         </div>
 
-        {/* Mentors Catalog */}
         <div className="flex flex-col gap-6 md:gap-[24px]">
           <h2 className="text-[24px] font-semibold text-[#040B37] tracking-[-0.02em] font-inter">
             Meet the Mentors
           </h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {MENTORS.map((mentor, i) => (
-              <motion.div
-                key={mentor.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <MentorCard {...mentor} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
 
-        {/* FAQ Section - Handled outside the main gap if needed, but here we just need to ensure it's full width and tight */}
+          {displayMentors.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {displayMentors.map((mentor) => (
+                <MentorCard key={mentor.id} {...mentor} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-10 text-center">
+              <p className="text-[18px] font-bold text-[#040B37]">No mentors available yet</p>
+              <p className="mt-2 text-[14px] font-medium text-[#9CA3AF]">
+                Verified instructors who enable mentorship will appear here.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mt-16 md:mt-20">

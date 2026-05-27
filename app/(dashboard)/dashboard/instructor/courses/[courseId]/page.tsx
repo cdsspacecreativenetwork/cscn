@@ -5,6 +5,7 @@ import { getCategories } from '@/data/courses';
 import { getLatestCourseReview } from '@/data/course-reviews';
 import { getUnresolvedFeedbackCount, getCourseFeedback } from '@/data/course-feedback';
 import CourseStudio from '@/components/dashboard/instructor/CourseStudio';
+import { shouldRedirectInstructorToOnboarding } from '@/lib/instructor-onboarding';
 
 interface Props {
   params: Promise<{ courseId: string }>;
@@ -17,6 +18,9 @@ export default async function CourseStudioPage({ params, searchParams }: Props) 
   const session = await auth();
 
   if (!session?.user?.id) redirect('/signin');
+  if (session.user.role === 'INSTRUCTOR' && await shouldRedirectInstructorToOnboarding(session.user.id)) {
+    redirect('/dashboard/profile?setup=instructor');
+  }
 
   const [course, categories, analytics] = await Promise.all([
     getStudioCourse(courseId, session.user.id),

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Copy, Check, Trash2, UserPlus, Clock, Mail, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import SelectInput from '@/components/ui/SelectInput';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { toast } from 'sonner';
 
@@ -50,6 +50,11 @@ const ROLE_BADGE: Record<CourseRole, string> = {
   CO_INSTRUCTOR: 'bg-amber-100 text-amber-700',
   TEACHING_ASSISTANT: 'bg-green-100 text-green-700',
 };
+
+const INVITE_ROLE_OPTIONS = [
+  { value: 'CO_INSTRUCTOR', label: 'Co-Instructor' },
+  { value: 'TEACHING_ASSISTANT', label: 'Teaching Assistant' },
+];
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -253,15 +258,13 @@ export default function InstructorRosterTab({ courseId, isAdmin = false, initial
 
               {isOwner && member.role !== 'OWNER' && (
                 <div className="flex items-center gap-1 shrink-0">
-                  <SelectInput
+                  <CustomSelect
+                    options={INVITE_ROLE_OPTIONS}
                     value={member.role}
-                    size="sm"
                     disabled={changingRoleId === member.user.id}
-                    onChange={(e) => handleChangeRole(member.user.id, e.target.value as 'CO_INSTRUCTOR' | 'TEACHING_ASSISTANT')}
-                  >
-                    <option value="CO_INSTRUCTOR">Co-Instructor</option>
-                    <option value="TEACHING_ASSISTANT">Teaching Assistant</option>
-                  </SelectInput>
+                    onChange={(value) => handleChangeRole(member.user.id, value as 'CO_INSTRUCTOR' | 'TEACHING_ASSISTANT')}
+                    className="w-[190px]"
+                  />
                   <button
                     onClick={() => setConfirmRemove({ userId: member.user.id, name: member.user.name ?? member.user.email })}
                     disabled={removingId === member.user.id}
@@ -358,20 +361,19 @@ export default function InstructorRosterTab({ courseId, isAdmin = false, initial
                 )}
               </div>
 
-              <SelectInput
+              <CustomSelect
+                options={INVITE_ROLE_OPTIONS}
                 value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as typeof inviteRole)}
-                className="shrink-0"
-              >
-                <option value="CO_INSTRUCTOR">Co-Instructor</option>
-                <option value="TEACHING_ASSISTANT">Teaching Assistant</option>
-              </SelectInput>
+                onChange={(value) => setInviteRole(value as typeof inviteRole)}
+                className="shrink-0 sm:w-[210px]"
+              />
 
               <Button
                 type="submit"
                 variant="primary"
                 size="sm"
-                rounded="xl"
+                rounded="[10px]"
+                hasBorder={false}
                 loading={inviting}
                 leftIcon={<UserPlus size={14} />}
               >

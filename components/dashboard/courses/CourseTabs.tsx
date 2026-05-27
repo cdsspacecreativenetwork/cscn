@@ -5,6 +5,7 @@ import type { PlayerResource } from '@/types/player';
 
 interface CourseTabsProps {
   description: string;
+  lessonOverview?: string | null;
   instructorName: string;
   resources: PlayerResource[];
 }
@@ -28,7 +29,7 @@ function LinkIcon() {
   );
 }
 
-export const CourseTabs = ({ description, instructorName, resources }: CourseTabsProps) => {
+export const CourseTabs = ({ description, lessonOverview, instructorName, resources }: CourseTabsProps) => {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   return (
@@ -52,8 +53,16 @@ export const CourseTabs = ({ description, instructorName, resources }: CourseTab
       <div className="bg-white rounded-2xl p-8 shadow-sm min-h-[400px]">
         {activeTab === 'overview' ? (
           <div className="flex flex-col gap-8">
+            {lessonOverview && (
+              <div className="flex flex-col gap-4">
+                <h3 className="font-semibold text-[#040B37] text-lg">Lesson Overview</h3>
+                <p className="font-medium text-text-body text-base leading-relaxed whitespace-pre-line">
+                  {lessonOverview}
+                </p>
+              </div>
+            )}
             <div className="flex flex-col gap-4">
-              <h3 className="font-semibold text-[#040B37] text-lg">About</h3>
+              <h3 className="font-semibold text-[#040B37] text-lg">About this course</h3>
               <p className="font-medium text-text-body text-base leading-relaxed whitespace-pre-line">
                 {description}
               </p>

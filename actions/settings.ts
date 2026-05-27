@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { deleteAvatar } from "@/actions/upload";
 import { sendPasswordChangeOTPEmail } from "@/lib/mail";
 import { verifyTOTP, generateBase32Secret } from "@/lib/totp";
+import { getInstructorPublicProfileEligibility } from "@/lib/profile-eligibility";
 
 export const settings = async (values: z.infer<typeof SettingsSchema>) => {
   const user = await currentUser();
@@ -32,14 +33,26 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
   }
 
   // Update user in database
-  await db.user.update({
+  const updatedUser = await db.user.update({
     where: { id: dbUser.id },
     data: {
       ...values,
-    }
+    },
   });
 
+  if (updatedUser.instructorProfileEnabled) {
+    const eligibility = getInstructorPublicProfileEligibility(updatedUser);
+    await db.user.update({
+      where: { id: updatedUser.id },
+      data: {
+        publicProfileStatus: eligibility.eligible ? "PUBLIC" : "DRAFT",
+      },
+    });
+  }
+
   revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/admin/users");
 
   return { success: "Settings Updated!" };
 };

@@ -112,7 +112,7 @@ async function seedCourse(
 
     if (!dbMod) {
       dbMod = await db.module.create({
-        data: { ...moduleData, courseId: course.id },
+        data: { ...moduleData, courseId: course.id, isPublished: true },
       });
     }
 
@@ -122,7 +122,7 @@ async function seedCourse(
       });
       if (!exists) {
         await db.lesson.create({
-          data: { ...lesson, contentType: "VIDEO", moduleId: dbMod.id },
+          data: { ...lesson, contentType: "VIDEO", moduleId: dbMod.id, isPublished: true },
         });
       }
     }

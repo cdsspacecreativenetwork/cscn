@@ -16,6 +16,8 @@ interface CourseModalProps {
     status?: 'playing' | 'not-started';
     duration?: string;   // e.g., "12h Total"
     description?: string;
+    firstLessonId?: string | null;
+    nextLessonId?: string | null;
   };
   onAction: () => void;
 }
@@ -92,16 +94,18 @@ export const ResumeCourseModal = ({ isOpen, onClose, course, onAction }: CourseM
           <Button
             variant="secondary"
             onClick={onClose}
-            rounded="sm"
-            className="w-[104px] bg-[#E3E8F4] !text-[#1C4ED1] hover:bg-[#D4DAE8]"
+            rounded="[10px]"
+            hasBorder={false}
+            className="w-[104px] border-0! bg-[#E3E8F4] !text-[#1C4ED1] hover:bg-[#D4DAE8]"
           >
             Cancel
           </Button>
           <Button
             variant="primary"
-            rounded="sm"
+            rounded="[10px]"
+            hasBorder={false}
             onClick={onAction}
-            className="w-[164px]"
+            className="w-[164px] border-0!"
           >
             Continue
           </Button>
@@ -116,17 +120,19 @@ export const ResumeCourseModal = ({ isOpen, onClose, course, onAction }: CourseM
  * Node ID: 9044:6611
  */
 export const GetStartedModal = ({ isOpen, onClose, course, onAction }: CourseModalProps) => {
+  const hasPlayableLesson = Boolean(course.firstLessonId || course.nextLessonId);
+
   return (
     <BaseModal isOpen={isOpen} onClose={onClose}>
       <div className="flex flex-col font-jakarta" data-node-id="9044:6611">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#E3E8F4]" data-node-id="9044:6613">
-          <h3 className="font-semibold text-[#4B5563] text-base max-w-[85%] leading-tight" data-node-id="9044:6614">
+        <div className="flex items-start justify-between gap-4 p-5 md:p-6 border-b border-[#E3E8F4]" data-node-id="9044:6613">
+          <h3 className="font-bold text-[#040B37] text-base md:text-lg max-w-[85%] leading-tight" data-node-id="9044:6614">
             {course.title}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center hover:bg-gray-100 rounded-[10px] transition-colors cursor-pointer text-[#4B5563]"
             data-node-id="9044:6615"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -136,9 +142,9 @@ export const GetStartedModal = ({ isOpen, onClose, course, onAction }: CourseMod
         </div>
 
         {/* Content */}
-        <div className="p-6 flex flex-col gap-6" data-node-id="9044:6619">
+        <div className="p-5 md:p-6 flex flex-col gap-5" data-node-id="9044:6619">
           {/* Thumbnail */}
-          <div className="relative aspect-[516/228] w-full rounded-2xl overflow-hidden bg-gray-100 group" data-node-id="9044:6621">
+          <div className="relative aspect-[16/7] max-h-[260px] w-full rounded-[14px] overflow-hidden bg-gray-100 group" data-node-id="9044:6621">
             <Image
               src={course.image}
               alt={course.title}
@@ -154,8 +160,8 @@ export const GetStartedModal = ({ isOpen, onClose, course, onAction }: CourseMod
           </div>
 
           {/* Info & Description */}
-          <div className="flex flex-col gap-6" data-node-id="9044:6624">
-            <div className="flex items-center gap-2" data-node-id="9044:6626">
+          <div className="flex flex-col gap-4" data-node-id="9044:6624">
+            <div className="flex flex-wrap items-center gap-3" data-node-id="9044:6626">
               <div className="relative w-5 h-5 opacity-60">
                 {/* Clock Icon Fallback */}
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -163,33 +169,45 @@ export const GetStartedModal = ({ isOpen, onClose, course, onAction }: CourseMod
                 </svg>
               </div>
               <span className="font-medium text-[#4B5563] text-sm tracking-[-0.01em]">
-                {course.duration || "12h Total"}
+                {course.duration || "Self-paced"}
+              </span>
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                hasPlayableLesson
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-amber-50 text-amber-700'
+              }`}>
+                {hasPlayableLesson ? 'Ready to start' : 'Lessons unavailable'}
               </span>
             </div>
 
-            <p className="font-medium text-[#9CA3AF] text-sm leading-relaxed" data-node-id="9044:6636">
-              {course.description || "Dive deep into the intricacies of this course. Master the foundational principles, advanced techniques, and practical applications required to excel in this field. Start learning today!"}
+            <p className="font-medium text-[#6B7280] text-sm leading-relaxed" data-node-id="9044:6636">
+              {course.description || (hasPlayableLesson
+                ? "Start with the first available lesson and continue learning at your pace."
+                : "This course is visible, but the instructor still needs to publish at least one lesson before students can start.")}
             </p>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 flex items-center justify-end gap-6 border-t border-[#E3E8F4]" data-node-id="9044:6638">
+        <div className="p-5 md:p-6 flex items-center justify-end gap-3 border-t border-[#E3E8F4]" data-node-id="9044:6638">
           <Button
             variant="secondary"
-            rounded="sm"
+            rounded="[10px]"
             onClick={onClose}
-            className="w-[104px] bg-[#E3E8F4] !text-[#1C4ED1] hover:bg-[#D4DAE8]"
+            hasBorder={false}
+            className="w-[112px] border-0! bg-[#E3E8F4] !text-[#1C4ED1] hover:bg-[#D4DAE8]"
           >
             Cancel
           </Button>
           <Button
             variant="primary"
-            rounded="sm"
+            rounded="[10px]"
             onClick={onAction}
-            className="w-[164px] text-sm! md:text-base! px-3! md:px-6!"
+            disabled={!hasPlayableLesson}
+            hasBorder={false}
+            className="w-[164px] border-0! text-sm! md:text-base! px-3! md:px-6!"
           >
-            Start Course
+            Start Learning
           </Button>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getInstructorCourses } from '@/data/instructor';
 import { getCategories } from '@/data/courses';
 import InstructorCourseList from '@/components/dashboard/instructor/InstructorCourseList';
+import { shouldRedirectInstructorToOnboarding } from '@/lib/instructor-onboarding';
 
 export default async function InstructorCoursesPage() {
   const session = await auth();
@@ -11,6 +12,9 @@ export default async function InstructorCoursesPage() {
   const role = session.user.role;
   if (role !== 'INSTRUCTOR' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
     redirect('/dashboard');
+  }
+  if (role === 'INSTRUCTOR' && await shouldRedirectInstructorToOnboarding(session.user.id)) {
+    redirect('/dashboard/profile?setup=instructor');
   }
 
   const [courses, categories] = await Promise.all([

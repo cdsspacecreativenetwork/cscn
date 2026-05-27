@@ -25,9 +25,11 @@ export function EnrollButton({ courseSlug, firstLessonId }: EnrollButtonProps) {
       }
 
       toast.success('Enrolled successfully!');
-      if (firstLessonId) {
-        router.push(`/courses/${courseSlug}/watch/${firstLessonId}`);
+      const playableLessonId = data.firstLessonId ?? firstLessonId;
+      if (playableLessonId) {
+        router.push(`/courses/${courseSlug}/watch/${playableLessonId}`);
       } else {
+        toast.info('You are enrolled. Lessons will be available once the instructor publishes them.');
         router.refresh();
       }
     });
@@ -37,6 +39,7 @@ export function EnrollButton({ courseSlug, firstLessonId }: EnrollButtonProps) {
     <Button
       variant="gradient"
       size="lg"
+      rounded="full"
       className="w-full mlg:w-auto"
       onClick={handleEnroll}
       loading={isPending}

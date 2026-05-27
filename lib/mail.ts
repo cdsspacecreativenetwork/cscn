@@ -5,6 +5,7 @@ import { PasswordResetEmail } from "@/components/emails/PasswordResetEmail";
 import { CourseInviteEmail } from "@/components/emails/CourseInviteEmail";
 
 const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const defaultFrom = process.env.EMAIL_FROM || process.env.GMAIL_USER || "no-reply@cscn.app";
 
 // Singleton transporter — reused across server action calls
 const transporter = nodemailer.createTransport({
@@ -16,13 +17,24 @@ const transporter = nodemailer.createTransport({
 });
 
 // Verify SMTP connection on startup (non-blocking — logs only, never throws)
-transporter.verify().then(() => {
-  console.log("[Mail] Gmail SMTP connection verified");
-}).catch((err: Error) => {
-  console.error("[Mail] SMTP connection failed:", err.message);
-});
+let smtpVerificationStarted = false;
+
+function verifySmtpOnce() {
+  if (smtpVerificationStarted) return;
+  smtpVerificationStarted = true;
+  transporter.verify().then(() => {
+    console.log("[Mail] Gmail SMTP connection verified");
+  }).catch((err: Error) => {
+    console.error("[Mail] SMTP connection failed:", err.message);
+  });
+}
 
 async function send(opts: nodemailer.SendMailOptions): Promise<{ success: true; messageId: string } | { error: string }> {
+  verifySmtpOnce();
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    return { error: "Email provider is not configured. Set Gmail SMTP credentials." };
+  }
+
   try {
     const info = await transporter.sendMail(opts);
     return { success: true, messageId: info.messageId };
@@ -44,7 +56,7 @@ export const sendVerificationEmail = async (email: string, token: string, name?:
     );
 
     return send({
-      from: `"CSCN Academy" <${process.env.GMAIL_USER}>`,
+      from: `"CSCN Academy" <${defaultFrom}>`,
       to: email,
       subject: "Verify your email — CSCN Academy",
       html,
@@ -65,7 +77,7 @@ export const sendPasswordResetEmail = async (email: string, token: string, name?
     );
 
     const received = await send({
-      from: `"CSCN Security" <${process.env.GMAIL_USER}>`,
+      from: `"CSCN Security" <${defaultFrom}>`,
       to: email,
       subject: "Reset your password — CSCN Academy",
       html,
@@ -94,7 +106,7 @@ export const sendCourseInviteEmail = async (
     })
   );
   return send({
-    from: `"CSCN Academy" <${process.env.GMAIL_USER}>`,
+    from: `"CSCN Academy" <${defaultFrom}>`,
     to: email,
     subject: `You've been invited to co-instruct "${courseTitle}" — CSCN Academy`,
     html,
@@ -122,7 +134,7 @@ export const sendPasswordChangeOTPEmail = async (email: string, code: string, na
     `;
 
     return send({
-      from: `"CSCN Security" <${process.env.GMAIL_USER}>`,
+      from: `"CSCN Security" <${defaultFrom}>`,
       to: email,
       subject: "Verification code for password update — CSCN Academy",
       html,

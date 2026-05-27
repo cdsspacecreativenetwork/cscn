@@ -14,12 +14,14 @@ import { toCardProps } from '@/lib/course-adapter';
 import { Reveal } from '@/components/ui/Reveal';
 import { headers } from 'next/headers';
 import { getRequestCountry, localizePrice } from '@/lib/localization/pricing';
+import { getHomepageFeaturedInstructors } from '@/data/featured-instructors';
 
 export default async function LandingPage() {
   // Fetch data on the server for instant page load (No Flicker)
   const requestCountry = getRequestCountry(await headers());
   const statsData = await getStats();
   const dbCourses = await listFeaturedCourses(8);
+  const featuredInstructors = await getHomepageFeaturedInstructors();
   const dbCards = await Promise.all(dbCourses.map(async (course) => {
     const price = await localizePrice({
       amount: course.price ? Number(course.price) : null,
@@ -51,7 +53,7 @@ export default async function LandingPage() {
 
       {/* High-Fidelity Instructors Section */}
       <Reveal delay={0.4}>
-        <InstructorSection />
+        <InstructorSection instructors={featuredInstructors} />
       </Reveal>
 
       {/* High-Fidelity Reviews Section */}

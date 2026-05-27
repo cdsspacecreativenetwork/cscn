@@ -68,14 +68,27 @@ export async function getCoursePreview(slug: string, userId: string, userRole?: 
       thumbnail: true, promoVideo: true, status: true, previewCount: true, price: true, baseCurrency: true, includes: true,
       requirements: true,
       _count: { select: { enrollments: true } },
-      instructor: { select: { name: true, image: true, headline: true } },
+      instructor: { select: { id: true, name: true, image: true, headline: true, publicProfileSlug: true } },
+      instructors: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              headline: true,
+              publicProfileSlug: true,
+            },
+          },
+        },
+      },
       modules: {
         orderBy: { position: "asc" },
         select: {
-          id: true, title: true, position: true,
+          id: true, title: true, position: true, isPublished: true,
           lessons: {
             orderBy: { position: "asc" },
-            select: { id: true, title: true, duration: true, contentType: true, isPreview: true },
+            select: { id: true, title: true, duration: true, contentType: true, isPreview: true, isPublished: true },
           },
         },
       },
@@ -111,28 +124,74 @@ export async function getDashboardEnrollments(userId: string) {
   return getEnrollmentsForDashboard(userId);
 }
 
+export async function getFirstPlayableLessonForCourse(
+  courseId: string,
+  options: { previewOnly?: boolean } = {}
+) {
+  return db.lesson.findFirst({
+    where: {
+      isPublished: true,
+      ...(options.previewOnly ? { isPreview: true } : {}),
+      module: {
+        courseId,
+        isPublished: true,
+        course: { status: "PUBLISHED" },
+      },
+    },
+    orderBy: [
+      { module: { position: "asc" } },
+      { position: "asc" },
+    ],
+    select: {
+      id: true,
+      title: true,
+      duration: true,
+      contentType: true,
+      isPreview: true,
+      moduleId: true,
+    },
+  });
+}
+
+export async function getFirstPlayableLessonForCourseSlug(
+  slug: string,
+  options: { previewOnly?: boolean } = {}
+) {
+  const course = await db.course.findUnique({
+    where: { slug, status: "PUBLISHED" },
+    select: { id: true },
+  });
+
+  if (!course) return null;
+  return getFirstPlayableLessonForCourse(course.id, options);
+}
+
 export async function enrollUser(
   userId: string,
-  courseSlug: string
-): Promise<{ alreadyEnrolled?: boolean; courseSlug?: string; error?: string }> {
+  courseSlug: string,
+  options: { revalidate?: boolean } = {}
+): Promise<{ alreadyEnrolled?: boolean; courseSlug?: string; firstLessonId?: string | null; error?: string }> {
   const course = await db.course.findUnique({
     where: { slug: courseSlug, status: "PUBLISHED" },
     select: { id: true, slug: true },
   });
 
   if (!course) return { error: "Course not found" };
+  const firstLesson = await getFirstPlayableLessonForCourse(course.id);
 
   const existing = await getUserEnrollment(userId, course.id);
-  if (existing) return { alreadyEnrolled: true, courseSlug: course.slug };
+  if (existing) return { alreadyEnrolled: true, courseSlug: course.slug, firstLessonId: firstLesson?.id ?? null };
 
   await db.enrollment.create({
     data: { userId, courseId: course.id },
   });
 
-  revalidatePath(`/courses/${course.slug}`);
-  revalidatePath("/dashboard/courses");
+  if (options.revalidate !== false) {
+    revalidatePath(`/courses/${course.slug}`);
+    revalidatePath("/dashboard/courses");
+  }
 
-  return { courseSlug: course.slug };
+  return { courseSlug: course.slug, firstLessonId: firstLesson?.id ?? null };
 }
 
 // ── Lesson progress ───────────────────────────────────────────────────────────

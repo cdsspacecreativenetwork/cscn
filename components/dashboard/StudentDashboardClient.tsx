@@ -9,6 +9,7 @@ import { useDashboardStore } from '@/lib/store/dashboardStore';
 import { ResumeCourseModal, GetStartedModal } from '@/components/dashboard/CourseModals';
 import { StudentDashboardData } from '@/lib/services/dashboard.service';
 import { toast } from 'sonner';
+import Button from '@/components/ui/Button';
 
 interface Props {
   data: StudentDashboardData;
@@ -21,6 +22,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
 
   const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
   const [dismissedRecs, setDismissedRecs] = React.useState<string[]>([]);
+  const [brokenThumbnailIds, setBrokenThumbnailIds] = React.useState<string[]>([]);
 
   const userName = user?.name?.split(' ')[0] ?? 'Learner';
 
@@ -52,6 +54,10 @@ export default function StudentDashboardClient({ data, user }: Props) {
   };
 
   const visibleRecs = data.recommendations.filter(r => !dismissedRecs.includes(r.id));
+  const currentLearning = data.activeEnrollments.slice(0, 1);
+  const markThumbnailBroken = (courseId: string) => {
+    setBrokenThumbnailIds((current) => current.includes(courseId) ? current : [...current, courseId]);
+  };
 
   return (
     <div className="p-[clamp(16px,2.78vw,48px)] space-y-[clamp(32px,4.6vw,80px)] max-w-[1728px] mx-auto font-jakarta">
@@ -65,13 +71,16 @@ export default function StudentDashboardClient({ data, user }: Props) {
             {currentDate}
           </p>
         </div>
-        <button 
+        <Button
+          variant="primary"
+          size="sm"
+          rounded="[10px]"
+          hasBorder={false}
           onClick={() => router.push('/dashboard/courses')}
-          className="bg-[#1C4ED1] text-white px-[clamp(12px,1vw,20px)] py-[clamp(8px,0.65vw,12px)] rounded-[8px] flex items-center gap-[clamp(4px,0.46vw,8px)] font-semibold hover:bg-[#1C4ED1]/90 transition-all shrink-0 cursor-pointer shadow-[0px_2px_4px_rgba(28,78,209,0.2)]"
+          leftIcon={<Plus size={18} className="sm:w-[20px] sm:h-[20px]" />}
         >
-          <Plus size={18} className="sm:w-[20px] sm:h-[20px]" />
-          <span className="text-[clamp(13px,0.92vw,16px)] whitespace-nowrap">Explore Courses</span>
-        </button>
+          Explore Courses
+        </Button>
       </div>
 
       {/* Stats section - 4 Columns with curated premium Lucide icons */}
@@ -113,7 +122,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
           </div>
 
           <div className="space-y-6">
-            {data.activeEnrollments.map((enrollment) => (
+            {currentLearning.map((enrollment) => (
               <div 
                 key={enrollment.id} 
                 className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[12px] p-6 flex flex-col gap-6 shadow-sm hover:shadow-[0px_4px_12px_rgba(23,26,31,0.06)] transition-all duration-300"
@@ -190,23 +199,32 @@ export default function StudentDashboardClient({ data, user }: Props) {
         </div>
 
         {/* Announcements */}
-        <div className="mlg:col-span-1 space-y-6">
+        <div className="mlg:col-span-1 space-y-6 mlg:pt-[44px]">
           <div className="bg-white border border-[#E3E8F4] rounded-[12px] overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-[#E3E8F4] bg-[#F4F6FB]/30">
               <h2 className="text-[16px] font-semibold text-[#040B37]">Announcements</h2>
             </div>
             <div className="divide-y divide-[#E3E8F4]">
-              {data.announcements.map((ann) => (
-                <div key={ann.id} className="p-5 flex gap-4 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
-                  <div className="w-10 h-10 bg-[#F4F6FB] rounded-xl flex items-center justify-center text-[18px] shrink-0 group-hover:scale-105 transition-transform">
-                    {ann.emoji}
+              {data.announcements.length > 0 ? (
+                data.announcements.map((ann) => (
+                  <div key={ann.id} className="p-5 flex gap-4 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
+                    <div className="w-10 h-10 bg-[#F4F6FB] rounded-xl flex items-center justify-center text-[18px] shrink-0 group-hover:scale-105 transition-transform">
+                      {ann.emoji}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{ann.title}</p>
+                      <p className="text-[11px] font-medium text-[#9CA3AF]">{ann.time}</p>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{ann.title}</p>
-                    <p className="text-[11px] font-medium text-[#9CA3AF]">{ann.time}</p>
-                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center">
+                  <p className="text-[14px] font-semibold text-[#4B5563]">No announcements right now</p>
+                  <p className="mt-1 text-[12px] font-medium text-[#9CA3AF]">
+                    Platform updates will appear here when they are published.
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -230,18 +248,34 @@ export default function StudentDashboardClient({ data, user }: Props) {
               {visibleRecs.map((course, i) => (
                 <div
                   key={course.id || i}
-                  className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[16px] overflow-hidden flex flex-col justify-between min-h-[420px] w-full shadow-sm hover:shadow-[0px_6px_20px_rgba(23,26,31,0.08)] transition-all duration-300 group relative"
+                  className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[16px] overflow-hidden flex flex-col w-full shadow-sm hover:shadow-[0px_6px_20px_rgba(23,26,31,0.08)] transition-all duration-300 group relative"
                 >
                   {/* Thumbnail Container */}
                   <div className="relative aspect-[16/9] w-full bg-[#F4F6FB] overflow-hidden shrink-0">
-                    <Image 
-                      src={course.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg"} 
-                      alt={course.title} 
-                      fill 
-                      className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                      onClick={() => router.push(`/courses/${course.slug}`)}
-                    />
-                    
+                    {course.thumbnail && !brokenThumbnailIds.includes(course.id) ? (
+                      <Image
+                        src={course.thumbnail}
+                        alt={course.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                        onClick={() => router.push(`/courses/${course.slug}`)}
+                        onError={() => markThumbnailBroken(course.id)}
+                      />
+                    ) : (
+                      <div
+                        className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,_rgba(28,78,209,0.16),_transparent_42%),linear-gradient(135deg,#F8FAFF_0%,#EEF3FF_100%)]"
+                        onClick={() => router.push(`/courses/${course.slug}`)}
+                      >
+                        <GraduationCap size={28} className="text-[#1C4ED1]/60" />
+                        <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#1C4ED1]">
+                          Course preview
+                        </span>
+                      </div>
+                    )}
+                    <span className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#1C4ED1] shadow-sm backdrop-blur-sm">
+                      {course.difficulty?.toLowerCase() || 'beginner'}
+                    </span>
+
                     {/* Floating Options Button */}
                     <div className="absolute top-3 right-3 z-10">
                       <button 
@@ -288,31 +322,29 @@ export default function StudentDashboardClient({ data, user }: Props) {
                   </div>
 
                   {/* Card Content Wrapper */}
-                  <div className="p-6 flex flex-col flex-1 justify-between gap-4">
+                  <div className="p-5 flex flex-col flex-1 gap-4">
                     
                     {/* Category & Title */}
-                    <div className="space-y-2">
-                      <span className="text-[11px] font-bold tracking-wider text-[#1C4ED1] uppercase">
+                    <div>
+                      {/* <span className="text-[11px] font-bold tracking-wider text-[#1C4ED1] uppercase">
                         {course.category || "UI/UX DESIGN"} • {course.difficulty || "BEGINNER"}
-                      </span>
+                      </span> */}
                       <h3 
                         className="text-[17px] font-bold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors line-clamp-2 cursor-pointer animate-duration-300"
                         onClick={() => router.push(`/courses/${course.slug}`)}
                       >
                         {course.title}
                       </h3>
-                      <p className="text-[13px] font-medium text-[#4B5563] leading-relaxed line-clamp-2">
+                      {/* <p className="text-[13px] font-medium text-[#4B5563] leading-relaxed line-clamp-2">
                         {course.shortDesc || "Master the foundational skills and practical techniques needed to excel in this field."}
-                      </p>
+                      </p> */}
                     </div>
 
                     {/* Activity & Meta Box */}
-                    <div className="flex flex-col gap-3">
+                    <div className="mt-auto flex flex-col gap-3">
                       {/* Meta Tags */}
                       <div className="flex items-center gap-2 text-[11px] font-medium text-[#9CA3AF]">
                         <span>8 Weeks Est.</span>
-                        <span className="w-1 h-1 rounded-full bg-[#E3E8F4]"></span>
-                        <span className="capitalize">{course.difficulty?.toLowerCase() || 'beginner'}</span>
                       </div>
 
                       {/* Activity Box */}
@@ -334,12 +366,20 @@ export default function StudentDashboardClient({ data, user }: Props) {
                             <span>{course.type} ({course.duration})</span>
                           </div>
                         </div>
-                        <button 
-                          onClick={() => openStartModal(course)}
-                          className="bg-[#1C4ED1] text-white px-3 py-2 rounded-[8px] text-[10px] font-semibold whitespace-nowrap hover:bg-[#163fa3] transition-all cursor-pointer shadow-sm shrink-0"
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          rounded="[10px]"
+                          hasBorder={false}
+                          onClick={() => openStartModal({
+                            ...course,
+                            image: course.thumbnail || '/assets/default-course.jpg',
+                            description: course.shortDesc || undefined,
+                          })}
+                          className="shrink-0 px-3 py-2 text-[10px]"
                         >
                           Get started
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -357,7 +397,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
         </div>
 
         {/* Today's Schedule */}
-        <div className="mlg:col-span-1 space-y-6">
+        <div className="mlg:col-span-1 space-y-6 mlg:pt-[52px]">
           <div className="bg-white border border-[#E3E8F4] rounded-[12px] overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-[#E3E8F4] flex justify-between items-center bg-[#F4F6FB]/30">
               <h2 className="text-[16px] font-semibold text-[#040B37]">Today's Schedule</h2>
@@ -366,21 +406,30 @@ export default function StudentDashboardClient({ data, user }: Props) {
               </button>
             </div>
             <div className="divide-y divide-[#E3E8F4]">
-              {data.schedule.map((item) => (
-                <div key={item.id} className="p-5 flex items-start gap-5 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
-                  <div className="flex flex-col gap-1 min-w-[70px] shrink-0">
-                    <p className="text-[14px] font-medium text-[#4B5563] group-hover:text-[#040B37] transition-colors">{item.time}</p>
-                    <p className="text-[11px] text-[#9CA3AF]">{item.duration}</p>
-                  </div>
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-2 h-2 bg-[#1C4ED1] rounded-full shrink-0"></div>
-                    <div className="flex flex-col gap-1">
-                      <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{item.title}</p>
-                      <p className="text-[11px] text-[#9CA3AF]">{item.type}</p>
+              {data.schedule.length > 0 ? (
+                data.schedule.map((item) => (
+                  <div key={item.id} className="p-5 flex items-start gap-5 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
+                    <div className="flex flex-col gap-1 min-w-[70px] shrink-0">
+                      <p className="text-[14px] font-medium text-[#4B5563] group-hover:text-[#040B37] transition-colors">{item.time}</p>
+                      <p className="text-[11px] text-[#9CA3AF]">{item.duration}</p>
+                    </div>
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-2 h-2 bg-[#1C4ED1] rounded-full shrink-0"></div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{item.title}</p>
+                        <p className="text-[11px] text-[#9CA3AF]">{item.type}</p>
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="p-6 text-center">
+                  <p className="text-[14px] font-semibold text-[#4B5563]">No scheduled items today</p>
+                  <p className="mt-1 text-[12px] font-medium text-[#9CA3AF]">
+                    Live sessions, deadlines, and mentorship bookings will appear here.
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

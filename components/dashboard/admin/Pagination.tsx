@@ -10,7 +10,7 @@ interface PaginationProps {
 export function Pagination({ page, totalPages, baseUrl }: PaginationProps) {
   if (totalPages <= 1) return null;
 
-  const makeHref = (p: number) => `${baseUrl}?page=${p}`;
+  const makeHref = (p: number) => `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}page=${p}`;
 
   // Build page number window: always show first, last, current ±1, with ellipsis
   const pages: (number | "…")[] = [];

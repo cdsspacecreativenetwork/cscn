@@ -1,12 +1,16 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { BarChart2 } from 'lucide-react';
+import { shouldRedirectInstructorToOnboarding } from '@/lib/instructor-onboarding';
 
 export default async function InstructorAnalyticsPage() {
   const session = await auth();
   const role = session?.user?.role;
   if (role !== 'INSTRUCTOR' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
     redirect('/dashboard');
+  }
+  if (role === 'INSTRUCTOR' && session?.user?.id && await shouldRedirectInstructorToOnboarding(session.user.id)) {
+    redirect('/dashboard/profile?setup=instructor');
   }
 
   return (

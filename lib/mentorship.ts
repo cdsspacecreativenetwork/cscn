@@ -3,6 +3,7 @@ export interface Mentor {
   name: string;
   role: string;
   image: string;
+  slug?: string;
   courses: number;
   students: string;
 }

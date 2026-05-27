@@ -1,15 +1,20 @@
 import { notFound, redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import type { Metadata } from 'next';
+import Link from 'next/link';
 import { auth } from '@/auth';
-import { getCourseDetailWithEnrollment, getCoursePreview } from '@/lib/services/courses.service';
-import { CourseHero } from '@/components/courses/CourseHero';
+import { CourseActionButton } from '@/components/courses/CourseActionButton';
 import { ClassLessons } from '@/components/courses/ClassLessons';
 import { CourseDetails } from '@/components/courses/CourseDetails';
 import { EnrollButton } from '@/components/courses/EnrollButton';
-import Link from 'next/link';
+import { CourseHero } from '@/components/courses/CourseHero';
 import { generateTapbackAvatar } from '@/lib/avatar';
-import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 import { getRequestCountry, localizePrice } from '@/lib/localization/pricing';
+import {
+  getCourseDetailWithEnrollment,
+  getCoursePreview,
+  getFirstPlayableLessonForCourse,
+} from '@/lib/services/courses.service';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -21,7 +26,11 @@ type SessionUserWithRole = { role?: string };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const result = await getCourseDetailWithEnrollment(slug, undefined);
-  if (!result) return { title: 'Course Not Found' };
+
+  if (!result) {
+    return { title: 'Course Not Found' };
+  }
+
   return {
     title: `${result.course.title} | CSCN`,
     description: result.course.shortDesc ?? result.course.description.slice(0, 160),
@@ -33,51 +42,77 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
   const { preview } = await searchParams;
   const session = await auth();
   const requestCountry = getRequestCountry(await headers());
-
   const isPreviewMode = preview === 'true';
 
-  let course: NonNullable<Awaited<ReturnType<typeof getCoursePreview>>> | NonNullable<Awaited<ReturnType<typeof getCourseDetailWithEnrollment>>>['course'] | null = null;
+  let course:
+    | NonNullable<Awaited<ReturnType<typeof getCoursePreview>>>
+    | NonNullable<Awaited<ReturnType<typeof getCourseDetailWithEnrollment>>>['course']
+    | null = null;
   let enrollment = null;
   let isPreview = false;
 
   if (isPreviewMode) {
-    if (!session?.user?.id) redirect(`/signin?callbackUrl=/courses/${slug}?preview=true`);
+    if (!session?.user?.id) {
+      redirect(`/signin?callbackUrl=/courses/${slug}?preview=true`);
+    }
+
     const userRole = (session.user as typeof session.user & SessionUserWithRole).role;
     const previewCourse = await getCoursePreview(slug, session.user.id, userRole);
-    if (!previewCourse) notFound();
+
+    if (!previewCourse) {
+      notFound();
+    }
+
     course = previewCourse;
     isPreview = true;
   } else {
     const result = await getCourseDetailWithEnrollment(slug, session?.user?.id);
-    if (!result) notFound();
+
+    if (!result) {
+      notFound();
+    }
+
     course = result.course;
     enrollment = result.enrollment;
   }
 
-  if (!course) notFound();
+  if (!course) {
+    notFound();
+  }
+
   const userId = session?.user?.id;
-
-  const firstLesson = course.modules[0]?.lessons[0];
   const sessionRole = (session?.user as SessionUserWithRole | undefined)?.role;
+  const firstPlayableLesson = isPreview
+    ? course.modules.flatMap((module) =>
+        module.lessons.map((lesson) => ({ ...lesson, moduleId: module.id }))
+      )[0] ?? null
+    : await getFirstPlayableLessonForCourse(course.id, { previewOnly: !enrollment && !userId });
 
-  const courseModules = course.modules.map((mod, modIdx) => ({
-    id: mod.id,
-    title: mod.title,
-    lessons: mod.lessons.map((lesson, lessonIdx) => ({
+  const signInCallbackUrl = firstPlayableLesson
+    ? `/courses/${course.slug}/watch/${firstPlayableLesson.id}?autoEnroll=true`
+    : `/courses/${course.slug}`;
+
+  const courseModules = course.modules.map((module) => ({
+    id: module.id,
+    title: module.title,
+    lessons: module.lessons.map((lesson) => ({
       id: lesson.id,
       title: lesson.title,
       contentType: lesson.contentType,
-      duration: lesson.duration ? `${lesson.duration}m` : '—',
-      isLocked: !lesson.isPreview && !enrollment,
-      isPreview: lesson.isPreview,
-      isActive: modIdx === 0 && lessonIdx === 0,
+      duration: lesson.duration ? `${lesson.duration}m` : '--',
+      isLocked:
+        !module.isPublished ||
+        !lesson.isPublished ||
+        (!enrollment && !lesson.isPreview),
+      isPreview: module.isPublished && lesson.isPublished && lesson.isPreview,
+      isActive: lesson.id === firstPlayableLesson?.id,
     })),
   }));
 
-  const totalLessons = course.modules.reduce((sum, m) => sum + m.lessons.length, 0);
+  const totalLessons = course.modules.reduce((sum, module) => sum + module.lessons.length, 0);
   const totalMinutes = course.modules
-    .flatMap((m) => m.lessons)
-    .reduce((sum, l) => sum + (l.duration ?? 0), 0);
+    .flatMap((module) => module.lessons)
+    .reduce((sum, lesson) => sum + (lesson.duration ?? 0), 0);
   const totalDuration =
     totalMinutes >= 60
       ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`
@@ -85,9 +120,24 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
 
   const instructorImage =
     course.instructor.image ?? generateTapbackAvatar(course.instructor.name ?? 'Instructor');
+  const instructorSlug = (instructor: { id: string; name: string | null; publicProfileSlug?: string | null }) =>
+    instructor.publicProfileSlug ||
+    instructor.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') ||
+    instructor.id;
+  const courseInstructors = [
+    {
+      id: course.instructor.id,
+      name: course.instructor.name,
+      image: course.instructor.image,
+      headline: course.instructor.headline,
+      publicProfileSlug: course.instructor.publicProfileSlug,
+    },
+    ...('instructors' in course ? course.instructors.map((record) => record.user) : []),
+  ];
+  const uniqueInstructors = Array.from(
+    new Map(courseInstructors.map((instructor) => [instructor.id, instructor])).values()
+  );
 
-  const toStringArray = (v: unknown): string[] =>
-    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
   const localizedPrice = await localizePrice({
     amount: course.price ? Number(course.price) : null,
     baseCurrency: course.baseCurrency,
@@ -95,42 +145,34 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
     source: requestCountry.source,
   });
 
+  const toStringArray = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
   const enrollCta = enrollment ? (
-    <div className="border border-[#648efc] p-[2px] rounded-full w-full mlg:w-auto">
-      <Link
-        href={`/courses/${course.slug}/watch/${firstLesson?.id}`}
-        className="flex items-center justify-center w-full mlg:px-6 py-[12.5px] bg-linear-to-r from-[#0035C1] to-[#0575FF] rounded-full transition-all hover:opacity-90 active:scale-[0.98]"
-      >
-        <span className="text-white font-medium text-[16px] tracking-[-0.16px] whitespace-nowrap leading-normal">
-          Continue Learning
-        </span>
-      </Link>
-    </div>
+    <CourseActionButton
+      label={firstPlayableLesson ? 'Continue Learning' : 'Lessons Coming Soon'}
+      href={firstPlayableLesson ? `/courses/${course.slug}/watch/${firstPlayableLesson.id}` : undefined}
+      disabled={!firstPlayableLesson}
+    />
   ) : userId ? (
-    <EnrollButton courseSlug={course.slug} firstLessonId={firstLesson?.id ?? null} />
+    <EnrollButton courseSlug={course.slug} firstLessonId={firstPlayableLesson?.id ?? null} />
   ) : (
-    <div className="border border-[#648efc] p-[2px] rounded-full w-full mlg:w-auto">
-      <Link
-        href={`/signin?callbackUrl=/courses/${course.slug}${firstLesson?.id ? `/watch/${firstLesson.id}?autoEnroll=true` : ''}`}
-        className="flex items-center justify-center w-full mlg:px-6 py-[12.5px] bg-linear-to-r from-[#0035C1] to-[#0575FF] rounded-full transition-all hover:opacity-90 active:scale-[0.98]"
-      >
-        <span className="text-white font-medium text-[16px] tracking-[-0.16px] whitespace-nowrap leading-normal">
-          Sign in to Enroll
-        </span>
-      </Link>
-    </div>
+    <CourseActionButton
+      label="Sign in to Enroll"
+      href={`/signin?callbackUrl=${encodeURIComponent(signInCallbackUrl)}`}
+    />
   );
 
   return (
     <div className="min-h-screen bg-background flex flex-col gap-[clamp(24px,3.7vw,48px)] pb-20 pt-20">
       {isPreview && (
         <div className="fixed top-0 inset-x-0 z-50 bg-amber-500 text-white text-center py-2 text-sm font-semibold">
-          Preview mode — this course is not yet visible to the public.{' '}
+          Preview mode - this course is not yet visible to the public.{` `}
           <Link
             href={
               sessionRole === 'ADMIN' || sessionRole === 'SUPER_ADMIN'
-                ? `/dashboard/admin/courses/${course!.id}`
-                : `/dashboard/instructor/courses/${course!.id}`
+                ? `/dashboard/admin/courses/${course.id}`
+                : `/dashboard/instructor/courses/${course.id}`
             }
             className="underline ml-1"
           >
@@ -138,6 +180,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
           </Link>
         </div>
       )}
+
       <CourseHero
         courseTitle={course.title}
         courseDescription={course.shortDesc ?? course.description.slice(0, 200)}
@@ -166,11 +209,15 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
               price={localizedPrice.baseLabel}
               localizedPrice={localizedPrice.approximateLabel}
               description={course.description}
-              instructor={{
-                name: course.instructor.name ?? 'CSCN Instructor',
-                role: course.instructor.headline ?? 'Instructor',
-                image: instructorImage,
-              }}
+              instructors={uniqueInstructors.map((instructor) => {
+                const name = instructor.name ?? 'CSCN Instructor';
+                return {
+                  name,
+                  role: instructor.headline ?? 'Instructor',
+                  image: instructor.image ?? generateTapbackAvatar(name),
+                  href: `/instructor/${instructorSlug(instructor)}`,
+                };
+              })}
               includes={toStringArray(course.includes)}
               requirements={toStringArray(course.requirements)}
               enrollCta={enrollCta}

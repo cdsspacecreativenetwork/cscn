@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getInstructorPublicProfileEligibility } from "@/lib/profile-eligibility";
 
 type CreatorUser = {
   firstName?: string | null;
@@ -8,10 +9,22 @@ type CreatorUser = {
   image?: string | null;
   headline?: string | null;
   bio?: string | null;
+  yearsExperience?: number | null;
+  expertise?: unknown;
+  websiteUrl?: string | null;
+  portfolioUrl?: string | null;
+  linkedinUrl?: string | null;
+  twitterUrl?: string | null;
+  instagramUrl?: string | null;
+  youtubeUrl?: string | null;
+  githubUrl?: string | null;
+  behanceUrl?: string | null;
+  dribbbleUrl?: string | null;
+  telegramUrl?: string | null;
 };
 
 export type CreatorReadinessItem = {
-  id: "email" | "name" | "photo" | "headline" | "bio";
+  id: "email" | "name" | "photo" | "headline" | "bio" | "experience" | "expertise" | "social";
   label: string;
   description: string;
   complete: boolean;
@@ -41,6 +54,21 @@ function hasHeadshot(user: CreatorUser) {
 }
 
 export function getCreatorReadiness(user: CreatorUser): CreatorReadiness {
+  const publicProfileEligibility = getInstructorPublicProfileEligibility(user);
+  const profileItems = publicProfileEligibility.items.map((item) => ({
+    ...item,
+    id: item.id === "experience" || item.id === "expertise" || item.id === "social" ? item.id : item.id,
+    href: "/dashboard/profile",
+    description:
+      item.id === "name" ? "Use the name learners should see on course pages." :
+      item.id === "photo" ? "A professional headshot helps learners trust the course." :
+      item.id === "headline" ? "Summarize your role, expertise, or creator identity." :
+      item.id === "bio" ? "Explain your background, experience, and what learners can expect." :
+      item.id === "experience" ? "Add the number of years you have practiced or taught this discipline." :
+      item.id === "expertise" ? "Add the main disciplines you can confidently teach." :
+      "Add LinkedIn, portfolio, website, GitHub, Behance, YouTube, or another professional profile.",
+  })) as CreatorReadinessItem[];
+
   const items: CreatorReadinessItem[] = [
     {
       id: "email",
@@ -48,34 +76,7 @@ export function getCreatorReadiness(user: CreatorUser): CreatorReadiness {
       description: "Required before creator work can be submitted for review.",
       complete: !!user.emailVerified,
     },
-    {
-      id: "name",
-      label: "Add your professional name",
-      description: "Use the name learners should see on course pages.",
-      complete: hasProfessionalName(user),
-      href: "/dashboard/profile",
-    },
-    {
-      id: "photo",
-      label: "Upload a real profile photo",
-      description: "A professional headshot helps learners trust the course.",
-      complete: hasHeadshot(user),
-      href: "/dashboard/profile",
-    },
-    {
-      id: "headline",
-      label: "Add a professional headline",
-      description: "Summarize your role, expertise, or creator identity.",
-      complete: hasText(user.headline, 6),
-      href: "/dashboard/profile",
-    },
-    {
-      id: "bio",
-      label: "Write your instructor bio",
-      description: "Explain your background, experience, and what learners can expect.",
-      complete: hasText(user.bio, 40),
-      href: "/dashboard/profile",
-    },
+    ...profileItems,
   ];
 
   const missingLabels = items.filter((item) => !item.complete).map((item) => item.label);
@@ -102,6 +103,18 @@ export async function getCreatorReadinessByUserId(userId: string) {
       image: true,
       headline: true,
       bio: true,
+      yearsExperience: true,
+      expertise: true,
+      websiteUrl: true,
+      portfolioUrl: true,
+      linkedinUrl: true,
+      twitterUrl: true,
+      instagramUrl: true,
+      youtubeUrl: true,
+      githubUrl: true,
+      behanceUrl: true,
+      dribbbleUrl: true,
+      telegramUrl: true,
     },
   });
 
@@ -114,7 +127,7 @@ export async function assertCreatorReadyForReview(userId: string) {
   if (readiness.canSubmitForReview) return readiness;
 
   throw new Error(
-    `Complete your creator setup before creating or submitting courses: ${readiness.missingLabels.join(", ")}.`
+    `Complete your creator setup before submitting courses for review: ${readiness.missingLabels.join(", ")}.`
   );
 }
 

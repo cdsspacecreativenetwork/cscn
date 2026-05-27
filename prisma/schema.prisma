@@ -24,6 +24,27 @@ model User {
   headline String?
   location String?
   socials  Json?
+  publicProfileSlug   String?              @unique
+  publicProfileStatus PublicProfileStatus  @default(DRAFT)
+  websiteUrl          String?
+  portfolioUrl        String?
+  linkedinUrl         String?
+  twitterUrl          String?
+  instagramUrl        String?
+  youtubeUrl          String?
+  githubUrl           String?
+  behanceUrl          String?
+  dribbbleUrl         String?
+  telegramUrl         String?
+  expertise           Json?
+  learningFocus       String?
+  yearsExperience Int?
+  instructorProfileEnabled Boolean @default(false)
+  instructorVerificationStatus InstructorVerificationStatus @default(NOT_STARTED)
+  instructorVerifiedAt DateTime?
+  instructorFeatured Boolean @default(false)
+  instructorFeaturedOrder Int?
+  mentorshipEnabled Boolean @default(false)
 
   // Admin permission scopes — only relevant when role == ADMIN
   // SUPER_ADMIN implicitly has all permissions
@@ -40,6 +61,7 @@ model User {
   progress          LessonProgress[]
   lessonNotes       LessonNote[]
   watchSegments     LessonWatchSegment[]
+  quizAttempts      QuizAttempt[]
   courseInstructors CourseInstructor[]
   notifications     Notification[]
   courseReviews     CourseReview[]
@@ -68,6 +90,10 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([publicProfileStatus])
+  @@index([instructorProfileEnabled, instructorVerificationStatus])
+  @@index([instructorFeatured, instructorFeaturedOrder])
 }
 
 model Account {
@@ -129,6 +155,19 @@ enum UserRole {
   ADMIN
   INSTRUCTOR
   USER
+}
+
+enum InstructorVerificationStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum PublicProfileStatus {
+  DRAFT
+  PUBLIC
+  HIDDEN
 }
 
 model PasswordResetToken {
@@ -228,6 +267,7 @@ model Module {
 model Lesson {
   id          String      @id @default(cuid())
   title       String
+  overview    String?     @db.Text
   position    Int
   videoUrl    String? // Legacy YouTube URL
   contentType ContentType @default(VIDEO)
@@ -249,6 +289,7 @@ model Lesson {
   progress  LessonProgress[]
   notes     LessonNote[]
   watchSegments LessonWatchSegment[]
+  quiz      Quiz?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -265,6 +306,108 @@ model LessonResource {
   lesson   Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+}
+
+model Quiz {
+  id              String   @id @default(cuid())
+  lessonId        String   @unique
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  mode            QuizMode @default(PRACTICE)
+  instructions    String?  @db.Text
+  passingScore    Int?
+  maxAttempts     Int?
+  showAnswers     Boolean  @default(true)
+  gateUntilPassed Boolean  @default(false)
+  shuffleQuestions Boolean @default(false)
+  timeLimitMinutes Int?
+
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lessonId])
+}
+
+model QuizQuestion {
+  id          String           @id @default(cuid())
+  quizId      String
+  quiz        Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type        QuizQuestionType @default(SINGLE_CHOICE)
+  prompt      String           @db.Text
+  explanation String?          @db.Text
+  points      Int              @default(1)
+  position    Int
+  required    Boolean          @default(true)
+
+  options QuizOption[]
+  answers QuizAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([quizId])
+}
+
+model QuizOption {
+  id         String       @id @default(cuid())
+  questionId String
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String       @db.Text
+  isCorrect  Boolean      @default(false)
+  position   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id            String            @id @default(cuid())
+  quizId        String
+  quiz          Quiz              @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attemptNumber Int
+  status        QuizAttemptStatus @default(IN_PROGRESS)
+  score         Float             @default(0)
+  maxScore      Float             @default(0)
+  percentage    Float             @default(0)
+  passed        Boolean           @default(false)
+  startedAt     DateTime          @default(now())
+  submittedAt   DateTime?
+
+  answers QuizAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([quizId, userId, attemptNumber])
+  @@index([quizId])
+  @@index([userId])
+  @@index([userId, status])
+}
+
+model QuizAnswer {
+  id                     String       @id @default(cuid())
+  attemptId              String
+  attempt                QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId             String
+  question               QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionIds      Json?
+  isCorrect              Boolean      @default(false)
+  pointsAwarded          Float        @default(0)
+  questionPromptSnapshot String       @db.Text
+  optionSnapshots        Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
 }
 
 model Enrollment {
@@ -328,6 +471,23 @@ enum EnrollmentStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+enum QuizQuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_SELECT
+  TRUE_FALSE
+}
+
+enum QuizAttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  ABANDONED
+}
+
+enum QuizMode {
+  PRACTICE
+  GRADED
 }
 
 model LessonNote {

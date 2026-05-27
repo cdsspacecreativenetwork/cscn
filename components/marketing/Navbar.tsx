@@ -24,30 +24,30 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 h-18 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md border-b border-[#C8D1E0]">
-        <div className="mx-auto max-w-[83rem] px-4 flex items-center justify-between w-full">
+      <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center border-b border-[#C8D1E0] bg-background/86 backdrop-blur-md">
+        <div className="mx-auto flex min-h-[76px] w-full max-w-[88rem] items-center justify-between gap-5 px-4 lg:min-h-[84px] lg:px-6">
           {/* Logo & Links Group */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center">
+          <div className="flex items-center gap-4 xl:gap-7">
+            <Link href="/" className="flex items-center shrink-0">
               <Image 
                 src="/assets/Group 162.svg" 
                 alt="CSCN Logo" 
                 width={34} 
                 height={33} 
-                className="h-9 w-auto"
+                className="h-9 w-auto lg:h-10"
                 unoptimized
               />
             </Link>
 
-            <div className="hidden lg:flex gap-2 items-center">
+            <div className="hidden lg:flex items-center gap-0.5 xl:gap-1">
               {navLinks.map((link) => {
                 const isActive = pathname === link.path;
                 return (
                   <Link 
                     key={link.name} 
                     href={link.path}
-                    className={`px-3 py-2 text-base transition-colors hover:text-primary tracking-tight rounded-sm ${
-                      isActive ? 'text-primary font-bold bg-primary/5' : 'text-text-body font-medium'
+                    className={`rounded-full px-3 py-2 text-[15px] transition-colors hover:text-primary tracking-tight xl:px-4 ${
+                      isActive ? 'bg-primary/5 font-bold text-primary' : 'font-medium text-text-body'
                     }`}
                   >
                     {link.name}
@@ -58,8 +58,8 @@ export default function Navbar() {
           </div>
 
           {/* Actions Group */}
-          <div className="flex items-center gap-3.5">
-            <button className="p-2.5 hover:bg-black/5 rounded-full transition-colors" aria-label="Search">
+          <div className="flex items-center gap-2.5 lg:gap-3">
+            <button className="rounded-full p-2.5 transition-colors hover:bg-black/5" aria-label="Search">
               <Image 
                 src="/assets/search-01.svg" 
                 alt="Search" 
@@ -72,8 +72,13 @@ export default function Navbar() {
             
             <div className="hidden lg:block">
               <Link href={isLoggedIn ? "/dashboard" : "/signin"}>
-                <Button variant="primary" size="md">
-                  {isLoggedIn ? "Go to Dashboard" : "Sign in"}
+                <Button
+                  variant="gradient"
+                  size="sm"
+                  rounded="full"
+                  className="min-w-[128px] xl:min-w-[142px]"
+                >
+                  {isLoggedIn ? "Dashboard" : "Sign in"}
                 </Button>
               </Link>
             </div>
@@ -119,7 +124,7 @@ export default function Navbar() {
             onClick={() => setIsOpen(false)}
             className="w-full"
           >
-            <Button variant="primary" size="lg" className="w-full">
+            <Button variant="gradient" size="lg" rounded="full" className="w-full">
               {isLoggedIn ? "Go to Dashboard" : "Sign in"}
             </Button>
           </Link>

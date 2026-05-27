@@ -18,6 +18,34 @@ export interface PlayerNote {
   updatedAt: string;
 }
 
+export interface PlayerQuizOption {
+  id: string;
+  text: string;
+  position: number;
+}
+
+export interface PlayerQuizQuestion {
+  id: string;
+  type: string;
+  prompt: string;
+  position: number;
+  options: PlayerQuizOption[];
+}
+
+export interface PlayerQuiz {
+  id: string;
+  mode: string;
+  instructions: string | null;
+  passingScore: number | null;
+  maxAttempts: number | null;
+  showAnswers: boolean;
+  gateUntilPassed: boolean;
+  shuffleQuestions: boolean;
+  attemptsUsed: number;
+  attemptsRemaining: number | null;
+  questions: PlayerQuizQuestion[];
+}
+
 export interface SidebarLesson {
   id: string;
   title: string;
@@ -39,6 +67,7 @@ export interface SidebarModule {
 export interface PlayerLesson {
   id: string;
   title: string;
+  overview: string | null;
   videoUrl: string | null;
   muxPlaybackId: string | null;
   muxToken: string | null;
@@ -47,6 +76,7 @@ export interface PlayerLesson {
   transcript: string | null;
   bodyContent: string | null;
   contentType: string;
+  quiz: PlayerQuiz | null;
   progress: {
     lastSeekTime: number;
     percentComplete: number;

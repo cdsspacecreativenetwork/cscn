@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import VideoUploader from './VideoUploader';
 import ArticleLessonEditor from './ArticleLessonEditor';
 import LessonResourceManager from './LessonResourceManager';
+import QuizLessonBuilder, { type LessonQuiz } from './QuizLessonBuilder';
 import Link from 'next/link';
 
 interface Resource { id: string; title: string; url: string; type: string }
@@ -15,8 +16,9 @@ interface Resource { id: string; title: string; url: string; type: string }
 interface Lesson {
   id: string; title: string; position: number; videoUrl: string | null;
   duration: number | null; isPublished: boolean; isPreview: boolean;
-  transcript: string | null; bodyContent: string | null; contentType: string;
+  overview: string | null; transcript: string | null; bodyContent: string | null; contentType: string;
   resources: Resource[];
+  quiz: LessonQuiz;
   muxStatus: string;
   muxPlaybackId: string | null;
 }
@@ -95,6 +97,7 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
   const [videoUrl, setVideoUrl] = useState(lesson.videoUrl ?? '');
   const [duration, setDuration] = useState<string>(lesson.duration?.toString() ?? '');
   const [isPreview, setIsPreview] = useState(lesson.isPreview);
+  const [overview, setOverview] = useState(lesson.overview ?? '');
   const [transcript, setTranscript] = useState(lesson.transcript ?? '');
   const [bodyContent, setBodyContent] = useState(lesson.bodyContent ?? '');
   const [resources, setResources] = useState<Resource[]>(lesson.resources);
@@ -110,20 +113,22 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
   const draft = useMemo(() => ({
     title,
     videoUrl: videoUrl.trim() || null,
-    duration: duration ? Number(duration) : null,
+    duration: contentType === 'QUIZ' ? null : duration ? Number(duration) : null,
     isPreview,
+    overview: overview.trim() || null,
     transcript: transcript.trim() || null,
     bodyContent: contentType === 'VIDEO'
       ? serializeVideoMetadata(timestamps)
       : bodyContent.trim() || null,
     contentType,
-  }), [title, videoUrl, duration, isPreview, transcript, bodyContent, timestamps, contentType]);
+  }), [title, videoUrl, duration, isPreview, overview, transcript, bodyContent, timestamps, contentType]);
 
   const isDirty =
     title !== lesson.title ||
     videoUrl !== (lesson.videoUrl ?? '') ||
     duration !== (lesson.duration?.toString() ?? '') ||
     isPreview !== lesson.isPreview ||
+    overview !== (lesson.overview ?? '') ||
     transcript !== (lesson.transcript ?? '') ||
     bodyContent !== (lesson.bodyContent ?? '') && contentType !== 'VIDEO' ||
     contentType !== (lesson.contentType === 'ARTICLE' || lesson.contentType === 'QUIZ' ? lesson.contentType : 'VIDEO') ||
@@ -179,12 +184,10 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
 
   const durationLabel =
     contentType === 'ARTICLE' ? 'Estimated Read Time' :
-    contentType === 'QUIZ' ? 'Quiz Duration' :
     'Duration';
 
   const durationHint =
     contentType === 'ARTICLE' ? 'Calculated from the article body.' :
-    contentType === 'QUIZ' ? 'Set the time learners should expect for this quiz.' :
     'Video duration should come from the uploaded video when available.';
 
   const handleContentTypeChange = (nextType: typeof contentType) => {
@@ -250,6 +253,22 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
           className={inputCls}
           placeholder="Lesson title"
         />
+      </div>
+
+      {/* Overview */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-semibold text-navy">Lesson Overview</label>
+        <textarea
+          value={overview}
+          onChange={(e) => setOverview(e.target.value)}
+          disabled={isReadOnly}
+          rows={4}
+          className={`${inputCls} resize-y`}
+          placeholder="Briefly explain what this lesson covers and what learners should expect..."
+        />
+        <p className="text-[11px] leading-4 text-text-mute">
+          This appears in the lesson player overview so students understand the purpose of the lesson.
+        </p>
       </div>
 
       {/* Content type */}
@@ -325,31 +344,31 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
       )}
 
       {contentType === 'QUIZ' && (
-        <div className="rounded-[8px] border border-dashed border-[#C8D1E0] bg-[#F8FAFF] p-6 flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-primary font-bold text-sm">
-            <FileQuestion size={18} />
-            Quiz builder coming next
-          </div>
-          <p className="text-sm font-medium text-text-mute leading-6">
-            This lesson is marked as a quiz. The question builder, scoring rules, explanations, and attempt settings should be wired in a dedicated quiz phase so it does not get mixed with final certification exams.
-          </p>
-        </div>
+        <QuizLessonBuilder
+          lessonId={lesson.id}
+          courseId={courseId}
+          quiz={lesson.quiz}
+          disabled={isReadOnly}
+          onSaved={(quiz) => onUpdate({ ...lesson, ...draft, resources, quiz })}
+        />
       )}
 
       {/* Duration + Preview toggle */}
       <div className="flex items-start gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-semibold text-navy">{durationLabel} (mins)</label>
-          <input
-            type="number" min={0} max={999}
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            disabled={isReadOnly || contentType === 'ARTICLE'}
-            className={inputCls}
-            placeholder="0"
-          />
-          <p className="text-[11px] leading-4 text-text-mute">{durationHint}</p>
-        </div>
+        {contentType !== 'QUIZ' && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-navy">{durationLabel} (mins)</label>
+            <input
+              type="number" min={0} max={999}
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              disabled={isReadOnly || contentType === 'ARTICLE'}
+              className={inputCls}
+              placeholder="0"
+            />
+            <p className="text-[11px] leading-4 text-text-mute">{durationHint}</p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-1.5 flex-1">
           <label className="text-sm font-semibold text-navy">Free Preview</label>
@@ -444,16 +463,18 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
       </>
       )}
 
-      <LessonResourceManager
-        courseId={courseId}
-        lessonId={lesson.id}
-        resources={resources}
-        disabled={isReadOnly}
-        onChange={(nextResources) => {
-          setResources(nextResources);
-          onUpdate({ ...lesson, ...draft, resources: nextResources });
-        }}
-      />
+      {contentType !== 'QUIZ' && (
+        <LessonResourceManager
+          courseId={courseId}
+          lessonId={lesson.id}
+          resources={resources}
+          disabled={isReadOnly}
+          onChange={(nextResources) => {
+            setResources(nextResources);
+            onUpdate({ ...lesson, ...draft, resources: nextResources });
+          }}
+        />
+      )}
     </div>
   );
 }

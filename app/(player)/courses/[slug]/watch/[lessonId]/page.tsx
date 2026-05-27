@@ -125,6 +125,23 @@ export default async function WatchPage({ params, searchParams }: Props) {
     where: { id: lessonId },
     include: {
       resources: true,
+      quiz: {
+        include: {
+          questions: {
+            orderBy: { position: "asc" },
+            include: {
+              options: {
+                orderBy: { position: "asc" },
+                select: {
+                  id: true,
+                  text: true,
+                  position: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -196,7 +213,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
 
   // Auto-enroll: server-side, then redirect to strip the query param
   if (autoEnroll === 'true' && userId && !enrollment) {
-    await enrollUser(userId, slug);
+    await enrollUser(userId, slug, { revalidate: false });
     redirect(`/courses/${slug}/watch/${lessonId}`);
   }
 
@@ -249,6 +266,20 @@ export default async function WatchPage({ params, searchParams }: Props) {
       })
     : [];
 
+  const quizAttemptsUsed = userId && lesson.quiz
+    ? await db.quizAttempt.count({
+        where: {
+          userId,
+          quizId: lesson.quiz.id,
+          status: "SUBMITTED",
+        },
+      })
+    : 0;
+
+  const quizAttemptsRemaining = lesson.quiz?.maxAttempts
+    ? Math.max(0, lesson.quiz.maxAttempts - quizAttemptsUsed)
+    : null;
+
   // Generate signed Mux playback token (RS256) scoped to this lesson's duration
   let muxToken: string | null = null;
   if (canWatch && lesson.muxPlaybackId) {
@@ -258,6 +289,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
   const safeLesson: PlayerLesson = {
     id: lesson.id,
     title: lesson.title,
+    overview: canWatch ? lesson.overview : null,
     videoUrl: canWatch ? lesson.videoUrl : null,
     muxPlaybackId: canWatch ? lesson.muxPlaybackId ?? null : null,
     muxToken,
@@ -266,6 +298,31 @@ export default async function WatchPage({ params, searchParams }: Props) {
     transcript: canWatch ? lesson.transcript : null,
     bodyContent: canWatch ? lesson.bodyContent : null,
     contentType: lesson.contentType,
+    quiz: canWatch && lesson.quiz
+      ? {
+          id: lesson.quiz.id,
+          mode: lesson.quiz.mode,
+          instructions: lesson.quiz.instructions,
+          passingScore: lesson.quiz.passingScore,
+          maxAttempts: lesson.quiz.maxAttempts,
+          showAnswers: lesson.quiz.showAnswers,
+          gateUntilPassed: lesson.quiz.gateUntilPassed,
+          shuffleQuestions: lesson.quiz.shuffleQuestions,
+          attemptsUsed: quizAttemptsUsed,
+          attemptsRemaining: quizAttemptsRemaining,
+          questions: lesson.quiz.questions.map((question) => ({
+            id: question.id,
+            type: question.type,
+            prompt: question.prompt,
+            position: question.position,
+            options: question.options.map((option) => ({
+              id: option.id,
+              text: option.text,
+              position: option.position,
+            })),
+          })),
+        }
+      : null,
     progress: currentLessonProgress
       ? {
           lastSeekTime: currentLessonProgress.lastSeekTime,

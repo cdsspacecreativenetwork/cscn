@@ -2,11 +2,12 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import type { Mentor } from '@/lib/mentorship';
 
-export default function MentorCard({ name, role, image, courses, students }: Mentor) {
+export default function MentorCard({ id, slug, name, role, image, courses, students }: Mentor) {
   return (
     <motion.div
       layout
@@ -59,10 +60,13 @@ export default function MentorCard({ name, role, image, courses, students }: Men
           <div className="w-full border-t border-dashed border-[#E3E8F4] my-2 sm:mt-2 sm:mb-1 order-2" />
 
           {/* Learn More Button - At bottom on mobile */}
-          <button className="flex items-center justify-center gap-2 px-3 sm:px-[16px] h-[32px] sm:h-[40px] border border-[#E3E8F4] rounded-full text-[12px] sm:text-[14px] font-medium text-[#4B5563] font-inter hover:bg-slate-50 transition-all w-fit cursor-pointer group/btn order-3 sm:order-2 self-start sm:self-center">
+          <Link
+            href={`/instructor/${slug ?? id}`}
+            className="flex items-center justify-center gap-2 px-3 sm:px-[16px] h-[32px] sm:h-[40px] border border-[#E3E8F4] rounded-full text-[12px] sm:text-[14px] font-medium text-[#4B5563] font-inter hover:bg-slate-50 transition-all w-fit cursor-pointer group/btn order-3 sm:order-2 self-start sm:self-center"
+          >
             Learn more
             <ArrowRight size={16} className="sm:w-5 sm:h-5 group-hover/btn:translate-x-1 transition-transform" />
-          </button>
+          </Link>
         </div>
       </div>
     </motion.div>

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { v4 as uuidv4 } from "uuid";
+import { db } from "@/lib/db";
 import {
   createCourse,
   updateCourseSettings,
@@ -27,7 +28,7 @@ import {
   updateCourseInstructorRole,
   requireCourseAccess,
 } from "@/data/instructor";
-import type { CourseInstructorRole, Difficulty, ContentType, ResourceType } from "@prisma/client";
+import type { CourseInstructorRole, Difficulty, ContentType, ResourceType, QuizMode, QuizQuestionType } from "@prisma/client";
 import { assertCreatorReadyForReview } from "@/lib/trust-gates";
 
 const supabase = createClient(
@@ -45,6 +46,34 @@ async function requireInstructor() {
   return user.id;
 }
 
+async function assertCourseReadyForLearners(courseId: string) {
+  const course = await db.course.findUnique({
+    where: { id: courseId },
+    select: {
+      thumbnail: true,
+      promoVideo: true,
+      modules: {
+        where: { isPublished: true },
+        take: 1,
+        select: {
+          lessons: {
+            where: { isPublished: true },
+            take: 1,
+            select: { id: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!course) throw new Error("Course not found.");
+  if (!course.thumbnail) throw new Error("Add a course thumbnail before submitting for review.");
+  if (!course.promoVideo) throw new Error("Add a course trailer before submitting for review.");
+  if (!course.modules.some((module) => module.lessons.length > 0)) {
+    throw new Error("Publish at least one module and one lesson before submitting for review.");
+  }
+}
+
 // ── Course ────────────────────────────────────────────────────────────────────
 
 export async function createCourseAction(data: {
@@ -53,7 +82,6 @@ export async function createCourseAction(data: {
   difficulty?: Difficulty;
 }) {
   const userId = await requireInstructor();
-  await assertCreatorReadyForReview(userId);
   const course = await createCourse(userId, data);
   revalidatePath("/dashboard/instructor/courses");
   return { courseId: course.id, slug: course.slug };
@@ -105,9 +133,8 @@ export async function submitForReviewAction(courseId: string) {
     requireCourseAccess(courseId, userId, "OWNER")
   );
   await assertCreatorReadyForReview(userId);
-  await import("@/lib/db").then(({ db }) =>
-    db.course.update({ where: { id: courseId }, data: { status: "PENDING_REVIEW" } })
-  );
+  await assertCourseReadyForLearners(courseId);
+  await db.course.update({ where: { id: courseId }, data: { status: "PENDING_REVIEW" } });
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
 
@@ -224,6 +251,7 @@ export async function updateLessonAction(
   data: {
     title?: string;
     videoUrl?: string | null;
+    overview?: string | null;
     duration?: number | null;
     isPreview?: boolean;
     transcript?: string | null;
@@ -246,6 +274,185 @@ export async function updateLessonPublishStateAction(
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
   revalidatePath(`/dashboard/admin/courses/${courseId}`);
   return result;
+}
+
+export async function updateLessonQuizAction(
+  lessonId: string,
+  courseId: string,
+  data: {
+    mode: QuizMode;
+    instructions?: string | null;
+    passingScore?: number | null;
+    maxAttempts?: number | null;
+    showAnswers?: boolean;
+    gateUntilPassed?: boolean;
+    shuffleQuestions?: boolean;
+    timeLimitMinutes?: number | null;
+    questions: {
+      id?: string;
+      type: QuizQuestionType;
+      prompt: string;
+      explanation?: string | null;
+      points?: number;
+      required?: boolean;
+      options: {
+        id?: string;
+        text: string;
+        isCorrect: boolean;
+      }[];
+    }[];
+  }
+) {
+  const userId = await requireInstructor();
+  await requireLessonAccess(courseId, lessonId, userId);
+
+  const normalizedQuestions = data.questions.map((question, questionIndex) => ({
+    id: question.id?.startsWith("temp-") ? undefined : question.id,
+    type: question.type,
+    prompt: question.prompt.trim(),
+    explanation: question.explanation?.trim() || null,
+    points: Math.max(1, Number(question.points ?? 1)),
+    required: question.required ?? true,
+    position: questionIndex + 1,
+    options: question.options.map((option, optionIndex) => ({
+      id: option.id?.startsWith("temp-") ? undefined : option.id,
+      text: option.text.trim(),
+      isCorrect: option.isCorrect,
+      position: optionIndex + 1,
+    })),
+  }));
+
+  const existingQuiz = await db.quiz.findUnique({
+    where: { lessonId },
+    select: { id: true },
+  });
+
+  const savedQuiz = existingQuiz
+    ? await db.quiz.update({
+        where: { id: existingQuiz.id },
+        data: {
+          mode: data.mode,
+          instructions: data.instructions?.trim() || null,
+          passingScore: data.mode === "GRADED" ? data.passingScore ?? 70 : null,
+          maxAttempts: data.mode === "GRADED" ? data.maxAttempts ?? 3 : null,
+          showAnswers: data.showAnswers ?? true,
+          gateUntilPassed: data.mode === "GRADED" ? data.gateUntilPassed ?? false : false,
+          shuffleQuestions: data.shuffleQuestions ?? false,
+          timeLimitMinutes: data.timeLimitMinutes ?? null,
+        },
+        select: { id: true },
+      })
+    : await db.quiz.create({
+        data: {
+          lessonId,
+          mode: data.mode,
+          instructions: data.instructions?.trim() || null,
+          passingScore: data.mode === "GRADED" ? data.passingScore ?? 70 : null,
+          maxAttempts: data.mode === "GRADED" ? data.maxAttempts ?? 3 : null,
+          showAnswers: data.showAnswers ?? true,
+          gateUntilPassed: data.mode === "GRADED" ? data.gateUntilPassed ?? false : false,
+          shuffleQuestions: data.shuffleQuestions ?? false,
+          timeLimitMinutes: data.timeLimitMinutes ?? null,
+        },
+        select: { id: true },
+      });
+
+  const incomingQuestionIds = normalizedQuestions.map((question) => question.id).filter(Boolean) as string[];
+  await db.quizQuestion.deleteMany({
+    where: {
+      quizId: savedQuiz.id,
+      ...(incomingQuestionIds.length > 0 ? { id: { notIn: incomingQuestionIds } } : {}),
+    },
+  });
+
+  for (const question of normalizedQuestions) {
+    const savedQuestion = question.id
+      ? await db.quizQuestion.update({
+          where: { id: question.id },
+          data: {
+            type: question.type,
+            prompt: question.prompt,
+            explanation: question.explanation,
+            points: question.points,
+            required: question.required,
+            position: question.position,
+          },
+          select: { id: true },
+        })
+      : await db.quizQuestion.create({
+          data: {
+            quizId: savedQuiz.id,
+            type: question.type,
+            prompt: question.prompt,
+            explanation: question.explanation,
+            points: question.points,
+            required: question.required,
+            position: question.position,
+          },
+          select: { id: true },
+        });
+
+    const incomingOptionIds = question.options.map((option) => option.id).filter(Boolean) as string[];
+    await db.quizOption.deleteMany({
+      where: {
+        questionId: savedQuestion.id,
+        ...(incomingOptionIds.length > 0 ? { id: { notIn: incomingOptionIds } } : {}),
+      },
+    });
+
+    for (const option of question.options) {
+      if (option.id) {
+        await db.quizOption.update({
+          where: { id: option.id },
+          data: { text: option.text, isCorrect: option.isCorrect, position: option.position },
+        });
+      } else {
+        await db.quizOption.create({
+          data: {
+            questionId: savedQuestion.id,
+            text: option.text,
+            isCorrect: option.isCorrect,
+            position: option.position,
+          },
+        });
+      }
+    }
+  }
+
+  const quiz = await db.quiz.findUniqueOrThrow({
+    where: { id: savedQuiz.id },
+    select: {
+      id: true,
+      mode: true,
+      instructions: true,
+      passingScore: true,
+      maxAttempts: true,
+      showAnswers: true,
+      gateUntilPassed: true,
+      shuffleQuestions: true,
+      timeLimitMinutes: true,
+      questions: {
+        orderBy: { position: "asc" },
+        select: {
+          id: true,
+          type: true,
+          prompt: true,
+          explanation: true,
+          points: true,
+          position: true,
+          required: true,
+          options: {
+            orderBy: { position: "asc" },
+            select: { id: true, text: true, isCorrect: true, position: true },
+          },
+        },
+      },
+    },
+  });
+
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  revalidatePath(`/dashboard/admin/courses/${courseId}`);
+  return quiz;
 }
 
 export async function updateModulePublishStateAction(

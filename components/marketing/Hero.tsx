@@ -145,7 +145,7 @@ export default function Hero() {
           className="mb-[5.5rem]"
         >
           <Link href="/courses">
-            <Button size="lg">
+            <Button variant="gradient" size="lg" rounded="full">
               Start Learning
             </Button>
           </Link>

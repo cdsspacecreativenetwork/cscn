@@ -78,6 +78,32 @@ const uPlatformIcon = ({ platform }: { platform: string }) => {
   }
 };
 
+const explicitSocialFields = [
+  { name: 'websiteUrl', label: 'Website', placeholder: 'https://your-site.com' },
+  { name: 'portfolioUrl', label: 'Portfolio', placeholder: 'https://portfolio.com/you' },
+  { name: 'linkedinUrl', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/you' },
+  { name: 'githubUrl', label: 'GitHub', placeholder: 'https://github.com/you' },
+  { name: 'behanceUrl', label: 'Behance', placeholder: 'https://behance.net/you' },
+  { name: 'dribbbleUrl', label: 'Dribbble', placeholder: 'https://dribbble.com/you' },
+  { name: 'youtubeUrl', label: 'YouTube', placeholder: 'https://youtube.com/@you' },
+  { name: 'twitterUrl', label: 'X / Twitter', placeholder: 'https://x.com/you' },
+  { name: 'instagramUrl', label: 'Instagram', placeholder: 'https://instagram.com/you' },
+  { name: 'telegramUrl', label: 'Telegram', placeholder: 'https://t.me/you' },
+] as const;
+
+function normalizeExpertise(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+}
+
+function splitExpertise(value: string) {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
 interface ProfileFormProps {
   user: User;
 }
@@ -87,6 +113,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<'idle' | 'dirty' | 'saving' | 'saved' | 'error'>('idle');
   const lastSavedRef = useRef('');
+  const [expertiseText, setExpertiseText] = useState(() => normalizeExpertise(user.expertise).join(', '));
 
   // Parse existing socials safely, or provide defaults
   const defaultSocials = React.useMemo(() => {
@@ -117,6 +144,19 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       bio: user.bio || '',
       headline: user.headline || '',
       location: user.location || '',
+      yearsExperience: user.yearsExperience ?? undefined,
+      websiteUrl: user.websiteUrl || '',
+      portfolioUrl: user.portfolioUrl || '',
+      linkedinUrl: user.linkedinUrl || '',
+      twitterUrl: user.twitterUrl || '',
+      instagramUrl: user.instagramUrl || '',
+      youtubeUrl: user.youtubeUrl || '',
+      githubUrl: user.githubUrl || '',
+      behanceUrl: user.behanceUrl || '',
+      dribbbleUrl: user.dribbbleUrl || '',
+      telegramUrl: user.telegramUrl || '',
+      expertise: normalizeExpertise(user.expertise),
+      learningFocus: user.learningFocus || '',
       socials: defaultSocials,
     }
   });
@@ -140,11 +180,12 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
 
   const processValues = useCallback((values: z.infer<typeof SettingsSchema>) => ({
       ...values,
+      expertise: splitExpertise(expertiseText),
       socials: values.socials?.filter(s => s.url.trim() !== "").map(s => ({
         url: s.url,
         platform: getPlatformFromUrl(s.url)
       }))
-  }), []);
+  }), [expertiseText]);
 
   const defaultSignature = useMemo(() => JSON.stringify(processValues(form.getValues())), [form, processValues]);
 
@@ -264,6 +305,68 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
             register={form.register}
             error={form.formState.errors.location?.message}
           />
+
+          <FormField
+            label="Years of experience"
+            placeholder="5"
+            name="yearsExperience"
+            register={(name: string) => form.register(name as any, {
+              setValueAs: (value) => value === '' ? undefined : Number(value),
+            })}
+            type="number"
+            error={form.formState.errors.yearsExperience?.message}
+          />
+
+          <FormField
+            label="Learning focus"
+            placeholder="Design systems, product strategy, frontend engineering"
+            name="learningFocus"
+            register={form.register}
+            error={form.formState.errors.learningFocus?.message}
+          />
+
+          <div className="md:col-span-2 flex flex-col gap-2">
+            <label className="text-[14px] md:text-[16px] font-semibold text-[#4B5563] tracking-tight">
+              Expertise tags
+            </label>
+            <input
+              value={expertiseText}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setExpertiseText(nextValue);
+                form.setValue('expertise', splitExpertise(nextValue), { shouldDirty: true, shouldValidate: true });
+              }}
+              placeholder="UI design, React, Brand strategy"
+              className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all shadow-sm font-medium disabled:opacity-50"
+            />
+            <p className="text-xs font-medium text-[#9CA3AF]">
+              Separate tags with commas. These power your public instructor profile and verification readiness.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full bg-white border border-[#E3E8F4] rounded-[24px] overflow-hidden shadow-sm">
+        <div className="bg-white border-b border-[#E3E8F4] px-6 py-5 md:px-8">
+          <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
+            Public Profile Links
+          </h3>
+          <p className="mt-1 text-xs font-semibold text-[#9CA3AF]">
+            Use explicit links so the public profile can render the correct social icons.
+          </p>
+        </div>
+
+        <div className="p-6 md:p-8 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {explicitSocialFields.map((field) => (
+            <FormField
+              key={field.name}
+              label={field.label}
+              placeholder={field.placeholder}
+              name={field.name}
+              register={form.register}
+              error={form.formState.errors[field.name]?.message}
+            />
+          ))}
         </div>
       </div>
 

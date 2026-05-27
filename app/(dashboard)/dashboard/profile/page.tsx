@@ -5,6 +5,8 @@ import { ProfileForm } from '@/components/dashboard/profile/ProfileForm';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
+import { getInstructorOnboardingStatusByUserId } from '@/lib/instructor-onboarding';
+import { ProfileHeaderActions } from '@/components/dashboard/profile/ProfileHeaderActions';
 
 export default async function ProfilePage() {
   const user = await currentUser();
@@ -12,10 +14,62 @@ export default async function ProfilePage() {
   if (!user) {
     return redirect("/auth/login");
   }
+  if (!user.id) {
+    return redirect("/auth/login");
+  }
 
-  const dbUser = await db.user.findUnique({
-    where: { id: user.id }
-  });
+  const [
+    dbUser,
+    onboardingStatus,
+    enrolledCourses,
+    certificateCourses,
+    watchSegments,
+    publishedCourses,
+    achievements,
+    ratingAggregate,
+  ] = await Promise.all([
+    db.user.findUnique({
+      where: { id: user.id }
+    }),
+    getInstructorOnboardingStatusByUserId(user.id),
+    db.enrollment.count({
+      where: { userId: user.id },
+    }),
+    db.enrollment.count({
+      where: {
+        userId: user.id,
+        completedAt: { not: null },
+        course: { certificateEnabled: true },
+      },
+    }),
+    db.lessonWatchSegment.aggregate({
+      where: { userId: user.id },
+      _sum: { secondsWatched: true },
+    }),
+    db.course.count({
+      where: {
+        status: "PUBLISHED",
+        OR: [
+          { instructorId: user.id },
+          { instructors: { some: { userId: user.id } } },
+        ],
+      },
+    }),
+    db.userAchievement.count({
+      where: { userId: user.id },
+    }),
+    db.courseRating.aggregate({
+      where: {
+        course: {
+          OR: [
+            { instructorId: user.id },
+            { instructors: { some: { userId: user.id } } },
+          ],
+        },
+      },
+      _avg: { rating: true },
+    }),
+  ]);
 
   if (!dbUser) {
     return redirect("/auth/login");
@@ -27,6 +81,29 @@ export default async function ProfilePage() {
     dbUser.role === 'ADMIN' ? 'Admin' : 
     dbUser.role === 'SUPER_ADMIN' ? 'Super Admin' : 
     'Student';
+  const displayName = dbUser.firstName || dbUser.lastName
+    ? `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim()
+    : dbUser.name || 'User';
+  const publicProfileMissingLabels = onboardingStatus.readiness.items
+    .filter((item) => item.id !== "email" && !item.complete)
+    .map((item) => item.label);
+  const isInstructorProfile = dbUser.instructorProfileEnabled;
+  const profileStats = isInstructorProfile
+    ? [
+        { value: publishedCourses.toLocaleString(), label: "Published Courses" },
+        { value: achievements.toLocaleString(), label: "Achievements" },
+        {
+          value: ratingAggregate._avg.rating
+            ? Number(ratingAggregate._avg.rating.toFixed(1)).toString()
+            : "New",
+          label: "Overall Rating",
+        },
+      ]
+    : [
+        { value: enrolledCourses.toLocaleString(), label: "Courses" },
+        { value: certificateCourses.toLocaleString(), label: "Certs" },
+        { value: `${Math.floor((watchSegments._sum.secondsWatched ?? 0) / 3600).toLocaleString()}h`, label: "Hours" },
+      ];
 
   return (
     <div className="p-6 md:p-10 space-y-10 max-w-[1400px] mx-auto font-jakarta pb-20">
@@ -61,15 +138,23 @@ export default async function ProfilePage() {
         <div className="pt-[96px] px-10 pb-10 flex flex-col gap-10">
           {/* Name, Role & Bio */}
           <div className="space-y-4">
-            <div className="space-y-1">
-              <h2 className="text-[20px] md:text-[24px] font-bold text-[#040B37] tracking-tight">
-                {dbUser.firstName || dbUser.lastName 
-                  ? `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim() 
-                  : dbUser.name || 'User'}
-              </h2>
-              <p className="text-[#1C4ED1] text-[14px] font-bold uppercase tracking-wider">
-                {roleLabel}
-              </p>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-1">
+                <h2 className="text-[20px] md:text-[24px] font-bold text-[#040B37] tracking-tight">
+                  {displayName}
+                </h2>
+                <p className="text-[#1C4ED1] text-[14px] font-bold uppercase tracking-wider">
+                  {roleLabel}
+                </p>
+              </div>
+              <ProfileHeaderActions
+                role={dbUser.role}
+                instructorProfileEnabled={dbUser.instructorProfileEnabled}
+                publicProfileUrl={onboardingStatus.publicProfileUrl}
+                publicProfileMissingLabels={publicProfileMissingLabels}
+                verificationStatus={onboardingStatus.verificationStatus}
+                canRequestVerification={onboardingStatus.canRequestVerification}
+              />
             </div>
             <p className="text-[#9CA3AF] text-[15px] md:text-[16px] font-medium max-w-[800px] leading-relaxed">
               {dbUser.bio || "No bio yet."}
@@ -77,7 +162,7 @@ export default async function ProfilePage() {
           </div>
 
           {/* Stats Bar */}
-          <ProfileStats />
+          <ProfileStats items={profileStats} />
 
           {/* Detailed Form */}
           <ProfileForm user={dbUser} />
