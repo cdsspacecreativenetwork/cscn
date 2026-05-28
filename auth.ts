@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import authConfig from "./auth.config";
 import { LoginSchema } from "@/schemas";
 import { getUserByEmail, getUserById } from "@/data/user";
+import { ADMIN_PERMISSION_KEYS } from "@/lib/admin-permissions";
 
 export const {
   handlers: { GET, POST },
@@ -89,14 +90,10 @@ export const {
         session.user.name = token.name;
         session.user.email = token.email as string;
         session.user.image = token.picture;
-        // @ts-ignore
-        session.user.canManageUsers = token.canManageUsers ?? false;
-        // @ts-ignore
-        session.user.canManageCourses = token.canManageCourses ?? false;
-        // @ts-ignore
-        session.user.canManageBilling = token.canManageBilling ?? false;
-        // @ts-ignore
-        session.user.canViewAnalytics = token.canViewAnalytics ?? false;
+        for (const permission of ADMIN_PERMISSION_KEYS) {
+          // @ts-ignore - permissions are added to the session user through module augmentation.
+          session.user[permission] = Boolean(token[permission]);
+        }
         // @ts-ignore
         session.user.emailVerified = token.emailVerified;
       }
@@ -127,14 +124,10 @@ export const {
         token.picture = existingUser.image;
         // @ts-ignore
         token.emailVerified = existingUser.emailVerified;
-        // @ts-ignore
-        token.canManageUsers = existingUser.canManageUsers ?? false;
-        // @ts-ignore
-        token.canManageCourses = existingUser.canManageCourses ?? false;
-        // @ts-ignore
-        token.canManageBilling = existingUser.canManageBilling ?? false;
-        // @ts-ignore
-        token.canViewAnalytics = existingUser.canViewAnalytics ?? false;
+        for (const permission of ADMIN_PERMISSION_KEYS) {
+          // @ts-ignore - permission keys are selected from the Prisma user record.
+          token[permission] = existingUser[permission] ?? false;
+        }
       }
 
       return token;

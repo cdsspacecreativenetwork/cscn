@@ -207,12 +207,17 @@ export default function StudentDashboardClient({ data, user }: Props) {
             <div className="divide-y divide-[#E3E8F4]">
               {data.announcements.length > 0 ? (
                 data.announcements.map((ann) => (
-                  <div key={ann.id} className="p-5 flex gap-4 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
+                  <div
+                    key={ann.id}
+                    onClick={() => ann.linkUrl && window.open(ann.linkUrl, '_blank', 'noopener,noreferrer')}
+                    className={`p-5 flex gap-4 hover:bg-[#F4F6FB]/50 transition-all group ${ann.linkUrl ? 'cursor-pointer' : ''}`}
+                  >
                     <div className="w-10 h-10 bg-[#F4F6FB] rounded-xl flex items-center justify-center text-[18px] shrink-0 group-hover:scale-105 transition-transform">
                       {ann.emoji}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{ann.title}</p>
+                      {ann.body && <p className="line-clamp-2 text-[12px] font-medium text-[#9CA3AF]">{ann.body}</p>}
                       <p className="text-[11px] font-medium text-[#9CA3AF]">{ann.time}</p>
                     </div>
                   </div>

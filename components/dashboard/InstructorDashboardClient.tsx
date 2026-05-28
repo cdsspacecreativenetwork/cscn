@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import CreatorReadinessCard from '@/components/dashboard/CreatorReadinessCard';
 import type { CreatorReadiness } from '@/lib/trust-gates';
 import Button from '@/components/ui/Button';
+import { formatCurrency } from '@/lib/money';
 
 interface Props {
   data: InstructorDashboardData;
@@ -26,6 +27,15 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
   const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
   const [dismissedRecs, setDismissedRecs] = React.useState<string[]>([]);
   const [brokenThumbnailIds, setBrokenThumbnailIds] = React.useState<string[]>([]);
+  const [isCurrencyUpdating, setIsCurrencyUpdating] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleCurrencyPending = (event: Event) => {
+      setIsCurrencyUpdating(Boolean((event as CustomEvent<boolean>).detail));
+    };
+    window.addEventListener("display-currency-pending", handleCurrencyPending);
+    return () => window.removeEventListener("display-currency-pending", handleCurrencyPending);
+  }, []);
 
   const userName = user?.name?.split(' ')[0] ?? 'Instructor';
 
@@ -97,7 +107,13 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
         />
         <StatCard
           title="Revenue This Month"
-          value={data.isNewInstructor ? "$0" : `$${data.monthlyRevenue.toLocaleString()}`}
+          value={
+            isCurrencyUpdating ? (
+              <span className="block h-8 w-28 animate-pulse rounded-md bg-[#1C4ED1]/5" />
+            ) : (
+              formatCurrency(data.monthlyRevenue, data.earningsCurrency, "en-US")
+            )
+          }
           icon={<DollarSign className="text-[#1C4ED1]" size={20} strokeWidth={2.2} />}
         />
         <StatCard
@@ -374,12 +390,17 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                   <div className="divide-y divide-[#E3E8F4]">
                     {data.announcements.length > 0 ? (
                       data.announcements.map((ann) => (
-                        <div key={ann.id} className="p-5 flex gap-4 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
+                        <div
+                          key={ann.id}
+                          onClick={() => ann.linkUrl && window.open(ann.linkUrl, '_blank', 'noopener,noreferrer')}
+                          className={`p-5 flex gap-4 hover:bg-[#F4F6FB]/50 transition-all group ${ann.linkUrl ? 'cursor-pointer' : ''}`}
+                        >
                           <div className="w-10 h-10 bg-[#F4F6FB] rounded-xl flex items-center justify-center text-[18px] shrink-0 group-hover:scale-105 transition-transform">
                             {ann.emoji}
                           </div>
                           <div className="flex flex-col gap-1.5">
                             <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{ann.title}</p>
+                            {ann.body && <p className="line-clamp-2 text-[12px] font-medium text-[#9CA3AF]">{ann.body}</p>}
                             <p className="text-[11px] font-medium text-[#9CA3AF]">{ann.time}</p>
                           </div>
                         </div>

@@ -7,6 +7,8 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { assertEmailVerifiedByUserId } from "@/lib/trust-gates";
 import { getInstructorRoleTransitionData } from "@/lib/instructor-onboarding";
+import { ADMIN_PERMISSION_KEYS, hasAdminPermission, type AdminPermissionSet, normalizeAdminPermissions } from "@/lib/admin-permissions";
+import { createAuditLog } from "@/data/audit-logs";
 
 const isSuperAdmin = (role: string | undefined) => role === "SUPER_ADMIN";
 const isAdminOrAbove = (role: string | undefined) =>
@@ -19,6 +21,9 @@ export const changeUserRole = async (userId: string, newRole: string) => {
 
   if (!callerId || !isAdminOrAbove(callerRole)) {
     return { error: "Unauthorized" };
+  }
+  if (callerRole === "ADMIN" && !hasAdminPermission(session.user, "canManageUsers")) {
+    return { error: "You do not have permission to manage users." };
   }
   try {
     await assertEmailVerifiedByUserId(callerId);
@@ -52,12 +57,23 @@ export const changeUserRole = async (userId: string, newRole: string) => {
   }
 
   try {
-    await db.user.update({
+    const updatedUser = await db.user.update({
       where: { id: userId },
       data: {
         role: newRole as UserRole,
         ...getInstructorRoleTransitionData(newRole),
       },
+      select: { id: true, name: true, email: true, role: true },
+    });
+    await createAuditLog({
+      actorId: callerId,
+      actorName: session.user.name,
+      actorEmail: session.user.email,
+      action: "user.role_changed",
+      entityType: "USER",
+      entityId: updatedUser.id,
+      entityName: updatedUser.name ?? updatedUser.email,
+      metadata: { from: targetRole, to: updatedUser.role },
     });
     revalidatePath("/dashboard/admin/users");
     return { success: "Role updated successfully" };
@@ -66,16 +82,11 @@ export const changeUserRole = async (userId: string, newRole: string) => {
   }
 };
 
-export interface AdminPermissions {
-  canManageUsers: boolean;
-  canManageCourses: boolean;
-  canManageBilling: boolean;
-  canViewAnalytics: boolean;
-}
+export type AdminPermissions = AdminPermissionSet;
 
 export const updateAdminPermissions = async (
   userId: string,
-  permissions: AdminPermissions
+  permissions: Partial<AdminPermissions>
 ) => {
   const session = await auth();
   const superAdminId = session?.user?.id;
@@ -96,8 +107,29 @@ export const updateAdminPermissions = async (
   }
 
   try {
-    await db.user.update({ where: { id: userId }, data: permissions as any });
+    const normalized = normalizeAdminPermissions(permissions);
+    const data = ADMIN_PERMISSION_KEYS.reduce((acc, key) => {
+      acc[key] = normalized[key];
+      return acc;
+    }, {} as Record<keyof AdminPermissions, boolean>);
+
+    const updatedUser = await db.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true, name: true, email: true },
+    });
+    await createAuditLog({
+      actorId: superAdminId,
+      actorName: session.user.name,
+      actorEmail: session.user.email,
+      action: "user.permissions_updated",
+      entityType: "USER",
+      entityId: updatedUser.id,
+      entityName: updatedUser.name ?? updatedUser.email,
+      metadata: { permissions: data },
+    });
     revalidatePath("/dashboard/admin/users");
+    revalidatePath("/dashboard/admin/permissions");
     return { success: true };
   } catch {
     return { error: "Failed to update permissions" };

@@ -10,9 +10,20 @@ interface AdminPermissionsEditorProps {
 }
 
 const PERMISSION_LABELS: { key: keyof AdminPermissions; label: string }[] = [
-  { key: "canManageUsers", label: "Manage Users" },
+  { key: "canManageUsers", label: "Manage Accounts" },
   { key: "canManageCourses", label: "Manage Courses" },
+  { key: "canReviewCourses", label: "Review Courses" },
+  { key: "canPublishCourses", label: "Publish Courses" },
+  { key: "canManageLearners", label: "Manage Students" },
+  { key: "canManageInstructors", label: "Manage Instructors" },
+  { key: "canVerifyInstructors", label: "Verify Instructors" },
+  { key: "canManageInvites", label: "Manage Invites" },
+  { key: "canManageAnnouncements", label: "Announcements" },
   { key: "canManageBilling", label: "Manage Billing" },
+  { key: "canManageMarketing", label: "Marketing" },
+  { key: "canManagePermissions", label: "Permissions" },
+  { key: "canViewAuditLogs", label: "Audit Logs" },
+  { key: "canManageSettings", label: "Settings" },
   { key: "canViewAnalytics", label: "View Analytics" },
 ];
 
@@ -51,7 +62,7 @@ export function AdminPermissionsEditor({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 z-50 w-[220px] bg-white border border-[#E3E8F4] rounded-[12px] shadow-lg p-3 space-y-2">
+        <div className="absolute right-0 top-8 z-50 max-h-[70vh] w-[260px] overflow-y-auto bg-white border border-[#E3E8F4] rounded-[12px] shadow-lg p-3 space-y-2">
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider px-1 pb-1 border-b border-[#F4F6FB]">
             Permissions
           </p>

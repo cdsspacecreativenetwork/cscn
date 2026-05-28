@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import { getActiveAnnouncementsForRole } from "@/data/announcements";
+import { getInstructorEarningsSummary } from "@/data/admin-billing";
 
 export interface CourseData {
   id: string;
@@ -34,6 +36,7 @@ export interface AnnouncementData {
   title: string;
   time: string;
   body?: string;
+  linkUrl?: string | null;
 }
 
 export interface ScheduleData {
@@ -49,6 +52,10 @@ export interface InstructorDashboardData {
   monthlyRevenue: number;
   avgCourseRating: number;
   activeCoursesCount: number;
+  availableEarnings: number;
+  pendingEarnings: number;
+  payoutThreshold: number;
+  earningsCurrency: string;
   myCourses: CourseData[];
   studentEnrollments: EnrollmentData[];
   announcements: AnnouncementData[];
@@ -91,6 +98,19 @@ function formatDateString(date: Date | null): string {
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   return `${diffDays} days ago`;
+}
+
+function mapDashboardAnnouncements(
+  announcements: Awaited<ReturnType<typeof getActiveAnnouncementsForRole>>
+): AnnouncementData[] {
+  return announcements.map((announcement) => ({
+    id: announcement.id,
+    emoji: announcement.priority >= 7 ? "!" : "i",
+    title: announcement.title,
+    time: formatDateString(announcement.publishedAt || announcement.createdAt),
+    body: announcement.body,
+    linkUrl: announcement.linkUrl,
+  }));
 }
 
 const difficultyRank = { BEGINNER: 1, INTERMEDIATE: 2, ADVANCED: 3 } as const;
@@ -238,7 +258,7 @@ async function getRecommendedCourses(userId: string, limit = 3): Promise<Recomme
     });
 }
 
-export async function getInstructorDashboardData(userId: string): Promise<InstructorDashboardData> {
+export async function getInstructorDashboardData(userId: string, role?: string | null): Promise<InstructorDashboardData> {
   // 1. Fetch courses taught by this instructor
   const courses = await db.course.findMany({
     where: {
@@ -283,6 +303,7 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
   });
 
   const isNewInstructor = courses.length === 0;
+  const earnings = await getInstructorEarningsSummary(userId);
 
   // 2. Fetch student enrollments for this instructor (compact learning strip)
   const rawEnrollments = await db.enrollment.findMany({
@@ -370,22 +391,7 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
     })
   );
 
-  // Fetch Announcements
-  const rawAnnouncements = await db.announcement.findMany({
-    where: { audience: { in: ['ALL', 'INSTRUCTORS'] } },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  });
-
-  const announcements: AnnouncementData[] = rawAnnouncements.length > 0 
-    ? rawAnnouncements.map(a => ({
-        id: a.id,
-        emoji: '📢',
-        title: a.title,
-        time: formatDateString(a.publishedAt || a.createdAt),
-        body: a.body,
-      }))
-    : [];
+  const announcements = mapDashboardAnnouncements(await getActiveAnnouncementsForRole(role ?? "INSTRUCTOR"));
 
   const ratingAggregation = await db.courseRating.aggregate({
     where: {
@@ -408,6 +414,10 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
       monthlyRevenue: 0,
       avgCourseRating: 0.0,
       activeCoursesCount: 0,
+      availableEarnings: earnings.available,
+      pendingEarnings: earnings.pending,
+      payoutThreshold: earnings.threshold,
+      earningsCurrency: earnings.displayCurrency,
       myCourses: [],
       studentEnrollments: [],
       announcements,
@@ -419,9 +429,13 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
 
   return {
     totalStudents: distinctStudents.size,
-    monthlyRevenue: 0,
+    monthlyRevenue: earnings.thisMonth,
     avgCourseRating,
     activeCoursesCount,
+    availableEarnings: earnings.available,
+    pendingEarnings: earnings.pending,
+    payoutThreshold: earnings.threshold,
+    earningsCurrency: earnings.displayCurrency,
     myCourses,
     studentEnrollments,
     announcements,
@@ -431,7 +445,7 @@ export async function getInstructorDashboardData(userId: string): Promise<Instru
   };
 }
 
-export async function getStudentDashboardData(userId: string): Promise<StudentDashboardData> {
+export async function getStudentDashboardData(userId: string, role?: string | null): Promise<StudentDashboardData> {
   const rawEnrollments = await db.enrollment.findMany({
     where: { userId, status: { not: 'CANCELLED' } },
     select: {
@@ -566,22 +580,7 @@ export async function getStudentDashboardData(userId: string): Promise<StudentDa
   const hoursSpentStr = `${totalHoursSpent}h`;
   const completionRate = totalLessonsAcrossAll > 0 ? Math.round((totalCompletedLessonsAcrossAll / totalLessonsAcrossAll) * 100) : 0;
 
-  // Announcements
-  const rawAnnouncements = await db.announcement.findMany({
-    where: { audience: { in: ['ALL', 'STUDENTS'] } },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  });
-
-  const announcements: AnnouncementData[] = rawAnnouncements.length > 0 
-    ? rawAnnouncements.map(a => ({
-        id: a.id,
-        emoji: '📢',
-        title: a.title,
-        time: formatDateString(a.publishedAt || a.createdAt),
-        body: a.body,
-      }))
-    : [];
+  const announcements = mapDashboardAnnouncements(await getActiveAnnouncementsForRole(role ?? "USER"));
 
   return {
     coursesEnrolled: rawEnrollments.length,

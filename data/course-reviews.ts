@@ -31,13 +31,16 @@ export async function submitCourseReview(
 ) {
   const reviewer = await db.user.findUnique({
     where: { id: reviewerId },
-    select: { role: true, canManageCourses: true },
+    select: { role: true, canReviewCourses: true, canPublishCourses: true },
   });
   if (!reviewer || (reviewer.role !== "ADMIN" && reviewer.role !== "SUPER_ADMIN")) {
     throw new Error("Only admins can review courses.");
   }
-  if (reviewer.role !== "SUPER_ADMIN" && !reviewer.canManageCourses) {
-    throw new Error("You do not have permission to approve courses.");
+  if (status === "APPROVED" && reviewer.role !== "SUPER_ADMIN" && !reviewer.canPublishCourses) {
+    throw new Error("You do not have permission to publish courses.");
+  }
+  if (status !== "APPROVED" && reviewer.role !== "SUPER_ADMIN" && !reviewer.canReviewCourses) {
+    throw new Error("You do not have permission to review courses.");
   }
 
   const course = await db.course.findUnique({

@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { assertEmailVerifiedByUserId } from "@/lib/trust-gates";
 import { isInstructorFeatureEligible } from "@/lib/profile-eligibility";
+import { hasAdminPermission } from "@/lib/admin-permissions";
 
 async function requireFeaturedInstructorAdmin() {
   const session = await auth();
@@ -14,6 +15,9 @@ async function requireFeaturedInstructorAdmin() {
 
   if (!userId || (role !== "ADMIN" && role !== "SUPER_ADMIN")) {
     return { error: "Unauthorized" as const };
+  }
+  if (role !== "SUPER_ADMIN" && !hasAdminPermission(session.user, "canManageMarketing")) {
+    return { error: "You do not have permission to manage featured instructors." as const };
   }
 
   try {
@@ -67,8 +71,8 @@ export async function assignFeaturedInstructorAction(instructorId: string, slotV
     },
   });
 
-  if (!instructor || instructor.role !== "INSTRUCTOR" || !instructor.instructorProfileEnabled) {
-    return { error: "Only active instructors can be featured." };
+  if (!instructor || !instructor.instructorProfileEnabled) {
+    return { error: "Only active instructor profiles can be featured." };
   }
 
   if (!isInstructorFeatureEligible(instructor)) {
@@ -140,8 +144,8 @@ export async function toggleFeaturedInstructorAction(instructorId: string) {
     },
   });
 
-  if (!instructor || instructor.role !== "INSTRUCTOR") {
-    return { error: "Only instructors can be featured." };
+  if (!instructor || !instructor.instructorProfileEnabled) {
+    return { error: "Only active instructor profiles can be featured." };
   }
 
   if (instructor.instructorFeatured) {

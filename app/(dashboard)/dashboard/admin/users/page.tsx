@@ -5,6 +5,7 @@ import { Crown, GraduationCap, ShieldCheck, UserCheck, Users } from "lucide-reac
 import { auth } from "@/auth";
 import { getFeaturedInstructorAdminData } from "@/data/featured-instructors";
 import { getAllUsers, getUserStats } from "@/data/user";
+import { requireAdminPermission } from "@/lib/admin-guards";
 import { UserRoleSelect } from "@/components/dashboard/admin/UserRoleSelect";
 import { AdminPermissionsDrawer } from "@/components/dashboard/admin/AdminPermissionsDrawer";
 import { Pagination } from "@/components/dashboard/admin/Pagination";
@@ -53,6 +54,8 @@ function verificationBadge(user: any) {
 }
 
 export default async function AdminUsersPage({ searchParams }: PageProps) {
+  await requireAdminPermission("canManageUsers");
+
   const { page: pageParam, tab: tabParam, q, sort: sortParam } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const tab = tabParam ?? "all";
@@ -211,7 +214,18 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                                   permissions={{
                                     canManageUsers: user.canManageUsers ?? false,
                                     canManageCourses: user.canManageCourses ?? false,
+                                    canReviewCourses: user.canReviewCourses ?? false,
+                                    canPublishCourses: user.canPublishCourses ?? false,
+                                    canManageLearners: user.canManageLearners ?? false,
+                                    canManageInstructors: user.canManageInstructors ?? false,
+                                    canVerifyInstructors: user.canVerifyInstructors ?? false,
+                                    canManageInvites: user.canManageInvites ?? false,
+                                    canManageAnnouncements: user.canManageAnnouncements ?? false,
                                     canManageBilling: user.canManageBilling ?? false,
+                                    canManageMarketing: user.canManageMarketing ?? false,
+                                    canManagePermissions: user.canManagePermissions ?? false,
+                                    canViewAuditLogs: user.canViewAuditLogs ?? false,
+                                    canManageSettings: user.canManageSettings ?? false,
                                     canViewAnalytics: user.canViewAnalytics ?? false,
                                   }}
                                 />

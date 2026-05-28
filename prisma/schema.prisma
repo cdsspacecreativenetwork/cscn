@@ -48,22 +48,44 @@ model User {
 
   // Admin permission scopes — only relevant when role == ADMIN
   // SUPER_ADMIN implicitly has all permissions
-  canManageUsers   Boolean @default(false)
-  canManageCourses Boolean @default(false)
-  canManageBilling Boolean @default(false)
-  canViewAnalytics Boolean @default(false)
+  canManageUsers         Boolean @default(false)
+  canManageCourses       Boolean @default(false)
+  canReviewCourses       Boolean @default(false)
+  canPublishCourses      Boolean @default(false)
+  canManageLearners      Boolean @default(false)
+  canManageInstructors   Boolean @default(false)
+  canVerifyInstructors   Boolean @default(false)
+  canManageInvites       Boolean @default(false)
+  canManageAnnouncements Boolean @default(false)
+  canManageBilling       Boolean @default(false)
+  canManageMarketing     Boolean @default(false)
+  canManagePermissions   Boolean @default(false)
+  canViewAuditLogs       Boolean @default(false)
+  canManageSettings      Boolean @default(false)
+  canViewAnalytics       Boolean @default(false)
 
   marketingConsent Boolean @default(false)
 
   // Course relations
   taughtCourses     Course[]             @relation("InstructorCourses")
   enrollments       Enrollment[]
+  purchaseOrders    PurchaseOrder[]      @relation("StudentOrders")
+  payments          Payment[]
+  instructorEarnings InstructorEarning[] @relation("InstructorEarnings")
+  payoutRequests    PayoutRequest[]      @relation("InstructorPayoutRequests")
+  reviewedPayoutRequests PayoutRequest[] @relation("PayoutRequestReviewer")
+  payouts           Payout[]             @relation("InstructorPayouts")
+  refundsRequested  Refund[]             @relation("RefundRequester")
+  refundsReviewed   Refund[]             @relation("RefundReviewer")
+  invoices          Invoice[]
+  subscriptions     UserSubscription[]
   progress          LessonProgress[]
   lessonNotes       LessonNote[]
   watchSegments     LessonWatchSegment[]
   quizAttempts      QuizAttempt[]
   courseInstructors CourseInstructor[]
   notifications     Notification[]
+  auditLogs         AuditLog[]           @relation("AuditActor")
   courseReviews     CourseReview[]
   courseFeedback    CourseFeedbackItem[] @relation("FeedbackAuthor")
   dailyActivities   DailyActivity[]
@@ -244,6 +266,8 @@ model Course {
   feedbackItems CourseFeedbackItem[]
   ratings       CourseRating[]
   pricingProposals CoursePricingProposal[]
+  purchaseOrders PurchaseOrder[]
+  instructorEarnings InstructorEarning[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -473,6 +497,300 @@ enum EnrollmentStatus {
   CANCELLED
 }
 
+// ─── Billing & Ledger ─────────────────────────────────────────────────────────
+
+model PurchaseOrder {
+  id                String              @id @default(cuid())
+  userId            String
+  courseId          String?
+  type              OrderType           @default(COURSE)
+  status            OrderStatus         @default(PENDING)
+  amount            Decimal             @db.Decimal(12, 2)
+  currency          String              @default("NGN")
+  provider          PaymentProvider?
+  providerReference String?             @unique
+  metadata          Json?
+  paidAt            DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  user     User    @relation("StudentOrders", fields: [userId], references: [id], onDelete: Cascade)
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  payments Payment[]
+  earnings InstructorEarning[]
+  refunds  Refund[]
+  invoice  Invoice?
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  orderId           String
+  userId            String
+  provider          PaymentProvider
+  channel           String?
+  status            PaymentStatus   @default(PENDING)
+  amount            Decimal         @db.Decimal(12, 2)
+  currency          String          @default("NGN")
+  providerReference String?         @unique
+  rawPayload        Json?
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  order    PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  earnings InstructorEarning[]
+  refunds  Refund[]
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([provider, status])
+  @@index([createdAt])
+}
+
+model InstructorEarning {
+  id               String        @id @default(cuid())
+  instructorId     String
+  courseId         String?
+  orderId          String?
+  paymentId        String?
+  grossAmount      Decimal       @db.Decimal(12, 2)
+  platformFee      Decimal       @db.Decimal(12, 2)
+  instructorAmount Decimal       @db.Decimal(12, 2)
+  currency         String        @default("NGN")
+  sharePercent     Decimal       @default(80.00) @db.Decimal(5, 2)
+  status           EarningStatus @default(PENDING)
+  payoutRequestId  String?
+  holdUntil        DateTime?
+  availableAt      DateTime?
+  paidAt           DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  instructor User           @relation("InstructorEarnings", fields: [instructorId], references: [id], onDelete: Cascade)
+  course     Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  order      PurchaseOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  payment    Payment?       @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  payoutRequest PayoutRequest? @relation(fields: [payoutRequestId], references: [id], onDelete: SetNull)
+
+  @@index([instructorId])
+  @@index([courseId])
+  @@index([status])
+  @@index([payoutRequestId])
+  @@index([createdAt])
+}
+
+model PayoutRequest {
+  id            String              @id @default(cuid())
+  instructorId  String
+  amount        Decimal             @db.Decimal(12, 2)
+  currency      String              @default("NGN")
+  status        PayoutRequestStatus @default(REQUESTED)
+  payoutMethod  String?
+  payoutDetails Json?
+  adminNote     String?             @db.Text
+  requestedAt   DateTime            @default(now())
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  instructor User    @relation("InstructorPayoutRequests", fields: [instructorId], references: [id], onDelete: Cascade)
+  reviewedBy User?   @relation("PayoutRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  payouts    Payout[]
+  earnings   InstructorEarning[]
+
+  @@index([instructorId])
+  @@index([status])
+  @@index([requestedAt])
+}
+
+model Payout {
+  id                String       @id @default(cuid())
+  payoutRequestId   String?
+  instructorId      String
+  amount            Decimal      @db.Decimal(12, 2)
+  currency          String       @default("NGN")
+  provider          PaymentProvider?
+  status            PayoutStatus @default(PENDING)
+  providerReference String?
+  metadata          Json?
+  paidAt            DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  payoutRequest PayoutRequest? @relation(fields: [payoutRequestId], references: [id], onDelete: SetNull)
+  instructor    User           @relation("InstructorPayouts", fields: [instructorId], references: [id], onDelete: Cascade)
+
+  @@index([payoutRequestId])
+  @@index([instructorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Refund {
+  id            String       @id @default(cuid())
+  orderId       String
+  paymentId     String?
+  requestedById String?
+  reviewedById  String?
+  amount        Decimal      @db.Decimal(12, 2)
+  currency      String       @default("NGN")
+  status        RefundStatus @default(REQUESTED)
+  reason        String?      @db.Text
+  providerReference String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  reviewedAt    DateTime?
+  completedAt   DateTime?
+
+  order       PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment     Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  requestedBy User?         @relation("RefundRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  reviewedBy  User?         @relation("RefundReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([paymentId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Invoice {
+  id        String        @id @default(cuid())
+  orderId   String        @unique
+  userId    String
+  number    String        @unique
+  amount    Decimal       @db.Decimal(12, 2)
+  currency  String        @default("NGN")
+  status    InvoiceStatus @default(ISSUED)
+  issuedAt  DateTime      @default(now())
+  metadata  Json?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  order PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([issuedAt])
+}
+
+model SubscriptionPlan {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  amount      Decimal  @db.Decimal(12, 2)
+  currency    String   @default("NGN")
+  interval    String   @default("MONTH")
+  active      Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions UserSubscription[]
+}
+
+model UserSubscription {
+  id                  String             @id @default(cuid())
+  userId              String
+  planId              String
+  status              SubscriptionStatus @default(ACTIVE)
+  provider            PaymentProvider?
+  providerReference   String?
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  cancelAtPeriodEnd   Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+}
+
+enum OrderType {
+  COURSE
+  SUBSCRIPTION
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentProvider {
+  MANUAL
+  PAYSTACK
+  STRIPE
+  CRYPTO
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum EarningStatus {
+  PENDING
+  AVAILABLE
+  REQUESTED
+  PAID
+  REVERSED
+}
+
+enum PayoutRequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+enum InvoiceStatus {
+  ISSUED
+  PAID
+  VOID
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
 enum QuizQuestionType {
   SINGLE_CHOICE
   MULTIPLE_SELECT
@@ -601,13 +919,37 @@ model Announcement {
   title       String
   body        String               @db.Text
   audience    AnnouncementAudience @default(ALL)
-  publishedAt DateTime? // null = draft
+  status      AnnouncementStatus   @default(DRAFT)
+  priority    Int                  @default(0)
+  linkUrl     String?
+  publishedAt DateTime? // null = draft; future date = scheduled
   expiresAt   DateTime?
   authorId    String
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
+  @@index([status])
   @@index([audience, publishedAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorName  String?
+  actorEmail String?
+  action     String
+  entityType String
+  entityId   String?
+  entityName String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
 }
 
 enum AnnouncementAudience {
@@ -615,6 +957,12 @@ enum AnnouncementAudience {
   INSTRUCTORS
   STUDENTS
   ADMINS
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
 // ─── Course Reviews ───────────────────────────────────────────────────────────

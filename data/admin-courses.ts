@@ -239,7 +239,9 @@ export async function getStudioCourseAdmin(courseId: string) {
       metaDescription: true,
       price: true,
       baseCurrency: true,
-      instructor: { select: { payoutDetails: true } },
+      instructor: { select: { id: true, name: true, email: true, image: true, payoutSetup: true, payoutDetails: true } },
+      category: { select: { name: true } },
+      _count: { select: { enrollments: true } },
       pricingProposals: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -252,6 +254,7 @@ export async function getStudioCourseAdmin(courseId: string) {
           adminNote: true,
           createdAt: true,
           reviewedAt: true,
+          submittedBy: { select: { name: true, email: true } },
         },
       },
       finalExamId: true,

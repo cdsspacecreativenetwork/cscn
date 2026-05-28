@@ -31,12 +31,12 @@ export default async function DashboardPage() {
   // Role-aware dispatch: Instructors, Admins, and Super Admins get the creator-first view
   if (role === 'INSTRUCTOR' || role === 'ADMIN' || role === 'SUPER_ADMIN') {
     const [data, creatorReadiness] = await Promise.all([
-      getInstructorDashboardData(user.id),
+      getInstructorDashboardData(user.id, role),
       getCreatorReadinessByUserId(user.id),
     ]);
     return <InstructorDashboardClient data={data} user={user} creatorReadiness={creatorReadiness} />;
   } else {
-    const data = await getStudentDashboardData(user.id);
+    const data = await getStudentDashboardData(user.id, role);
     return <StudentDashboardClient data={data} user={user} />;
   }
 }

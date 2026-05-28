@@ -6,6 +6,8 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getCreatorReadinessByUserId } from "@/lib/trust-gates";
 import { getInstructorPublicProfileEligibility } from "@/lib/profile-eligibility";
+import { hasAdminPermission } from "@/lib/admin-permissions";
+import { createAuditLog } from "@/data/audit-logs";
 
 function toPublicSlug(user: { publicProfileSlug: string | null; id: string; name: string | null }) {
   return (
@@ -42,6 +44,17 @@ export async function activateInstructorProfileAction() {
       instructorVerificationStatus: "VERIFIED",
       instructorVerifiedAt: new Date(),
     },
+  });
+  const session = await auth();
+  await createAuditLog({
+    actorId: userId,
+    actorName: session?.user?.name,
+    actorEmail: session?.user?.email,
+    action: "instructor.profile_activated",
+    entityType: "USER",
+    entityId: userId,
+    entityName: user.name ?? user.email,
+    metadata: { verificationStatus: "VERIFIED" },
   });
 
   revalidatePath("/dashboard/profile");
@@ -95,6 +108,10 @@ export async function submitInstructorVerificationAction() {
 export async function approveInstructorVerificationAction(targetUserId: string) {
   const { userId, role } = await requireCurrentUser();
   if (role !== "ADMIN" && role !== "SUPER_ADMIN") return { error: "Forbidden." };
+  const session = await auth();
+  if (role !== "SUPER_ADMIN" && !hasAdminPermission(session?.user, "canVerifyInstructors")) {
+    return { error: "You do not have permission to verify instructors." };
+  }
   if (targetUserId === userId) return { error: "Another admin must verify your instructor profile." };
 
   const target = await db.user.findUnique({ where: { id: targetUserId } });
@@ -105,16 +122,28 @@ export async function approveInstructorVerificationAction(targetUserId: string) 
     return { error: `Profile is incomplete: ${readiness.missingLabels.join(", ")}.` };
   }
 
-  await db.user.update({
+  const updated = await db.user.update({
     where: { id: targetUserId },
     data: {
       instructorVerificationStatus: "VERIFIED",
       instructorVerifiedAt: new Date(),
       publicProfileStatus: "PUBLIC",
     },
+    select: { id: true, name: true, email: true },
+  });
+  await createAuditLog({
+    actorId: userId,
+    actorName: session?.user?.name,
+    actorEmail: session?.user?.email,
+    action: "instructor.verified",
+    entityType: "USER",
+    entityId: updated.id,
+    entityName: updated.name ?? updated.email,
+    metadata: { verificationStatus: "VERIFIED" },
   });
 
   revalidatePath("/dashboard/admin/users");
+  revalidatePath("/dashboard/admin/instructors");
   revalidatePath(`/instructor/${toPublicSlug(target)}`);
 
   return { success: "Instructor verified." };
@@ -123,6 +152,10 @@ export async function approveInstructorVerificationAction(targetUserId: string) 
 export async function rejectInstructorVerificationAction(targetUserId: string) {
   const { userId, role } = await requireCurrentUser();
   if (role !== "ADMIN" && role !== "SUPER_ADMIN") return { error: "Forbidden." };
+  const session = await auth();
+  if (role !== "SUPER_ADMIN" && !hasAdminPermission(session?.user, "canVerifyInstructors")) {
+    return { error: "You do not have permission to verify instructors." };
+  }
   if (targetUserId === userId) return { error: "Another admin must review your instructor profile." };
 
   const target = await db.user.findUnique({
@@ -131,7 +164,7 @@ export async function rejectInstructorVerificationAction(targetUserId: string) {
   });
   if (!target?.instructorProfileEnabled) return { error: "Instructor profile is not active." };
 
-  await db.user.update({
+  const updated = await db.user.update({
     where: { id: targetUserId },
     data: {
       instructorVerificationStatus: "REJECTED",
@@ -139,9 +172,21 @@ export async function rejectInstructorVerificationAction(targetUserId: string) {
       instructorFeatured: false,
       instructorFeaturedOrder: null,
     },
+    select: { id: true, name: true, email: true },
+  });
+  await createAuditLog({
+    actorId: userId,
+    actorName: session?.user?.name,
+    actorEmail: session?.user?.email,
+    action: "instructor.rejected",
+    entityType: "USER",
+    entityId: updated.id,
+    entityName: updated.name ?? updated.email,
+    metadata: { verificationStatus: "REJECTED" },
   });
 
   revalidatePath("/dashboard/admin/users");
+  revalidatePath("/dashboard/admin/instructors");
   revalidatePath(`/instructor/${toPublicSlug(target)}`);
 
   return { success: "Instructor verification rejected." };

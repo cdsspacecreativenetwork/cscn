@@ -429,30 +429,47 @@ body {
   color: #FFFFFF;
 }
 
-/* Scrollbar — invisible by default, sky-blue on hover */
-.custom-scrollbar {
+/* Scrollbars fade in only while the area is being used. */
+.custom-scrollbar,
+.admin-horizontal-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
-.custom-scrollbar:hover {
-  scrollbar-color: #7DD3FC #E0F2FE;
+.custom-scrollbar:hover,
+.custom-scrollbar:focus-within,
+.admin-horizontal-scrollbar:hover,
+.admin-horizontal-scrollbar:focus-within {
+  scrollbar-color: #1C4ED1 rgba(28, 78, 209, 0.05);
 }
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+.custom-scrollbar::-webkit-scrollbar,
+.admin-horizontal-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track,
+.admin-horizontal-scrollbar::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 99px;
+  border-radius: 999px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.admin-horizontal-scrollbar::-webkit-scrollbar-thumb {
   background-color: transparent;
-  border-radius: 99px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
 }
-.custom-scrollbar:hover::-webkit-scrollbar-track {
-  background: #E0F2FE;
+.custom-scrollbar:hover::-webkit-scrollbar-track,
+.custom-scrollbar:focus-within::-webkit-scrollbar-track,
+.admin-horizontal-scrollbar:hover::-webkit-scrollbar-track,
+.admin-horizontal-scrollbar:focus-within::-webkit-scrollbar-track {
+  background: rgba(28, 78, 209, 0.05);
 }
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background-color: #7DD3FC;
+.custom-scrollbar:hover::-webkit-scrollbar-thumb,
+.custom-scrollbar:focus-within::-webkit-scrollbar-thumb,
+.admin-horizontal-scrollbar:hover::-webkit-scrollbar-thumb,
+.admin-horizontal-scrollbar:focus-within::-webkit-scrollbar-thumb {
+  background-color: #1C4ED1;
+  border-color: rgba(28, 78, 209, 0.05);
 }
 
 @media (min-width: 1024px) and (max-width: 1280px) {

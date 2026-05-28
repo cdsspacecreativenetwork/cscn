@@ -123,6 +123,39 @@ export const updatePayoutSettings = async (data: {
   return { success: "Payout settings saved successfully!" };
 };
 
+export const updateDisplayCurrency = async (currency: string) => {
+  const user = await currentUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const normalized = currency.trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(normalized)) {
+    return { error: "Choose a valid currency code." };
+  }
+
+  const dbUser = await db.user.findUnique({
+    where: { id: user.id },
+    select: { id: true, payoutDetails: true },
+  });
+  if (!dbUser) return { error: "User not found" };
+
+  const details = (dbUser.payoutDetails as Record<string, unknown> | null) ?? {};
+  await db.user.update({
+    where: { id: dbUser.id },
+    data: {
+      payoutDetails: {
+        ...details,
+        preferredDisplayCurrency: normalized,
+      },
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/admin/billing");
+  revalidatePath("/dashboard/settings");
+
+  return { success: "Display currency updated." };
+};
+
 export const sendPasswordChangeOTP = async () => {
   const user = await currentUser();
   if (!user) return { error: "Unauthorized" };

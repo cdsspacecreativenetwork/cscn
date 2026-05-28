@@ -65,7 +65,13 @@ interface AdminCourse {
 interface Props {
   courses: AdminCourse[];
   adminId: string;
-  permissions: { canManageCourses: boolean; canManageBilling: boolean };
+  permissions: {
+    canManageCourses: boolean;
+    canReviewCourses: boolean;
+    canPublishCourses: boolean;
+    canManageBilling: boolean;
+    canManageMarketing: boolean;
+  };
   categories: { id: string; name: string }[];
 }
 
@@ -558,23 +564,35 @@ function ReviewCard({
               >
                 <Pencil size={12} /> Edit
               </Link>
-              {hasCourseReview && permissions.canManageCourses && (
+              {hasCourseReview && (permissions.canReviewCourses || permissions.canPublishCourses) && (
                 <div className="flex items-center gap-1.5 rounded-[10px] border border-stroke bg-[#FAFBFF] p-1">
                   <span className="px-2 text-[10px] font-bold uppercase tracking-wide text-text-mute">
                     Content
                   </span>
-                  {(Object.entries(REVIEW_CONFIG) as [ReviewStatus, typeof REVIEW_CONFIG[ReviewStatus]][]).map(([key, cfg]) => (
-                    <button
-                      key={key}
-                      onClick={() => { setPricingDecision(null); setActive((v) => (v === key ? null : key)); }}
-                      disabled={pending || (key === 'APPROVED' && hasPricingReview)}
-                      title={key === 'APPROVED' && hasPricingReview ? 'Resolve the pending price before publishing.' : undefined}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border bg-white text-[12px] font-semibold transition-all disabled:opacity-50
-                        ${active === key ? 'ring-2 ring-offset-1 ring-current' : ''} ${cfg.classes}`}
-                    >
-                      {cfg.icon} {cfg.label}
-                    </button>
-                  ))}
+                  {(Object.entries(REVIEW_CONFIG) as [ReviewStatus, typeof REVIEW_CONFIG[ReviewStatus]][]).map(([key, cfg]) => {
+                    const hasPermission = key === 'APPROVED' ? permissions.canPublishCourses : permissions.canReviewCourses;
+                    const blockedByPricing = key === 'APPROVED' && hasPricingReview;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => { setPricingDecision(null); setActive((v) => (v === key ? null : key)); }}
+                        disabled={pending || !hasPermission || blockedByPricing}
+                        title={
+                          !hasPermission
+                            ? key === 'APPROVED'
+                              ? 'Publishing permission required.'
+                              : 'Review permission required.'
+                            : blockedByPricing
+                              ? 'Resolve the pending price before publishing.'
+                              : undefined
+                        }
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border bg-white text-[12px] font-semibold transition-all disabled:opacity-50
+                          ${active === key ? 'ring-2 ring-offset-1 ring-current' : ''} ${cfg.classes}`}
+                      >
+                        {cfg.icon} {key === 'APPROVED' ? 'Approve & Publish' : cfg.label}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
               {hasPricingReview && permissions.canManageBilling && (

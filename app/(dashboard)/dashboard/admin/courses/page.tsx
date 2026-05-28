@@ -1,20 +1,28 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
 import { getAllCoursesAdmin } from '@/data/admin-courses';
 import { getCategories } from '@/data/courses';
 import AdminCourseList from '@/components/dashboard/admin/AdminCourseList';
+import { requireAnyAdminPermission } from '@/lib/admin-guards';
 
 export const metadata = { title: 'Course Management — CSCN Admin' };
 
 export default async function AdminCoursesPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect('/signin');
+  const session = await requireAnyAdminPermission([
+    'canManageCourses',
+    'canReviewCourses',
+    'canPublishCourses',
+    'canManageBilling',
+    'canManageMarketing',
+  ]);
 
-  const { role, id: adminId } = session.user;
-  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') redirect('/dashboard');
+  const { role } = session.user;
+  const adminId = session.user.id;
+  if (!adminId) throw new Error('Admin session is missing a user id.');
   const adminPermissions = session.user as typeof session.user & {
     canManageCourses?: boolean;
+    canReviewCourses?: boolean;
+    canPublishCourses?: boolean;
     canManageBilling?: boolean;
+    canManageMarketing?: boolean;
   };
 
   const [rawCourses, categories] = await Promise.all([
@@ -62,7 +70,10 @@ export default async function AdminCoursesPage() {
         adminId={adminId}
         permissions={{
           canManageCourses: role === 'SUPER_ADMIN' || Boolean(adminPermissions.canManageCourses),
+          canReviewCourses: role === 'SUPER_ADMIN' || Boolean(adminPermissions.canReviewCourses),
+          canPublishCourses: role === 'SUPER_ADMIN' || Boolean(adminPermissions.canPublishCourses),
           canManageBilling: role === 'SUPER_ADMIN' || Boolean(adminPermissions.canManageBilling),
+          canManageMarketing: role === 'SUPER_ADMIN' || Boolean(adminPermissions.canManageMarketing),
         }}
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
       />

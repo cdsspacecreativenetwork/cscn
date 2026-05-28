@@ -1,12 +1,9 @@
 import { UserRole } from "@prisma/client";
 import NextAuth, { type DefaultSession } from "next-auth";
+import type { AdminPermissionSet } from "@/lib/admin-permissions";
 
-export type ExtendedUser = DefaultSession["user"] & {
+export type ExtendedUser = DefaultSession["user"] & AdminPermissionSet & {
   role: UserRole | string;
-  canManageUsers: boolean;
-  canManageCourses: boolean;
-  canManageBilling: boolean;
-  canViewAnalytics: boolean;
 };
 
 declare module "next-auth" {
@@ -18,11 +15,7 @@ declare module "next-auth" {
 import { JWT } from "next-auth/jwt";
 
 declare module "next-auth/jwt" {
-  interface JWT {
+  interface JWT extends Partial<AdminPermissionSet> {
     role?: UserRole | string;
-    canManageUsers?: boolean;
-    canManageCourses?: boolean;
-    canManageBilling?: boolean;
-    canViewAnalytics?: boolean;
   }
 }
