@@ -156,7 +156,6 @@ interface QuestInfo {
 }
 
 interface Props {
-  userRole: string;
   coursesProgress: CourseProgress[];
   completionStats: CompletionStats;
   activityData: ActivityData[];
@@ -167,10 +166,10 @@ interface Props {
   streakStats: { currentStreak: number; longestStreak: number };
   activeDates: string[];
   quests: QuestInfo[];
+  canViewInstructorImpact: boolean;
 }
 
 export function ProgressHubClient({
-  userRole,
   coursesProgress,
   completionStats,
   activityData,
@@ -181,6 +180,7 @@ export function ProgressHubClient({
   streakStats,
   activeDates,
   quests: initialQuests,
+  canViewInstructorImpact,
 }: Props) {
   const [activeTab, setActiveTab] = useState<"learner" | "creator">("learner");
   const [chartType, setChartType] = useState<"line" | "bar">("line");
@@ -198,6 +198,12 @@ export function ProgressHubClient({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    if (!canViewInstructorImpact && activeTab === "creator") {
+      setActiveTab("learner");
+    }
+  }, [activeTab, canViewInstructorImpact]);
   
   // Track claimed quests locally for instant feedback
   const [claimedQuests, setClaimedQuests] = useState<Record<string, boolean>>({});
@@ -524,18 +530,18 @@ export function ProgressHubClient({
     });
 
     return (
-      <div className="flex flex-col gap-4 p-6 bg-white rounded-2xl border border-[#E3E8F4] shadow-sm">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-5 rounded-2xl border border-[#E3E8F4] bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#1C4ED1] flex items-center justify-center">
               <Calendar size={18} />
             </div>
             <div className="space-y-0.5">
-              <h4 className="text-[16px] font-bold text-[#040B37]">Consistency Grid</h4>
-              <p className="text-[13px] text-gray-400">Your visual footprint over the last 6 months</p>
+              <h4 className="text-[20px] font-bold text-[#040B37] sm:text-[22px]">Consistency Grid</h4>
+              <p className="text-[14px] font-medium text-gray-400 sm:text-[15px]">Your visual footprint over the last 6 months</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-bold bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1">
+          <div className="flex w-fit items-center gap-1.5 rounded-full border border-gray-100 bg-gray-50 px-3 py-1.5 text-[12px] font-bold text-gray-400">
             <span>Less</span>
             <div className="w-3 h-3 rounded-[2px] bg-gray-100" />
             <div className="w-3 h-3 rounded-[2px] bg-[#1C4ED1]/15" />
@@ -546,18 +552,18 @@ export function ProgressHubClient({
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {/* Weekday Row Labels */}
-          <div className="flex flex-col justify-between text-[10px] text-gray-400 font-bold py-1.5 select-none h-[116px] w-7 shrink-0 text-right pr-2 mt-5">
+          <div className="mt-7 flex h-[116px] w-8 shrink-0 select-none flex-col justify-between py-1.5 pr-2 text-right text-[12px] font-bold text-gray-400">
             <span>Sun</span>
             <span>Tue</span>
             <span>Thu</span>
             <span>Sat</span>
           </div>
 
-          <div className="flex-1 overflow-x-auto scrollbar-none py-1">
+          <div className="custom-scrollbar flex-1 overflow-x-auto pb-3 pt-1">
             {/* Months Header Grid */}
-            <div className="grid grid-flow-col auto-cols-fr gap-[3.5px] text-[10px] text-gray-400 font-extrabold mb-1.5 select-none">
+            <div className="grid min-w-[620px] grid-flow-col auto-cols-[20px] gap-[4px] text-[12px] font-extrabold text-gray-400 mb-2 select-none">
               {weeks.map((week, idx) => {
                 const cellDate = new Date(week[0].dateStr);
                 const monthStr = cellDate.toLocaleDateString("en-US", { month: "short" });
@@ -570,7 +576,7 @@ export function ProgressHubClient({
                 const showMonth = monthStr !== prevMonthStr;
 
                 return (
-                  <div key={idx} className="text-left select-none truncate pl-0.5 h-4">
+                  <div key={idx} className="h-5 min-w-[20px] select-none overflow-visible text-left">
                     {showMonth ? monthStr : ""}
                   </div>
                 );
@@ -578,7 +584,7 @@ export function ProgressHubClient({
             </div>
 
             {/* Heatmap Grid Cells */}
-            <div className="grid grid-flow-col grid-rows-7 gap-[3.5px] min-w-[500px]">
+            <div className="grid min-w-[620px] grid-flow-col grid-rows-7 gap-[4px]">
               {cells.map((cell, idx) => {
                 const densityClass =
                   idx % 3 === 0
@@ -595,7 +601,7 @@ export function ProgressHubClient({
                         ? "Future Day"
                         : `${cell.label}: ${cell.isActive ? "🔥 Completed Lesson Milestone" : "No Activity Recorded"}`
                     }
-                    className={`w-3.5 h-3.5 rounded-[2px] transition-all duration-300 cursor-pointer hover:scale-120 ${
+                    className={`h-4 w-4 cursor-pointer rounded-[4px] transition-all duration-300 hover:scale-110 ${
                       cell.isFuture
                         ? "bg-slate-50 border border-slate-100 cursor-not-allowed"
                         : cell.isActive
@@ -644,8 +650,8 @@ export function ProgressHubClient({
           </p>
         </div>
 
-        {/* Dynamic Segmented sliding switcher - Only visible if not a student */}
-        {userRole !== "USER" && (
+        {/* Dynamic Segmented sliding switcher - only visible after instructor profile activation. */}
+        {canViewInstructorImpact && (
           <div className="relative flex p-1 bg-gray-100 rounded-[8px] w-full max-w-[340px]">
             <button
               onClick={() => setActiveTab("learner")}
@@ -1194,7 +1200,11 @@ export function ProgressHubClient({
                 </div>
 
                 <div className="divide-y divide-[#E3E8F4]">
-                  {leaderboardList.map((item, idx) => {
+                  {leaderboardList.length === 0 ? (
+                    <div className="py-10 text-center text-[13px] font-semibold text-gray-400">
+                      No instructor impact data yet. Rankings will appear after real course activity starts.
+                    </div>
+                  ) : leaderboardList.map((item, idx) => {
                     const isTopThree = idx < 3;
                     const medals = ["🥇", "🥈", "🥉"];
 
@@ -1263,7 +1273,7 @@ export function ProgressHubClient({
                     <div className="flex items-center justify-between">
                       <span className="text-[14px] opacity-80">Your Current Rank</span>
                       <span className="bg-white/10 px-3 py-1 rounded-md text-[14px] font-extrabold text-white">
-                        Rank #{creatorRank.rank}
+                        {creatorRank.rank > 0 ? `Rank #${creatorRank.rank}` : "Not ranked"}
                       </span>
                     </div>
 
@@ -1275,13 +1285,17 @@ export function ProgressHubClient({
 
                   {/* Motivational CTA based on their placement */}
                   <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-[13px] leading-relaxed text-indigo-100">
-                    {creatorRank.rank <= 10 ? (
+                    {creatorRank.rank > 0 && creatorRank.rank <= 10 ? (
                       <p>
-                        🏆 Amazing job! You are ranked in the **Top 10** creators on CSCN. Keep publishing and answering student feedback to secure your position!
+                        Amazing job! You are ranked in the Top 10 creators on CSCN. Keep publishing and answering student feedback to secure your position!
+                      </p>
+                    ) : creatorRank.rank === 0 ? (
+                      <p>
+                        Publish courses and earn real enrollments, ratings, and completions to enter the creator leaderboard.
                       </p>
                     ) : (
                       <p>
-                        📈 You are in the **Top 15%** of all creators on CSCN! Get **3 more student enrollments** or increase course completion rates to break into the Top 10!
+                        Keep improving course completion, student enrollments, and ratings to climb into the Top 10.
                       </p>
                     )}
                   </div>

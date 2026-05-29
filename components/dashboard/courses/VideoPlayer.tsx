@@ -35,6 +35,7 @@ interface VideoPlayerProps {
   } | null;
   seekRequest?: { id: number; seconds: number } | null;
   onPlaybackTimeChange?: (seconds: number) => void;
+  onEnded?: () => void;
 }
 
 function timestampToSeconds(value: string) {
@@ -59,6 +60,7 @@ export const VideoPlayer = ({
   initialProgress,
   seekRequest,
   onPlaybackTimeChange,
+  onEnded,
 }: VideoPlayerProps) => {
   const muxRef = useRef<ElementRef<typeof MuxPlayer> | null>(null);
   const lastSavedAtRef = useRef(0);
@@ -201,7 +203,10 @@ export const VideoPlayer = ({
               void saveProgress(false);
             }}
             onPause={() => void saveProgress(true)}
-            onEnded={() => void saveProgress(true)}
+            onEnded={() => {
+              void saveProgress(true);
+              onEnded?.();
+            }}
             style={{ width: '100%', height: '100%', aspectRatio: '16/9' }}
             className="absolute inset-0 w-full h-full"
           />
@@ -231,11 +236,12 @@ export const VideoPlayer = ({
   }
 
   // Gate overlay
+  const currentLessonPath = `/courses/${courseSlug}/watch/${lessonId}`;
   const ctaHref = !isAuthenticated
-    ? `/signin?callbackUrl=/courses/${courseSlug}/watch/current`
+    ? `/signin?callbackUrl=${encodeURIComponent(currentLessonPath)}`
     : `/courses/${courseSlug}`;
 
-  const ctaLabel = !isAuthenticated ? 'Sign in to watch' : !isEnrolled ? 'Enroll to watch' : 'Locked';
+  const ctaLabel = !isAuthenticated ? 'Sign in to continue' : !isEnrolled ? 'Enroll to watch' : 'Locked';
 
   const lockIcon = (
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-white/80">
@@ -245,21 +251,29 @@ export const VideoPlayer = ({
   );
 
   return (
-    <div className="relative w-full aspect-video max-h-[472px] h-full bg-[#0A0E1A] rounded-2xl overflow-hidden shadow-lg flex items-center justify-center">
-      <div className="absolute inset-0 bg-linear-to-br from-[#0035C1]/40 to-[#0575FF]/20" />
-      <div className="relative z-10 flex flex-col items-center gap-6 text-center px-8">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sign in required to continue this lesson"
+      className="relative flex h-full max-h-[472px] w-full aspect-video items-center justify-center overflow-hidden rounded-2xl bg-[#0A0E1A] shadow-lg"
+    >
+      <div className="absolute inset-0 bg-linear-to-br from-[#0035C1]/45 to-[#0575FF]/20" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.10),transparent_42%)]" />
+      <div className="relative z-10 mx-4 flex max-w-[460px] flex-col items-center gap-5 rounded-[22px] border border-white/10 bg-[#040B37]/72 px-6 py-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:px-8">
         {lockIcon}
         <div className="flex flex-col gap-2">
-          <p className="text-white font-semibold text-lg font-jakarta">This lesson is locked</p>
-          <p className="text-white/60 text-sm font-inter">
+          <p className="text-white font-semibold text-lg font-jakarta">
+            {!isAuthenticated ? 'Sign in to continue learning' : 'This lesson is locked'}
+          </p>
+          <p className="text-white/70 text-sm font-inter leading-relaxed">
             {!isAuthenticated
-              ? 'Create a free account or sign in to access this lesson.'
+              ? 'You can preview the first lesson, then sign in so we can save progress and bring you right back here.'
               : 'Enroll in this course to unlock all lessons.'}
           </p>
         </div>
         <Link
           href={ctaHref}
-          className="px-8 py-3 bg-linear-to-r from-[#0035C1] to-[#0575FF] text-white font-semibold rounded-full hover:opacity-90 transition-opacity text-sm font-jakarta"
+          className="w-full rounded-[10px] bg-linear-to-r from-[#0035C1] to-[#0575FF] px-8 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 sm:w-auto"
         >
           {ctaLabel}
         </Link>

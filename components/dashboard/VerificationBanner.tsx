@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, Loader2, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { resendVerificationEmailAction } from "@/actions/mail";
+import { toast } from "sonner";
 
 export const VerificationBanner = () => {
   const { data: session, status } = useSession();
@@ -35,6 +36,8 @@ export const VerificationBanner = () => {
           });
         }, 1000);
         setTimeout(() => setIsSent(false), 5000);
+      } else if (result.error) {
+        toast.error(result.error);
       }
     } catch (error) {
       console.error(error);

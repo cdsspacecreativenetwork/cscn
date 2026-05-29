@@ -43,6 +43,9 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
   includes = [],
   enrollCta,
 }) => {
+  const hasCourseMetaSections = includes.length > 0 || requirements.length > 0;
+  const hasDescription = description.trim().length > 0;
+
   return (
     <div className="flex flex-col gap-6 w-full max-w-[800px]">
       {/* Pricing & Enrollment Bar */}
@@ -103,6 +106,7 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
       </div>
 
       {/* Course Content Card */}
+      {hasCourseMetaSections && (
       <div className="bg-white rounded-[16px] p-4 sm:p-6 border border-[#E3E8F4] flex flex-col gap-6">
         {/* Includes Section */}
         {includes.length > 0 && (
@@ -147,8 +151,10 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* About Section */}
+      {hasDescription && (
       <div className="bg-white rounded-[16px] p-4 sm:p-6 border border-[#E3E8F4]">
         <h3 className="text-[20px] font-semibold text-[#040B37] tracking-[-0.4px] leading-[1.24] mb-4">
           About this class
@@ -159,6 +165,7 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({
           ))}
         </div>
       </div>
+      )}
 
       {/* Instructors Card */}
       <div className="bg-white rounded-[16px] p-4 sm:p-6 border border-[#E3E8F4]">

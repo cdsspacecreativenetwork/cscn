@@ -4,7 +4,18 @@ import { VerificationEmail } from "@/components/emails/VerificationEmail";
 import { PasswordResetEmail } from "@/components/emails/PasswordResetEmail";
 import { CourseInviteEmail } from "@/components/emails/CourseInviteEmail";
 
-const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+function getAppUrl() {
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.AUTH_URL ||
+    process.env.NEXTAUTH_URL ||
+    process.env.VERCEL_URL ||
+    "http://localhost:3000";
+  const withProtocol = raw.startsWith("http") ? raw : `https://${raw}`;
+  return withProtocol.replace(/\/$/, "");
+}
+
+const domain = getAppUrl();
 const defaultFrom = process.env.EMAIL_FROM || process.env.GMAIL_USER || "no-reply@cscn.app";
 
 // Singleton transporter — reused across server action calls

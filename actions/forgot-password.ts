@@ -15,11 +15,11 @@ export async function forgotPasswordAction(values: z.infer<typeof Schema>) {
 
   const user = await db.user.findUnique({
     where: { email },
-    select: { id: true, name: true, password: true },
+    select: { id: true, name: true },
   });
 
   // Always return success to prevent email enumeration
-  if (!user || !user.password) {
+  if (!user) {
     return { success: "If an account exists, a reset link has been sent." };
   }
 

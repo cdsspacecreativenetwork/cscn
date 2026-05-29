@@ -9,11 +9,21 @@ import { currentUser } from "@/lib/auth";
 import { hasAdminPermission } from "@/lib/admin-permissions";
 import { createAuditLog } from "@/data/audit-logs";
 import { createNotification } from "@/data/notifications";
+import { generatePaymentReference } from "@/lib/payments/ledger";
+import { initiatePaystackTransfer } from "@/lib/payments/paystack";
 
 const WITHDRAWAL_THRESHOLD = 5000;
 
 function toNumber(value: unknown) {
   return Number(value ?? 0);
+}
+
+function getPaystackRecipientCode(details: unknown) {
+  if (!details || typeof details !== "object") return null;
+  const record = details as Record<string, unknown>;
+  if (record.paystackRecipientReady !== true || record.accountNameVerified !== true) return null;
+  const value = record.paystackRecipientCode || record.recipientCode;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 export async function requestInstructorPayoutAction() {
@@ -72,6 +82,56 @@ export async function requestInstructorPayoutAction() {
     data: { status: "REQUESTED", payoutRequestId: request.id },
   });
 
+  const recipientCode = getPaystackRecipientCode(dbUser.payoutDetails);
+  let autoTransferStatus: "not_configured" | "processing" | "failed" = "not_configured";
+  let payoutId: string | null = null;
+
+  if (dbUser.payoutMethod === "BANK" && currency === "NGN" && recipientCode) {
+    try {
+      const transferReference = generatePaymentReference("cscn_payout");
+      const transfer = await initiatePaystackTransfer({
+        amount,
+        currency,
+        recipientCode,
+        reason: "CSCN instructor payout",
+        reference: transferReference,
+      });
+
+      const payout = await db.payout.create({
+        data: {
+          payoutRequestId: request.id,
+          instructorId: user.id,
+          amount,
+          currency,
+          provider: "PAYSTACK",
+          providerReference: transfer.data?.reference ?? transferReference,
+          status: transfer.data?.status === "success" ? "PAID" : "PROCESSING",
+          metadata: {
+            transferCode: transfer.data?.transfer_code,
+            paystackStatus: transfer.data?.status,
+            message: transfer.message,
+          },
+          paidAt: transfer.data?.status === "success" ? new Date() : null,
+        },
+        select: { id: true, status: true },
+      });
+      payoutId = payout.id;
+      autoTransferStatus = "processing";
+      if (payout.status === "PAID") {
+        await db.payoutRequest.update({
+          where: { id: request.id },
+          data: { status: "PAID" },
+        });
+        await db.instructorEarning.updateMany({
+          where: { id: { in: eligibleRows.map((row) => row.id) } },
+          data: { status: "PAID", paidAt: new Date() },
+        });
+      }
+    } catch {
+      autoTransferStatus = "failed";
+    }
+  }
+
   await createAuditLog({
     actorId: user.id,
     actorName: dbUser.name,
@@ -80,7 +140,7 @@ export async function requestInstructorPayoutAction() {
     entityType: "PAYOUT_REQUEST",
     entityId: request.id,
     entityName: `${dbUser.name ?? dbUser.email} payout`,
-    metadata: { amount, currency, earningCount: eligibleRows.length },
+    metadata: { amount, currency, earningCount: eligibleRows.length, autoTransferStatus, payoutId },
   });
 
   const financeAdmins = await db.user.findMany({
@@ -101,7 +161,7 @@ export async function requestInstructorPayoutAction() {
           "SYSTEM",
           "Payout request needs finance review",
           `${dbUser.name ?? dbUser.email ?? "An instructor"} requested ${currency} ${amount.toLocaleString()} for withdrawal.`,
-          { payoutRequestId: request.id, amount, currency, area: "billing" }
+          { payoutRequestId: request.id, payoutId, amount, currency, area: "billing", autoTransferStatus }
         )
       )
   );
@@ -231,7 +291,13 @@ export async function markPayoutPaidAction(requestId: string, providerReference?
         instructorId: request.instructorId,
         amount: request.amount,
         currency: request.currency,
-        provider: request.payoutMethod === "crypto" ? "CRYPTO" : request.payoutMethod === "stripe" ? "STRIPE" : "MANUAL",
+        provider: request.payoutMethod?.toUpperCase() === "CRYPTO"
+          ? "CRYPTO"
+          : request.payoutMethod?.toUpperCase() === "STRIPE"
+            ? "STRIPE"
+            : request.payoutMethod?.toUpperCase() === "BANK"
+              ? "PAYSTACK"
+              : "MANUAL",
         providerReference: providerReference?.trim() || null,
         status: "PAID",
         paidAt: new Date(),

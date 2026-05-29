@@ -91,6 +91,8 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
   const signInCallbackUrl = firstPlayableLesson
     ? `/courses/${course.slug}/watch/${firstPlayableLesson.id}?autoEnroll=true`
     : `/courses/${course.slug}`;
+  const hasPublicPreviewLesson = !!firstPlayableLesson && firstPlayableLesson.isPreview;
+  const isPaidCourse = Number(course.price ?? 0) > 0;
 
   const courseModules = course.modules.map((module) => ({
     id: module.id,
@@ -155,11 +157,15 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
       disabled={!firstPlayableLesson}
     />
   ) : userId ? (
-    <EnrollButton courseSlug={course.slug} firstLessonId={firstPlayableLesson?.id ?? null} />
+    <EnrollButton
+      courseSlug={course.slug}
+      firstLessonId={firstPlayableLesson?.id ?? null}
+      isPaid={Number(course.price ?? 0) > 0}
+    />
   ) : (
     <CourseActionButton
-      label="Sign in to Enroll"
-      href={`/signin?callbackUrl=${encodeURIComponent(signInCallbackUrl)}`}
+      label={hasPublicPreviewLesson ? 'Start Free Preview' : isPaidCourse ? 'Sign in to Buy' : 'Sign in to Enroll'}
+      href={hasPublicPreviewLesson ? `/courses/${course.slug}/watch/${firstPlayableLesson.id}` : `/signin?callbackUrl=${encodeURIComponent(signInCallbackUrl)}`}
     />
   );
 

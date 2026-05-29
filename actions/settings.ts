@@ -10,6 +10,7 @@ import { deleteAvatar } from "@/actions/upload";
 import { sendPasswordChangeOTPEmail } from "@/lib/mail";
 import { verifyTOTP, generateBase32Secret } from "@/lib/totp";
 import { getInstructorPublicProfileEligibility } from "@/lib/profile-eligibility";
+import { createPaystackTransferRecipient } from "@/lib/payments/paystack";
 
 export const settings = async (values: z.infer<typeof SettingsSchema>) => {
   const user = await currentUser();
@@ -103,18 +104,54 @@ export const updatePayoutSettings = async (data: {
   const existingDetails = (dbUser.payoutDetails as any) || {};
   const payoutCountry = String(data.payoutDetails?.payoutCountry ?? existingDetails.payoutCountry ?? "NG");
   const preferredCurrency = String(data.payoutDetails?.preferredCurrency ?? existingDetails.preferredCurrency ?? "NGN");
+  const bankChanged =
+    data.payoutMethod === "BANK" &&
+    (
+      String(data.payoutDetails?.bankCode ?? "") !== String(existingDetails.bankCode ?? "") ||
+      String(data.payoutDetails?.accountNumber ?? "") !== String(existingDetails.accountNumber ?? "") ||
+      String(data.payoutDetails?.accountName ?? "") !== String(existingDetails.accountName ?? "")
+    );
+  const nextDetails = {
+    ...existingDetails,
+    ...data.payoutDetails,
+    payoutCountry,
+    preferredCurrency,
+  };
+  nextDetails.accountNameVerified = data.payoutDetails?.accountNameVerified === true || data.payoutDetails?.accountNameVerified === "true";
+
+  if (
+    data.payoutMethod === "BANK" &&
+    payoutCountry === "NG" &&
+    preferredCurrency === "NGN" &&
+    nextDetails.bankCode &&
+    /^\d+$/.test(String(nextDetails.bankCode)) &&
+    nextDetails.accountNumber &&
+    nextDetails.accountName &&
+    nextDetails.accountNameVerified === true &&
+    (!nextDetails.paystackRecipientCode || bankChanged) &&
+    process.env.PAYSTACK_SECRET_KEY
+  ) {
+    const recipient = await createPaystackTransferRecipient({
+      name: String(nextDetails.accountName),
+      accountNumber: String(nextDetails.accountNumber),
+      bankCode: String(nextDetails.bankCode),
+      currency: "NGN",
+    });
+    if (!recipient.status || !recipient.data?.recipient_code) {
+      return { error: recipient.message || "Unable to create Paystack payout recipient." };
+    }
+    nextDetails.paystackRecipientCode = recipient.data.recipient_code;
+    nextDetails.paystackRecipientType = recipient.data.type;
+    nextDetails.paystackRecipientReady = true;
+    nextDetails.paystackRecipientCreatedAt = new Date().toISOString();
+  }
 
   await db.user.update({
     where: { id: dbUser.id },
     data: {
       payoutSetup: true,
       payoutMethod: data.payoutMethod,
-      payoutDetails: {
-        ...existingDetails,
-        ...data.payoutDetails,
-        payoutCountry,
-        preferredCurrency,
-      },
+      payoutDetails: nextDetails,
     }
   });
 
@@ -189,7 +226,10 @@ export const sendPasswordChangeOTP = async () => {
   });
 
   // Send Email with OTP
-  await sendPasswordChangeOTPEmail(dbUser.email, otpCode, dbUser.name || undefined);
+  const mailResult = await sendPasswordChangeOTPEmail(dbUser.email, otpCode, dbUser.name || undefined);
+  if (!mailResult || "error" in mailResult) {
+    return { error: mailResult?.error ?? "Failed to send verification code email." };
+  }
 
   return { success: "Verification code sent to your email!" };
 };

@@ -4,18 +4,36 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
+import { startCourseCheckoutAction } from '@/actions/payments';
 
 interface EnrollButtonProps {
   courseSlug: string;
   firstLessonId?: string | null;
+  isPaid?: boolean;
 }
 
-export function EnrollButton({ courseSlug, firstLessonId }: EnrollButtonProps) {
+export function EnrollButton({ courseSlug, firstLessonId, isPaid = false }: EnrollButtonProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const handleEnroll = () => {
     startTransition(async () => {
+      if (isPaid) {
+        const result = await startCourseCheckoutAction(courseSlug);
+        if (result.error) {
+          toast.error(result.error);
+          return;
+        }
+        if (result.authorizationUrl) {
+          window.location.href = result.authorizationUrl;
+          return;
+        }
+        if (result.redirectUrl) {
+          router.push(result.redirectUrl);
+          return;
+        }
+      }
+
       const res = await fetch(`/api/courses/${courseSlug}/enroll`, { method: 'POST' });
       const data = await res.json();
 
@@ -44,7 +62,7 @@ export function EnrollButton({ courseSlug, firstLessonId }: EnrollButtonProps) {
       onClick={handleEnroll}
       loading={isPending}
     >
-      Take this Course
+      {isPaid ? 'Buy this Course' : 'Take this Course'}
     </Button>
   );
 }

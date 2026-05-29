@@ -633,6 +633,20 @@ model Payout {
   @@index([createdAt])
 }
 
+model WebhookEvent {
+  id          String          @id @default(cuid())
+  provider    PaymentProvider
+  eventId     String
+  eventType   String
+  rawPayload  Json?
+  processedAt DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@unique([provider, eventId])
+  @@index([provider, eventType])
+  @@index([createdAt])
+}
+
 model Refund {
   id            String       @id @default(cuid())
   orderId       String

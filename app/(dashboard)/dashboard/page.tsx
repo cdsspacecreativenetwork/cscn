@@ -24,12 +24,16 @@ export default async function DashboardPage() {
 
   const role = user.role || 'USER';
 
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+    redirect('/dashboard/admin');
+  }
+
   if (role === 'INSTRUCTOR' && await shouldRedirectInstructorToOnboarding(user.id)) {
     redirect('/dashboard/profile?setup=instructor');
   }
 
-  // Role-aware dispatch: Instructors, Admins, and Super Admins get the creator-first view
-  if (role === 'INSTRUCTOR' || role === 'ADMIN' || role === 'SUPER_ADMIN') {
+  // Role-aware dispatch: instructors get the creator-first view.
+  if (role === 'INSTRUCTOR') {
     const [data, creatorReadiness] = await Promise.all([
       getInstructorDashboardData(user.id, role),
       getCreatorReadinessByUserId(user.id),

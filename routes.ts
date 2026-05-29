@@ -6,6 +6,10 @@
 export const publicRoutes = [
   "/",
   "/courses",
+  "/community",
+  "/certificate",
+  "/resources",
+  "/mentorship",
   "/about",
   "/contact",
   "/terms",

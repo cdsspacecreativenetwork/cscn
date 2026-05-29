@@ -120,7 +120,7 @@ export default function InstructorCourseList({ courses, categories, studioPath =
       />
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-[24px] lg:text-[28px] font-bold text-navy tracking-tight">
             My Courses
@@ -143,24 +143,26 @@ export default function InstructorCourseList({ courses, categories, studioPath =
       </div>
 
       {/* Filter tabs — Figma pill style */}
-      <div className="flex items-center gap-[4px] bg-[#E3E8F4] p-[4px] rounded-[12px] w-fit overflow-x-auto">
-        {tabs.map((tab) => {
-          const count = tab.id === 'ALL' ? courses.length : courses.filter((c) => c.status === tab.id).length;
-          const isActive = filter === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setFilter(tab.id)}
-              className={`px-[12px] py-[8px] rounded-[8px] font-jakarta font-medium text-[14px] tracking-[-0.28px] transition-all whitespace-nowrap ${
-                isActive
-                  ? 'bg-white text-navy drop-shadow-[0px_4px_2px_rgba(0,0,0,0.12)]'
-                  : 'text-[#9CA3AF] hover:text-text-body'
-              }`}
-            >
-              {tab.label} ({count})
-            </button>
-          );
-        })}
+      <div className="admin-horizontal-scrollbar -mx-4 max-w-[calc(100%+2rem)] overflow-x-auto px-4 pb-1 sm:mx-0 sm:max-w-full sm:px-0">
+        <div className="flex min-w-max items-center gap-[4px] rounded-[12px] bg-[#E3E8F4] p-[4px]">
+          {tabs.map((tab) => {
+            const count = tab.id === 'ALL' ? courses.length : courses.filter((c) => c.status === tab.id).length;
+            const isActive = filter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setFilter(tab.id)}
+                className={`px-[12px] py-[8px] rounded-[8px] font-jakarta font-medium text-[14px] tracking-[-0.28px] transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-white text-navy drop-shadow-[0px_4px_2px_rgba(0,0,0,0.12)]'
+                    : 'text-[#9CA3AF] hover:text-text-body'
+                }`}
+              >
+                {tab.label} ({count})
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Course list */}
@@ -188,10 +190,10 @@ export default function InstructorCourseList({ courses, categories, studioPath =
               <Link
                 key={course.id}
                 href={`${studioPath}/${course.id}`}
-                className="bg-white border border-stroke rounded-2xl p-4 flex items-center gap-5 hover:shadow-md hover:border-primary/20 transition-all group cursor-pointer"
+                className="bg-white border border-stroke rounded-2xl p-4 flex flex-col gap-4 hover:shadow-md hover:border-primary/20 transition-all group cursor-pointer sm:flex-row sm:items-center sm:gap-5"
               >
                 {/* Thumbnail */}
-                <div className="relative w-[120px] h-[72px] rounded-xl overflow-hidden shrink-0 bg-background">
+                <div className="relative h-[132px] w-full rounded-xl overflow-hidden bg-background sm:h-[72px] sm:w-[120px] sm:shrink-0">
                   {course.thumbnail ? (
                     <Image src={course.thumbnail} alt={course.title} fill className="object-cover" unoptimized />
                   ) : (
@@ -203,7 +205,7 @@ export default function InstructorCourseList({ courses, categories, studioPath =
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2 sm:mb-1">
                     <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${status.classes}`}>
                       {status.label}
                     </span>
@@ -212,24 +214,24 @@ export default function InstructorCourseList({ courses, categories, studioPath =
                     )}
                     <span className="text-[11px] text-text-mute font-medium">· {DIFF_LABEL[course.difficulty]}</span>
                   </div>
-                  <h3 className="font-semibold text-navy text-[15px] truncate group-hover:text-primary transition-colors">
+                  <h3 className="font-semibold text-navy text-[16px] leading-snug group-hover:text-primary transition-colors sm:text-[15px]">
                     {course.title}
                   </h3>
-                  <div className="flex items-center gap-4 mt-1.5">
+                  <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 sm:flex sm:items-center sm:gap-4 sm:mt-1.5">
                     <span className="flex items-center gap-1 text-[12px] text-text-mute">
                       <BookOpen size={12} /> {course.lessons} lessons
                     </span>
                     <span className="flex items-center gap-1 text-[12px] text-text-mute">
                       <Users size={12} /> {course.enrollments} enrolled
                     </span>
-                    <span className="text-[12px] text-text-mute">
+                    <span className="text-[12px] text-text-mute whitespace-nowrap">
                       Updated {new Date(course.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.preventDefault()}>
+                <div className="flex items-center justify-end gap-1 border-t border-stroke pt-3 sm:border-t-0 sm:pt-0 sm:shrink-0" onClick={(e) => e.preventDefault()}>
                   <Link
                     href={`${studioPath}/${course.id}`}
                     className="p-2 text-text-mute hover:text-primary hover:bg-primary/5 rounded-lg transition-all"

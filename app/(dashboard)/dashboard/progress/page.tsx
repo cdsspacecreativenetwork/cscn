@@ -14,6 +14,13 @@ export default async function ProgressPage() {
   }
   const userId = session.user.id;
 
+  const userRecord = await db.user.findUnique({
+    where: { id: userId },
+    select: { currentStreak: true, longestStreak: true, instructorProfileEnabled: true },
+  });
+
+  const canViewInstructorImpact = Boolean(userRecord?.instructorProfileEnabled);
+
   // 1. Fetch course enrollments and calculate actual progress percentages
   const enrollments = await db.enrollment.findMany({
     where: { userId },
@@ -152,101 +159,125 @@ export default async function ProgressPage() {
     userAchievementId: userAchievementMap.get(ach.id) || null,
   }));
 
-  // 5. Gather instructor impact metrics (Creator side)
-  const creatorCourses = await db.course.findMany({
-    where: {
-      OR: [{ instructorId: userId }, { instructors: { some: { userId } } }],
-    },
-    select: { id: true },
-  });
+  // 5. Gather instructor impact metrics from real platform activity.
+  const creatorCourses = canViewInstructorImpact
+    ? await db.course.findMany({
+        where: {
+          OR: [{ instructorId: userId }, { instructors: { some: { userId } } }],
+        },
+        select: { id: true },
+      })
+    : [];
   const creatorCourseIds = creatorCourses.map((c) => c.id);
 
-  const totalStudents = await db.enrollment.count({
-    where: {
-      courseId: { in: creatorCourseIds },
-    },
-  });
-
-  // Calculate total lessons finished by students of this instructor's courses
-  const totalLessonsWatched = await db.lessonProgress.count({
-    where: {
-      percentComplete: { gte: 100 },
-      lesson: {
-        module: {
+  const totalStudents = creatorCourseIds.length > 0
+    ? await db.enrollment.count({
+        where: {
           courseId: { in: creatorCourseIds },
         },
-      },
-    },
-  });
+      })
+    : 0;
+
+  // Calculate total lessons finished by students of this instructor's courses
+  const totalLessonsWatched = creatorCourseIds.length > 0
+    ? await db.lessonProgress.count({
+        where: {
+          percentComplete: { gte: 100 },
+          lesson: {
+            module: {
+              courseId: { in: creatorCourseIds },
+            },
+          },
+        },
+      })
+    : 0;
+
+  const ratingAggregate = creatorCourseIds.length > 0
+    ? await db.courseRating.aggregate({
+        where: { courseId: { in: creatorCourseIds } },
+        _avg: { rating: true },
+      })
+    : null;
 
   // altruitic metrics: completed lessons count * 0.35 hours (21 minutes) avg lesson length
   const studentHoursSaved = Math.round(totalLessonsWatched * 0.35);
 
-  // 6. Ensure leaderboard is populated
-  let cacheCount = await db.leaderboardCache.count();
-  if (cacheCount === 0) {
-    const instructors = await db.user.findMany({
-      where: { role: { in: ["INSTRUCTOR", "ADMIN", "SUPER_ADMIN"] } },
-      take: 10,
-    });
-    let rank = 1;
-    for (const inst of instructors) {
-      const enrollmentsCount = await db.enrollment.count({
-        where: { course: { instructorId: inst.id } },
-      });
-      const score = parseFloat((75 + enrollmentsCount * 3 + Math.random() * 5).toFixed(1));
-      await db.leaderboardCache.create({
-        data: {
-          userId: inst.id,
-          score,
-          rank,
-          studentCount: enrollmentsCount || 5,
-          avgRating: 4.9,
-          completionRate: 82.0,
-        },
-      });
-      rank++;
-    }
-  }
-
-  // Fetch leaderboard standings
-  const rawLeaderboard = await db.leaderboardCache.findMany({
-    orderBy: { rank: "asc" },
-    take: 10,
-    include: {
-      user: {
+  const instructorCandidates = await db.user.findMany({
+    where: { instructorProfileEnabled: true },
+    select: {
+      id: true,
+      name: true,
+      image: true,
+      headline: true,
+      _count: {
         select: {
-          name: true,
-          image: true,
-          headline: true,
+          taughtCourses: true,
         },
       },
     },
+    take: 50,
   });
 
-  const leaderboardList = rawLeaderboard.map((item) => ({
-    userId: item.userId,
-    name: item.user?.name || "Premium Educator",
-    image: item.user?.image || null,
-    headline: item.user?.headline || "Instructor at CSCN",
-    score: item.score,
-    rank: item.rank,
-    studentCount: item.studentCount,
-  }));
+  const leaderboardMetrics = await Promise.all(
+    instructorCandidates.map(async (instructor) => {
+      const courseIds = (
+        await db.course.findMany({
+          where: {
+            OR: [{ instructorId: instructor.id }, { instructors: { some: { userId: instructor.id } } }],
+          },
+          select: { id: true },
+        })
+      ).map((course) => course.id);
 
-  const userLeaderboardRecord = await db.leaderboardCache.findUnique({
-    where: { userId },
-  });
+      if (courseIds.length === 0) {
+        return {
+          userId: instructor.id,
+          name: instructor.name || "Premium Educator",
+          image: instructor.image || null,
+          headline: instructor.headline || "Instructor at CSCN",
+          score: 0,
+          rank: 0,
+          studentCount: 0,
+        };
+      }
+
+      const [studentCount, averageRating, completedLessons] = await Promise.all([
+        db.enrollment.count({ where: { courseId: { in: courseIds } } }),
+        db.courseRating.aggregate({ where: { courseId: { in: courseIds } }, _avg: { rating: true } }),
+        db.lessonProgress.count({
+          where: {
+            percentComplete: { gte: 100 },
+            lesson: { module: { courseId: { in: courseIds } } },
+          },
+        }),
+      ]);
+
+      const rating = averageRating._avg.rating ?? 0;
+      const score = Math.round((studentCount * 4 + rating * 20 + completedLessons + instructor._count.taughtCourses * 8) * 10) / 10;
+
+      return {
+        userId: instructor.id,
+        name: instructor.name || "Premium Educator",
+        image: instructor.image || null,
+        headline: instructor.headline || "Instructor at CSCN",
+        score,
+        rank: 0,
+        studentCount,
+      };
+    })
+  );
+
+  const rankedLeaderboard = leaderboardMetrics
+    .sort((a, b) => b.score - a.score)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
+
+  const leaderboardList = rankedLeaderboard.slice(0, 10);
+
+  const userLeaderboardRecord = rankedLeaderboard.find((item) => item.userId === userId);
 
   const creatorRank = userLeaderboardRecord
     ? { rank: userLeaderboardRecord.rank, score: userLeaderboardRecord.score }
-    : { rank: 11, score: 72.5 }; // Default realistic rank if user not in top 10
-
-  // 7. Get user's current streaks directly from User model
-  const userRecord = await db.user.findUnique({
-    where: { id: userId },
-    select: { currentStreak: true, longestStreak: true, role: true },
-  });
+    : { rank: 0, score: 0 };
 
   const streakStats = {
     currentStreak: userRecord?.currentStreak ?? 0,
@@ -272,14 +303,13 @@ export default async function ProgressPage() {
 
   return (
     <ProgressHubClient
-      userRole={userRecord?.role ?? "USER"}
       coursesProgress={coursesProgress}
       completionStats={completionStats}
       activityData={activityData}
       achievementsList={achievementsList}
       creatorStats={{
         totalStudents,
-        averageRating: totalStudents > 0 ? 4.9 : 0.0,
+        averageRating: Number((ratingAggregate?._avg.rating ?? 0).toFixed(1)),
         totalLessonsWatched,
         studentHoursSaved,
       }}
@@ -288,6 +318,7 @@ export default async function ProgressPage() {
       streakStats={streakStats}
       activeDates={activeDates}
       quests={quests}
+      canViewInstructorImpact={canViewInstructorImpact}
     />
   );
 }

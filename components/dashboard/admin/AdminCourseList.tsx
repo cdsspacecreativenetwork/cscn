@@ -862,16 +862,16 @@ export default function AdminCourseList({ courses: initialCourses, adminId, perm
           <div className="overflow-hidden">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 pb-1">
               {[
-                { label: 'Total Courses',  value: stats.total,           Icon: Layers,        iconColor: 'text-primary',      iconBg: 'bg-background' },
-                { label: 'Published',      value: stats.published,       Icon: GraduationCap, iconColor: 'text-emerald-600',  iconBg: 'bg-emerald-50' },
-                { label: 'Pending Review', value: stats.pendingReview,   Icon: ClipboardList, iconColor: 'text-amber-600',    iconBg: 'bg-amber-50',  pulse: stats.pendingReview > 0 },
-                { label: 'Featured',       value: `${stats.featured}/8`, Icon: Star,          iconColor: 'text-yellow-500',   iconBg: 'bg-yellow-50' },
-              ].map(({ label, value, Icon, iconColor, iconBg, pulse }) => (
+                { label: 'Total Courses',  value: stats.total,           Icon: Layers },
+                { label: 'Published',      value: stats.published,       Icon: GraduationCap },
+                { label: 'Pending Review', value: stats.pendingReview,   Icon: ClipboardList, pulse: stats.pendingReview > 0 },
+                { label: 'Featured',       value: `${stats.featured}/8`, Icon: Star },
+              ].map(({ label, value, Icon, pulse }) => (
                 <div key={label} className="bg-white border border-[#E3E8F4] rounded-[12px] p-6 flex flex-col gap-7 relative">
                   <div className="flex items-start justify-between">
                     <p className="text-[16px] font-medium text-text-mute leading-tight">{label}</p>
-                    <div className={`${iconBg} p-2.5 rounded-[12px] shrink-0`}>
-                      <Icon size={20} className={iconColor} />
+                    <div className="shrink-0 rounded-[12px] bg-[#1C4ED1]/5 p-2.5 text-[#1C4ED1]">
+                      <Icon size={20} strokeWidth={2.2} />
                     </div>
                   </div>
                   <p className="text-[36px] font-bold text-navy leading-none">{value}</p>
@@ -896,7 +896,7 @@ export default function AdminCourseList({ courses: initialCourses, adminId, perm
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-[16px] py-[10px] rounded-[8px] font-jakarta font-medium text-[14px] tracking-[-0.28px] transition-all whitespace-nowrap ${
                   isActive
-                    ? 'bg-white text-navy drop-shadow-[0px_4px_2px_rgba(0,0,0,0.12)]'
+                    ? 'bg-linear-to-r from-[#0035C1] to-[#0575FF] text-white shadow-[0_8px_20px_rgba(28,78,209,0.22)]'
                     : 'text-[#9CA3AF] hover:text-text-body'
                 }`}
               >
@@ -905,7 +905,7 @@ export default function AdminCourseList({ courses: initialCourses, adminId, perm
                   ${tab.accent === 'amber'
                     ? 'bg-amber-100 text-amber-700'
                     : isActive
-                      ? 'bg-primary/10 text-primary'
+                      ? 'bg-white/20 text-white'
                       : 'bg-[#D1D5DB]/60 text-[#9CA3AF]'
                   }`}
                 >

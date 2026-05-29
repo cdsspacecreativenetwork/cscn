@@ -48,7 +48,7 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <div className="min-h-screen bg-background flex w-full relative">
+    <div className="relative flex h-dvh w-full overflow-hidden bg-background">
       {/* Sidebar Overlay (Mobile & Laptop Overlay Range) */}
       {(isSidebarOpen || (!isCollapsed && isMidSize)) && (
         <div
@@ -73,10 +73,10 @@ export default function DashboardLayout({
         setIsCollapsed={setIsCollapsed}
       />
       
-      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-300`}>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300">
         <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         <VerificationBanner />
-        <main className="flex-1 overflow-y-auto overscroll-none">
+        <main className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(112px+env(safe-area-inset-bottom))] md:pb-0">
           {children}
         </main>
       </div>

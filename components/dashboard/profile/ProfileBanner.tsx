@@ -155,8 +155,14 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
         </div>
 
         {/* Profile Image Overlap - Exact 164x164 diameter */}
-        <div className="absolute top-[40px] left-10 group">
-          <div className="relative w-[164px] h-[164px] rounded-full border-[6px] border-white overflow-hidden shadow-sm bg-[#F4F6FB] transition-all">
+        <div className="absolute top-[40px] left-1/2 -translate-x-1/2 sm:left-10 sm:translate-x-0 group/avatar">
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="relative block w-[164px] h-[164px] rounded-full border-[6px] border-white overflow-hidden shadow-sm bg-[#F4F6FB] transition-all outline-none focus-visible:ring-4 focus-visible:ring-[#1C4ED1]/20"
+            aria-label="Update profile picture"
+            title="Click to update profile picture"
+          >
             <Image 
               src={currentImage}
               alt="Profile" 
@@ -164,13 +170,18 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
               className="object-cover"
             />
             <div 
-              onClick={() => setIsModalOpen(true)}
-              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer backdrop-blur-[2px]"
+              className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer backdrop-blur-[2px]"
             >
               <Camera className="text-white mb-1" size={28} />
               <span className="text-white text-xs font-bold tracking-wider">UPDATE</span>
             </div>
-          </div>
+            <span className="absolute bottom-2 right-2 flex h-11 w-11 items-center justify-center rounded-full border-[4px] border-white bg-[#1C4ED1] text-white shadow-lg md:opacity-0 md:transition-opacity md:group-hover/avatar:opacity-100">
+              <Camera size={18} />
+            </span>
+          </button>
+          <p className="mt-3 py-1 text-center text-[8px] font-bold tracking-[0.12em] text-[#1C4ED1] sm:hidden">
+            Tap photo to update
+          </p>
         </div>
       </div>
 
@@ -318,4 +329,3 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
     </>
   );
 };
-

@@ -217,7 +217,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
 
         {!youtubeId && (
           <div
-            className={`absolute bottom-3 right-3 md:bottom-5 md:right-5 z-20 flex items-center gap-2 rounded-full border border-white/12 bg-[rgba(4,11,55,0.74)] px-2.5 py-2 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.32)] transition-all duration-300 ${
+            className={`absolute bottom-3 right-3 md:bottom-5 md:right-5 z-20 flex items-center gap-1.5 rounded-full border border-white/12 bg-[rgba(4,11,55,0.74)] px-2 py-1.5 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.32)] transition-all duration-300 md:gap-2 md:px-2.5 md:py-2 ${
               !isPlaying
                 ? 'opacity-100'
                 : showControls
@@ -229,10 +229,10 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
             <button
               type="button"
               onClick={togglePlayback}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1C4ED1] text-white transition-transform active:scale-95"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1C4ED1] text-white transition-transform active:scale-95 md:h-10 md:w-10"
               aria-label={isPlaying ? 'Pause trailer' : 'Play trailer'}
             >
-              <div className="relative h-4 w-4">
+              <div className="relative h-3.5 w-3.5 md:h-4 md:w-4">
                 <Image
                   src={isPlaying ? '/assets/video-controls/pause.svg' : '/assets/video-controls/play.svg'}
                   alt=""
@@ -245,12 +245,12 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
             <button
               type="button"
               onClick={toggleMute}
-              className={`flex h-10 w-10 items-center justify-center rounded-full bg-white/8 transition-colors hover:bg-white/14 ${
+              className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/8 transition-colors hover:bg-white/14 md:h-10 md:w-10 ${
                 isMuted ? 'opacity-55' : 'opacity-100'
               }`}
               aria-label={isMuted ? 'Unmute trailer' : 'Mute trailer'}
             >
-              <div className="relative h-4 w-4">
+              <div className="relative h-3.5 w-3.5 md:h-4 md:w-4">
                 <Image src="/assets/video-controls/volume.svg" alt="" fill className="object-contain" />
               </div>
             </button>
@@ -258,10 +258,10 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/8 transition-colors hover:bg-white/14"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 transition-colors hover:bg-white/14 md:h-10 md:w-10"
               aria-label="Open trailer in fullscreen"
             >
-              <div className="relative h-4 w-4">
+              <div className="relative h-3.5 w-3.5 md:h-4 md:w-4">
                 <Image src="/assets/video-controls/fullscreen.svg" alt="" fill className="object-contain" />
               </div>
             </button>

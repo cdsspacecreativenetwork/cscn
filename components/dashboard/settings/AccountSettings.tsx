@@ -42,6 +42,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
   
   // Sync state with server preloaded props
   const [securityData, setSecurityData] = useState<any>(initialData);
+  const hasPassword = securityData?.hasPassword ?? true;
 
   useEffect(() => {
     setSecurityData(initialData);
@@ -422,15 +423,20 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
               {/* Password inputs */}
               <div>
                 <label className="text-[12px] font-extrabold text-[#4B5563] block mb-1.5">
-                  Current Password
+                  {hasPassword ? 'Current Password' : 'Current Password (not needed)'}
                 </label>
+                {!hasPassword && (
+                  <p className="mb-2 text-[11px] font-semibold leading-relaxed text-[#9CA3AF]">
+                    This account currently signs in with OAuth. Leave this blank and use the email code to create your first password.
+                  </p>
+                )}
                 <div className="relative">
                   <input
                     type={showCurrentPassword ? "text" : "password"}
-                    required
+                    required={hasPassword}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter current password"
+                    placeholder={hasPassword ? "Enter current password" : "Leave blank for OAuth accounts"}
                     className="w-full px-4 py-3 pr-11 rounded-[10px] border border-[#E3E8F4] text-[13px] font-semibold text-[#040B37] placeholder-gray-400 focus:outline-none focus:border-[#1C4ED1] bg-white"
                   />
                   <button

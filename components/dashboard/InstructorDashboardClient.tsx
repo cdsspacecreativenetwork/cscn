@@ -75,8 +75,8 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
   return (
     <div className="p-[clamp(16px,2.78vw,48px)] space-y-[clamp(32px,4.6vw,80px)] max-w-[1728px] mx-auto font-jakarta">
       {/* Header section - Fluid Scaling */}
-      <div className="flex items-center justify-between w-full gap-4">
-        <div className="space-y-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
+        <div className="space-y-1 w-full">
           <h1 className="text-[clamp(18px,1.25vw,22px)] font-bold text-[#040B37] leading-tight">
             {greeting}, {userName} 👋
           </h1>
@@ -85,10 +85,11 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
           </p>
         </div>
         <Button
-          variant="primary"
+          variant="gradient"
           size="sm"
           rounded="[10px]"
           hasBorder={false}
+          className="w-full sm:w-auto"
           onClick={() => router.push('/dashboard/instructor/courses')}
           leftIcon={<Plus size={18} className="sm:w-[20px] sm:h-[20px]" />}
         >
@@ -362,7 +363,11 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                             <span>{enrollment.nextActivityType || "Video"} ({enrollment.nextActivityDuration || "5 minutes"})</span>
                           </div>
                         </div>
-                        <button 
+                        <Button 
+                        variant="gradient"
+          size="sm"
+          rounded="[10px]"
+          hasBorder={false}
                           onClick={() => openResumeModal({ 
                             id: enrollment.courseId, 
                             slug: enrollment.slug,
@@ -374,7 +379,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                           className="bg-[#1C4ED1] text-white px-4 py-2 rounded-[8px] text-[12px] font-semibold cursor-pointer hover:bg-[#163fa3] transition-colors shadow-sm shrink-0"
                         >
                           Resume
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -555,7 +560,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                         </div>
                       </div>
                       <Button
-                        variant="primary"
+                        variant="gradient"
                         size="sm"
                         rounded="[10px]"
                         hasBorder={false}

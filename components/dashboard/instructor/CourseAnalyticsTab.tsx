@@ -28,17 +28,17 @@ interface Props {
   data: unknown;
 }
 
-function StatCard({ icon: Icon, label, value, sub, color }: {
-  icon: React.ElementType; label: string; value: string | number; sub?: string; color: string;
+function StatCard({ icon: Icon, label, value, sub }: {
+  icon: React.ElementType; label: string; value: string | number; sub?: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-stroke p-5 flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-        <Icon size={22} className="text-white" />
+    <div className="min-h-[140px] rounded-[16px] border border-[#E3E8F4] bg-white p-5 shadow-sm transition-all hover:border-[#1C4ED1]/30 hover:shadow-md">
+      <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-[12px] bg-[#1C4ED1]/5 text-[#1C4ED1]">
+        <Icon size={22} strokeWidth={2.2} />
       </div>
-      <div>
-        <p className="text-2xl font-bold text-navy">{value}</p>
-        <p className="text-sm font-medium text-text-mute">{label}</p>
+      <div className="space-y-1">
+        <p className="text-[30px] font-black leading-none tracking-[-0.04em] text-navy">{value}</p>
+        <p className="text-[14px] font-bold text-text-mute">{label}</p>
         {sub && <p className="text-xs text-text-mute mt-0.5">{sub}</p>}
       </div>
     </div>
@@ -65,7 +65,7 @@ export default function CourseAnalyticsTab({ courseId, data }: Props) {
   if (loading || !analytics) {
     return (
       <div className="flex flex-col gap-6 animate-pulse">
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="bg-white rounded-2xl border border-stroke p-5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-background shrink-0" />
@@ -108,11 +108,11 @@ export default function CourseAnalyticsTab({ courseId, data }: Props) {
   return (
     <div className="flex flex-col gap-6">
       {/* Stats row */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Total Enrollments" value={analytics.totalEnrollments} color="bg-primary" />
-        <StatCard icon={Activity} label="Active Learners" value={analytics.activeEnrollments} color="bg-blue-500" />
-        <StatCard icon={Award} label="Completed" value={analytics.completedEnrollments} color="bg-green-500" />
-        <StatCard icon={TrendingUp} label="Completion Rate" value={`${analytics.completionRate}%`} color="bg-amber-500" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={Users} label="Total Enrollments" value={analytics.totalEnrollments} />
+        <StatCard icon={Activity} label="Active Learners" value={analytics.activeEnrollments} />
+        <StatCard icon={Award} label="Completed" value={analytics.completedEnrollments} />
+        <StatCard icon={TrendingUp} label="Completion Rate" value={`${analytics.completionRate}%`} />
       </div>
 
       {/* Enrollments over time */}

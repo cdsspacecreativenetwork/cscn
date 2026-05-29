@@ -178,26 +178,28 @@ export default function CourseStudio({
   ];
 
   return (
-    <div className="flex flex-col h-full min-h-screen bg-background font-jakarta">
+    <div className="flex min-h-full flex-col bg-background font-jakarta">
       {/* Studio header */}
-      <div className="bg-white border-b border-stroke px-6 py-4 flex items-center justify-between gap-4 sticky top-0 z-30">
-        <div className="flex items-center gap-4 min-w-0">
+      <div className="sticky top-0 z-30 flex flex-col gap-4 border-b border-stroke bg-white px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
           <Link
             href={isAdmin ? '/dashboard/admin/courses' : '/dashboard/instructor/courses'}
-            className="text-text-mute hover:text-primary transition-colors shrink-0"
+            className="mt-1 text-text-mute hover:text-primary transition-colors shrink-0"
           >
             <ArrowLeft size={20} />
           </Link>
-          <div className="min-w-0">
-            <h1 className="font-bold text-navy text-base lg:text-lg truncate">{course.title}</h1>
-            <p className="text-xs text-text-mute">/{course.slug}</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="break-words font-bold text-navy text-base leading-snug sm:text-lg">
+              {course.title}
+            </h1>
+            <p className="mt-1 break-all text-xs leading-snug text-text-mute">/{course.slug}</p>
           </div>
-          <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0 ${statusCfg.classes}`}>
+          <span className={`mt-1 px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0 ${statusCfg.classes}`}>
             {statusCfg.label}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="admin-horizontal-scrollbar -mx-4 flex max-w-[calc(100%+2rem)] items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:max-w-full sm:px-0 lg:shrink-0">
           <Link
             href={
               status === 'PUBLISHED'
@@ -205,7 +207,7 @@ export default function CourseStudio({
                 : `/courses/${course.slug}?preview=true`
             }
             target="_blank"
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-text-body border border-stroke rounded-xl hover:bg-background transition-colors"
+            className="flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-medium text-text-body border border-stroke rounded-xl hover:bg-background transition-colors"
           >
             <Eye size={14} /> Preview
           </Link>
@@ -215,7 +217,7 @@ export default function CourseStudio({
             <button
               onClick={handleTogglePublish}
               disabled={publishing}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 ${
+                className={`flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 ${
                 isPublished
                   ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   : 'bg-primary text-white hover:bg-primary/90'
@@ -226,13 +228,13 @@ export default function CourseStudio({
             </button>
           ) : status === 'PENDING_REVIEW' ? (
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-amber-100 text-amber-700 cursor-default">
+              <span className="flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-amber-100 text-amber-700 cursor-default">
                 <Send size={14} /> In Review
               </span>
               <button
                 onClick={handleWithdrawFromReview}
                 disabled={publishing}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                className="flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
               >
                 Withdraw
               </button>
@@ -241,7 +243,7 @@ export default function CourseStudio({
             <button
               onClick={handleTogglePublish}
               disabled={publishing}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
+              className="flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
             >
               <EyeOff size={14} />
               {publishing ? 'Updating…' : 'Unpublish'}
@@ -250,7 +252,7 @@ export default function CourseStudio({
             <button
               onClick={handleSubmitForReview}
               disabled={publishing}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               <Send size={14} />
               {publishing ? 'Submitting…' : 'Submit for Review'}
@@ -260,8 +262,9 @@ export default function CourseStudio({
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-stroke px-6 py-3">
-        <div className="flex items-center gap-[4px] bg-[#E3E8F4] p-[4px] rounded-[12px] w-fit">
+      <div className="border-b border-stroke bg-white px-4 py-3 sm:px-6">
+        <div className="admin-horizontal-scrollbar -mx-4 max-w-[calc(100%+2rem)] overflow-x-auto px-4 pb-1 sm:mx-0 sm:max-w-full sm:px-0">
+          <div className="flex min-w-max items-center gap-[4px] rounded-[12px] bg-[#E3E8F4] p-[4px]">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -283,6 +286,7 @@ export default function CourseStudio({
               </button>
             );
           })}
+          </div>
         </div>
       </div>
       
@@ -296,7 +300,7 @@ export default function CourseStudio({
       )}
 
       {/* Tab content */}
-      <div className="flex-1 p-6 lg:p-8 max-w-[1728px] mx-auto w-full">
+      <div className="mx-auto w-full max-w-[1728px] flex-1 p-4 pb-28 sm:p-6 lg:p-8">
         {activeTab === 'settings' && (
           <CourseSettingsForm course={course} categories={categories} latestReview={latestReview} isLocked={isLocked} />
         )}

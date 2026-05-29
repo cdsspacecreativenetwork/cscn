@@ -245,10 +245,10 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     'All changes saved';
 
   return (
-    <form id="profile-form" onSubmit={form.handleSubmit((values) => onSubmit(values))} className="w-full space-y-10">
-      <div className="w-full bg-white border border-[#E3E8F4] rounded-[24px] overflow-hidden shadow-sm">
+    <form id="profile-form" onSubmit={form.handleSubmit((values) => onSubmit(values))} className="w-full space-y-12 md:space-y-10">
+      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white md:shadow-sm">
         {/* Form Header */}
-        <div className="bg-white border-b border-[#E3E8F4] px-6 py-5 md:px-8">
+        <div className="pb-5 md:border-b md:border-[#E3E8F4] md:px-8 md:py-5">
           <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
             Personal Information
           </h3>
@@ -262,7 +262,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         </div>
 
         {/* Form Grid */}
-        <div className="p-6 md:p-8 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:p-8 lg:gap-8 lg:p-10">
           <FormField 
             label="First name" 
             placeholder="Chris" 
@@ -346,8 +346,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         </div>
       </div>
 
-      <div className="w-full bg-white border border-[#E3E8F4] rounded-[24px] overflow-hidden shadow-sm">
-        <div className="bg-white border-b border-[#E3E8F4] px-6 py-5 md:px-8">
+      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white md:shadow-sm">
+        <div className="pb-5 md:border-b md:border-[#E3E8F4] md:px-8 md:py-5">
           <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
             Public Profile Links
           </h3>
@@ -356,7 +356,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
           </p>
         </div>
 
-        <div className="p-6 md:p-8 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:p-8 lg:p-10">
           {explicitSocialFields.map((field) => (
             <FormField
               key={field.name}
@@ -371,8 +371,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       </div>
 
       {/* Dynamic Social Links Section */}
-      <div className="w-full bg-white border border-[#E3E8F4] rounded-[24px] overflow-hidden shadow-sm">
-        <div className="bg-white border-b border-[#E3E8F4] px-6 py-5 md:px-8 flex items-center justify-between">
+      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white md:shadow-sm">
+        <div className="flex items-center justify-between gap-4 pb-5 md:border-b md:border-[#E3E8F4] md:px-8 md:py-5">
           <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
             Social Links
           </h3>
@@ -386,7 +386,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
           </button>
         </div>
 
-        <div className="p-6 md:p-8 lg:p-10">
+        <div className="md:p-8 lg:p-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {fields.map((field, index) => {
               // Get current value to detect platform for icon

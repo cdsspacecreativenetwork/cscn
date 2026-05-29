@@ -23,9 +23,11 @@ import {
   LogOut,
   Megaphone,
   Settings,
+  Settings2,
   ShieldCheck,
   Tags,
   User,
+  UserCog,
   UserCheck,
   X,
 } from 'lucide-react';
@@ -56,7 +58,7 @@ const adminOperationItems: NavItem[] = [
   { name: 'Marketing', href: '/dashboard/admin/marketing', Icon: Tags, permissions: ['canManageMarketing'] },
   { name: 'Permissions', href: '/dashboard/admin/permissions', Icon: ShieldCheck, permissions: ['canManagePermissions'] },
   { name: 'Audit Logs', href: '/dashboard/admin/audit-logs', Icon: FileClock, permissions: ['canViewAuditLogs'] },
-  { name: 'Platform Settings', href: '/dashboard/admin/settings', Icon: Settings, permissions: ['canManageSettings'] },
+  { name: 'Platform Settings', href: '/dashboard/admin/settings', Icon: Settings2, permissions: ['canManageSettings'] },
 ];
 
 const adminPersonalItems: NavItem[] = [
@@ -70,6 +72,7 @@ const adminPersonalItems: NavItem[] = [
 
 const adminAccountItems: NavItem[] = [
   { name: 'Profile', href: '/dashboard/profile', Icon: User },
+  { name: 'Personal Settings', href: '/dashboard/settings', Icon: UserCog },
 ];
 
 const instructorItems: NavItem[] = [

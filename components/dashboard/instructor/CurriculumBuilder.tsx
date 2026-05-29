@@ -23,6 +23,7 @@ import Button from '@/components/ui/Button';
 import LessonEditor from './LessonEditor';
 import type { LessonQuiz } from './QuizLessonBuilder';
 import { LessonTypeIcon } from '@/components/dashboard/courses/LessonTypeIcon';
+import { ArticleContent } from '@/components/dashboard/courses/ArticleContent';
 
 interface Lesson {
   id: string; title: string; position: number;
@@ -110,11 +111,11 @@ function SortableLesson({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`flex items-center gap-2 px-3 py-2.5 ml-6 rounded-xl border transition-all ${
         isDragging ? 'opacity-50 bg-white shadow-lg z-50' :
-        isSelected && !isReadOnly ? 'bg-primary/5 border-primary/30' :
+        isSelected ? 'bg-primary/5 border-primary/30' :
         isReadOnly ? 'bg-white border-transparent' :
         'bg-white border-transparent hover:border-stroke hover:bg-background/60 cursor-pointer'
       }`}
-      onClick={isReadOnly ? undefined : onSelect}
+      onClick={onSelect}
     >
       {!isReadOnly && (
         <button
@@ -126,7 +127,7 @@ function SortableLesson({
         </button>
       )}
       <LessonTypeIcon contentType={lesson.contentType} size="xs" />
-      <span className={`flex-1 text-sm font-medium truncate ${isSelected && !isReadOnly ? 'text-primary' : 'text-navy'}`}>
+      <span className={`flex-1 text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-navy'}`}>
         {lesson.title}
       </span>
       <div className="flex items-center gap-1 shrink-0">
@@ -282,6 +283,112 @@ function SortableModule({
               <Plus size={13} /> Add lesson
             </button>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function extractYouTubeId(url: string | null) {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]{11})|^([a-zA-Z0-9_-]{11})$/);
+  return match?.[1] ?? match?.[2] ?? null;
+}
+
+function LessonReadOnlyPreview({ lesson }: { lesson: Lesson }) {
+  const youtubeId = extractYouTubeId(lesson.videoUrl);
+  const isQuiz = lesson.contentType === 'QUIZ';
+  const isArticle = lesson.contentType === 'ARTICLE';
+
+  return (
+    <div className="rounded-2xl border border-stroke bg-white p-5 shadow-sm">
+      <div className="mb-5 flex flex-col gap-2 border-b border-stroke pb-4">
+        <div className="flex items-center gap-2">
+          <LessonTypeIcon contentType={lesson.contentType} size="sm" />
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-primary">
+            Read-only review
+          </span>
+        </div>
+        <h3 className="text-[20px] font-black leading-tight text-navy">{lesson.title}</h3>
+        {lesson.overview && <p className="text-sm font-medium leading-6 text-text-body">{lesson.overview}</p>}
+      </div>
+
+      {isQuiz ? (
+        <div className="space-y-4">
+          <div className="rounded-[14px] border border-[#E3E8F4] bg-[#F8FAFF] p-4">
+            <p className="text-sm font-black text-navy">Quiz settings</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-[12px] font-bold text-text-body">
+              <span className="rounded-full bg-white px-3 py-1">Mode: {lesson.quiz?.mode ?? 'Not set'}</span>
+              <span className="rounded-full bg-white px-3 py-1">Passing: {lesson.quiz?.passingScore ?? 'Optional'}</span>
+              <span className="rounded-full bg-white px-3 py-1">Attempts: {lesson.quiz?.maxAttempts ?? 'Unlimited'}</span>
+            </div>
+            {lesson.quiz?.instructions && <p className="mt-3 text-sm font-medium leading-6 text-text-body">{lesson.quiz.instructions}</p>}
+          </div>
+          {lesson.quiz?.questions?.length ? (
+            lesson.quiz.questions.map((question, index) => (
+              <div key={question.id ?? index} className="rounded-[14px] border border-stroke bg-white p-4">
+                <p className="text-[12px] font-black uppercase tracking-[0.1em] text-primary">Question {index + 1}</p>
+                <p className="mt-2 text-sm font-black text-navy">{question.prompt || 'Untitled question'}</p>
+                <div className="mt-3 space-y-2">
+                  {question.options.map((option, optionIndex) => (
+                    <div key={option.id ?? optionIndex} className={`rounded-[10px] border px-3 py-2 text-sm font-semibold ${
+                      option.isCorrect ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-[#E3E8F4] bg-[#F8FAFF] text-text-body'
+                    }`}>
+                      {option.text || `Option ${optionIndex + 1}`}{option.isCorrect ? ' ✓' : ''}
+                    </div>
+                  ))}
+                </div>
+                {question.explanation && <p className="mt-3 text-xs font-semibold leading-5 text-text-mute">Explanation: {question.explanation}</p>}
+              </div>
+            ))
+          ) : (
+            <p className="rounded-[12px] bg-[#F8FAFF] p-4 text-sm font-semibold text-text-mute">No quiz questions yet.</p>
+          )}
+        </div>
+      ) : isArticle ? (
+        <div className="rounded-[14px] border border-[#E3E8F4] bg-white p-4">
+          <ArticleContent body={lesson.bodyContent} />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="aspect-video overflow-hidden rounded-[14px] bg-[#0B1020]">
+            {youtubeId ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${youtubeId}?rel=0&modestbranding=1`}
+                title={lesson.title}
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="h-full w-full"
+              />
+            ) : lesson.muxPlaybackId ? (
+              <div className="flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-white/75">
+                Mux video is attached. Use public preview to test signed playback.
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-white/75">
+                No video attached yet.
+              </div>
+            )}
+          </div>
+          {lesson.transcript && (
+            <div className="rounded-[14px] border border-[#E3E8F4] bg-[#F8FAFF] p-4">
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.1em] text-primary">Transcript</p>
+              <p className="whitespace-pre-wrap text-sm font-medium leading-6 text-text-body">{lesson.transcript}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {lesson.resources.length > 0 && (
+        <div className="mt-5 rounded-[14px] border border-[#E3E8F4] bg-[#F8FAFF] p-4">
+          <p className="mb-3 text-xs font-black uppercase tracking-[0.1em] text-primary">Resources</p>
+          <div className="space-y-2">
+            {lesson.resources.map((resource) => (
+              <a key={resource.id} href={resource.url} target="_blank" rel="noopener noreferrer" className="block rounded-[10px] bg-white px-3 py-2 text-sm font-bold text-navy hover:text-primary">
+                {resource.title}
+              </a>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -660,18 +767,22 @@ export default function CurriculumBuilder({ courseId, courseTitle, courseSlug, i
           )}
         </div>
 
-        {/* Right: editor panel — read-only placeholder for admin */}
+        {/* Right: editor panel / admin read-only preview */}
         <div className="sticky top-[140px]">
           {isAdmin ? (
+            selectedLesson ? (
+              <LessonReadOnlyPreview lesson={selectedLesson} />
+            ) : (
             <div className="bg-white rounded-2xl border border-stroke flex flex-col items-center justify-center py-24 gap-3 text-center px-8">
               <div className="w-12 h-12 bg-background rounded-full flex items-center justify-center">
                 <Video size={20} className="text-text-mute" />
               </div>
-              <p className="font-semibold text-navy">Lesson content is read-only</p>
+              <p className="font-semibold text-navy">Select a lesson to review</p>
               <p className="text-sm text-text-mute max-w-xs">
-                Admins can add and rename modules. Use the Feedback tab to request lesson changes from the instructor.
+                Admins see the final learner-facing output here without editing instructor content.
               </p>
             </div>
+            )
           ) : selectedLesson ? (
             <LessonEditor
               key={selectedLesson.id}

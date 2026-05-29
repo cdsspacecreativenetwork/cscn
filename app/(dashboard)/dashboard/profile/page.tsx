@@ -106,7 +106,7 @@ export default async function ProfilePage() {
       ];
 
   return (
-    <div className="p-6 md:p-10 space-y-10 max-w-[1400px] mx-auto font-jakarta pb-20">
+    <div className="mx-auto max-w-[1400px] space-y-8 p-4 pb-28 font-jakarta sm:p-6 md:space-y-10 md:p-10 md:pb-20">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
@@ -135,7 +135,7 @@ export default async function ProfilePage() {
         <ProfileBanner user={dbUser} />
 
         {/* User Identity Section - Exactly under the pfp */}
-        <div className="pt-[96px] px-10 pb-10 flex flex-col gap-10">
+        <div className="flex flex-col gap-8 px-5 pb-8 pt-[128px] sm:px-10 sm:pt-[96px] sm:pb-10 md:gap-10">
           {/* Name, Role & Bio */}
           <div className="space-y-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

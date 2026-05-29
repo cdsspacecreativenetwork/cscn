@@ -11,7 +11,17 @@ export default function Hero() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsTimeoutRef = useRef<number | null>(null);
+
+  const revealControls = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
+    if (isPlaying) {
+      controlsTimeoutRef.current = window.setTimeout(() => setShowControls(false), 1800);
+    }
+  };
 
   // Sync duration once metadata is loaded or if already loaded
   useEffect(() => {
@@ -27,6 +37,7 @@ export default function Hero() {
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
     };
   }, []);
 
@@ -39,6 +50,11 @@ export default function Hero() {
         videoRef.current.play();
       }
       setIsPlaying(!isPlaying);
+      setShowControls(true);
+      if (!isPlaying) {
+        if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
+        controlsTimeoutRef.current = window.setTimeout(() => setShowControls(false), 1800);
+      }
     }
   };
 
@@ -157,6 +173,8 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="relative w-full max-w-[68.875rem] aspect-[1102/640] bg-navy rounded-3xl border-[8px] border-white shadow-2xl overflow-hidden"
+          onMouseMove={revealControls}
+          onTouchStart={revealControls}
         >
           <video
             ref={videoRef}
@@ -170,23 +188,25 @@ export default function Hero() {
           {/* Custom Controls Overlay */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-[55rem] bg-black/50 backdrop-blur-xl rounded-full p-1 flex items-center gap-2.5 z-10"
+            className={`absolute bottom-3 left-1/2 z-10 flex w-[90%] max-w-[55rem] -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/50 p-1 backdrop-blur-xl transition-all duration-300 sm:bottom-6 sm:gap-2.5 lg:bottom-10 ${
+              !isPlaying || showControls ? 'opacity-100 translate-y-0' : 'pointer-events-none opacity-0 translate-y-2'
+            }`}
           >
             {/* Watch Demo / Play Button */}
             <div
               onClick={togglePlay}
-              className={`p-1 rounded-full flex items-center gap-3 cursor-pointer transition-all duration-300 ${isPlaying ? 'bg-transparent' : 'bg-primary'}`}
+              className={`flex cursor-pointer items-center gap-2 rounded-full p-1 transition-all duration-300 sm:gap-3 ${isPlaying ? 'bg-transparent' : 'bg-primary'}`}
             >
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isPlaying ? 'bg-white/10' : 'bg-white'}`}>
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full sm:h-14 sm:w-14 ${isPlaying ? 'bg-white/10' : 'bg-white'}`}>
                 {isPlaying ? (
                   <div className="w-full h-full relative">
                     <Image src="/assets/video-controls/pause.svg" alt="Pause" fill className="object-contain" sizes="56px" unoptimized />
                   </div>
                 ) : (
-                  <span className="text-2xl text-primary ml-1">▶</span>
+                  <span className="ml-0.5 text-lg text-primary sm:ml-1 sm:text-2xl">▶</span>
                 )}
               </div>
-              {!isPlaying && <span className="text-white font-semibold pr-6 text-base whitespace-nowrap">Watch Demo</span>}
+              {!isPlaying && <span className="hidden pr-4 text-sm font-semibold text-white whitespace-nowrap sm:inline sm:pr-6 sm:text-base">Watch Demo</span>}
             </div>
 
             {/* Progress Slider */}
@@ -198,18 +218,18 @@ export default function Hero() {
                 value={currentTime}
                 step="0.1"
                 onChange={handleSeek}
-                className="w-full h-2.5 bg-white/20 rounded-full appearance-none outline-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/20 outline-none sm:h-2.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md sm:[&::-webkit-slider-thumb]:h-5 sm:[&::-webkit-slider-thumb]:w-5"
               />
             </div>
 
             {/* Right Controls */}
-            <div className="flex items-center gap-2 pr-3">
-              <button onClick={toggleMute} className="bg-white/10 border-none w-12 h-12 rounded-full cursor-pointer flex items-center justify-center hover:bg-white/20 transition-colors">
+            <div className="flex items-center gap-1 pr-1 sm:gap-2 sm:pr-3">
+              <button onClick={toggleMute} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-none bg-white/10 transition-colors hover:bg-white/20 sm:h-12 sm:w-12">
                 <div className={`w-full h-full relative ${isMuted ? 'opacity-50' : 'opacity-100'}`}>
                   <Image src="/assets/video-controls/volume.svg" alt="Volume" fill className="object-contain" sizes="48px" unoptimized />
                 </div>
               </button>
-              <button onClick={toggleFullscreen} className="bg-white/10 border-none w-12 h-12 rounded-full cursor-pointer flex items-center justify-center hover:bg-white/20 transition-colors">
+              <button onClick={toggleFullscreen} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-none bg-white/10 transition-colors hover:bg-white/20 sm:h-12 sm:w-12">
                 <div className="w-full h-full relative">
                   <Image src="/assets/video-controls/fullscreen.svg" alt="Fullscreen" fill className="object-contain" sizes="48px" unoptimized />
                 </div>

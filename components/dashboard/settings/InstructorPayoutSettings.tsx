@@ -15,21 +15,7 @@ import {
 import { updatePayoutSettings } from '@/actions/settings';
 
 const NIGERIAN_BANKS = [
-  { code: 'access', name: 'Access Bank' },
-  { code: 'gtbank', name: 'GTBank (Guaranty Trust Bank)' },
-  { code: 'zenith', name: 'Zenith Bank' },
-  { code: 'uba', name: 'UBA (United Bank for Africa)' },
-  { code: 'sterling', name: 'Sterling Bank' },
-  { code: 'firstbank', name: 'First Bank of Nigeria' },
-  { code: 'fidelity', name: 'Fidelity Bank' },
-  { code: 'wema', name: 'Wema Bank' },
-  { code: 'stanbic', name: 'Stanbic IBTC Bank' },
-  { code: 'kuda', name: 'Kuda Bank' },
-  { code: 'opay', name: 'OPay Digital Services' },
-  { code: 'palmpay', name: 'PalmPay' },
-  { code: 'moniepoint', name: 'Moniepoint MFB' },
-  { code: 'union', name: 'Union Bank' },
-  { code: 'ecobank', name: 'Ecobank Nigeria' },
+  { code: '', name: 'Loading Paystack banks...' },
 ];
 
 const GHANAIAN_BANKS = [
@@ -245,8 +231,11 @@ type PayoutDetails = {
   payoutCountry?: string;
   preferredCurrency?: string;
   bankCode?: string;
+  bankName?: string;
   accountNumber?: string;
   accountName?: string;
+  accountNameVerified?: boolean;
+  paystackRecipientCode?: string;
   cryptoNetwork?: string;
   cryptoAddress?: string;
   customMethodType?: string;
@@ -266,6 +255,10 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
   const [method, setMethod] = useState<string>(initialMethod || '');
   const selectedCountry = countries.find((country) => country.code === payoutCountry) ?? getCountry(payoutCountry);
   const regionalBanks = LOCAL_BANK_RAILS[payoutCountry] ?? [];
+  const [paystackBanks, setPaystackBanks] = useState<SelectOption[]>([]);
+  const [isLoadingBanks, setIsLoadingBanks] = useState(false);
+  const [isResolvingAccount, setIsResolvingAccount] = useState(false);
+  const [accountVerified, setAccountVerified] = useState<boolean>(Boolean(initialDetails.accountNameVerified && initialDetails.paystackRecipientCode));
   const supportsLocalBank = regionalBanks.length > 0;
 
   // Bank fields — manual entry (no mock API)
@@ -285,6 +278,10 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<string>('');
   const [saveError, setSaveError] = useState<string>('');
+
+  const bankOptions = payoutCountry === 'NG'
+    ? paystackBanks.length > 0 ? paystackBanks : regionalBanks
+    : regionalBanks;
 
   useEffect(() => {
     let cancelled = false;
@@ -333,6 +330,79 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (payoutCountry !== 'NG') {
+      setPaystackBanks([]);
+      return;
+    }
+
+    async function loadPaystackBanks() {
+      setIsLoadingBanks(true);
+      try {
+        const response = await fetch('/api/payments/paystack/banks?country=nigeria');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load banks.');
+        const banks = Array.isArray(data.banks)
+          ? data.banks.map((bank: { code: string; name: string }) => ({
+              code: bank.code,
+              name: bank.name,
+            }))
+          : [];
+        if (!cancelled) setPaystackBanks(banks);
+      } catch {
+        if (!cancelled) setPaystackBanks([]);
+      } finally {
+        if (!cancelled) setIsLoadingBanks(false);
+      }
+    }
+
+    loadPaystackBanks();
+    return () => {
+      cancelled = true;
+    };
+  }, [payoutCountry]);
+
+  useEffect(() => {
+    setAccountVerified(false);
+    if (payoutCountry !== 'NG' || !bankCode || !/^\d{10}$/.test(accountNumber)) {
+      if (payoutCountry === 'NG') setAccountName('');
+      return;
+    }
+
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
+      setIsResolvingAccount(true);
+      setSaveError('');
+      try {
+        const response = await fetch('/api/payments/paystack/resolve-account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bankCode, accountNumber }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to resolve account.');
+        if (!cancelled) {
+          setAccountName(String(data.accountName ?? '').toUpperCase());
+          setAccountVerified(true);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAccountName('');
+          setAccountVerified(false);
+          setSaveError(error instanceof Error ? error.message : 'Unable to resolve account.');
+        }
+      } finally {
+        if (!cancelled) setIsResolvingAccount(false);
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [accountNumber, bankCode, payoutCountry]);
+
   const handleSave = async () => {
     setIsSaving(true);
     setSaveSuccess('');
@@ -347,7 +417,7 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
     }
 
     if (method === 'BANK') {
-      if (!regionalBanks.length) {
+      if (!bankOptions.length || !bankOptions.some((bank) => bank.code === bankCode)) {
         setSaveError('Local bank payouts are not available for this region yet. Choose another payout method.');
         setIsSaving(false);
         return;
@@ -358,16 +428,21 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
         return;
       }
       if (!accountNumber || accountNumber.length < 8) {
-        setSaveError('Please enter a valid account number (at least 8 digits).');
+        setSaveError('Please enter a valid 10-digit account number.');
+        setIsSaving(false);
+        return;
+      }
+      if (payoutCountry === 'NG' && !accountVerified) {
+        setSaveError('Please wait for Paystack to verify the account name before saving.');
         setIsSaving(false);
         return;
       }
       if (!accountName.trim()) {
-        setSaveError('Please enter your account name as it appears on your bank records.');
+        setSaveError('We could not determine the account name. Please check the bank and account number.');
         setIsSaving(false);
         return;
       }
-      const selectedBankName = regionalBanks.find(b => b.code === bankCode)?.name || '';
+      const selectedBankName = bankOptions.find(b => b.code === bankCode)?.name || '';
       details = {
         payoutCountry,
         preferredCurrency,
@@ -375,6 +450,7 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
         bankName: selectedBankName,
         accountNumber,
         accountName: accountName.trim().toUpperCase(),
+        accountNameVerified: accountVerified ? 'true' : 'false',
       };
     } else if (method === 'CRYPTO') {
       if (!cryptoAddress.trim()) {
@@ -421,7 +497,7 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
     }
   };
 
-  const selectedBank = regionalBanks.find(b => b.code === bankCode);
+  const selectedBank = bankOptions.find(b => b.code === bankCode);
   const selectedCrypto = CRYPTO_NETWORKS.find(n => n.id === cryptoNetwork);
 
   return (
@@ -456,6 +532,9 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
                 setPayoutCountry(value);
                 setPreferredCurrency(country.currency);
                 setBankCode('');
+                setAccountNumber('');
+                setAccountName('');
+                setAccountVerified(false);
                 if (!LOCAL_BANK_RAILS[value]?.length && method === 'BANK') {
                   setMethod('');
                 }
@@ -560,12 +639,16 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
                 </p>
               </div>
 
-              {regionalBanks.length > 0 ? (
+              {bankOptions.length > 0 ? (
                 <CustomSelect
-                  label="Select Bank / Mobile Money"
+                  label={isLoadingBanks ? "Loading Paystack banks..." : "Select Bank"}
                   value={bankCode}
-                  options={regionalBanks}
-                  onChange={setBankCode}
+                  options={bankOptions}
+                  onChange={(value) => {
+                    setBankCode(value);
+                    setAccountName('');
+                    setAccountVerified(false);
+                  }}
                   placeholder="-- Choose payout destination --"
                   getOptionId={(o) => o.code!}
                   renderOption={(o) => o.name}
@@ -587,23 +670,41 @@ export const InstructorPayoutSettings: React.FC<PayoutSettingsProps> = ({
                   type="text"
                   maxLength={18}
                   value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter your account number"
+                  onChange={(e) => {
+                    setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                    setAccountName('');
+                    setAccountVerified(false);
+                  }}
+                  placeholder="Enter 10-digit account number"
                   className="w-full px-4 py-3 rounded-[10px] border border-[#E3E8F4] text-[14px] font-semibold text-[#040B37] placeholder-gray-400 focus:outline-none focus:border-[#1C4ED1] bg-white transition-all"
                 />
+                {isResolvingAccount && (
+                  <p className="mt-1.5 flex items-center gap-2 text-[12px] font-semibold text-[#1C4ED1]">
+                    <Loader2 size={13} className="animate-spin" /> Resolving account name with Paystack...
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="text-[13px] font-extrabold text-[#4B5563] block mb-1.5">
-                  Account Name <span className="text-[11px] font-medium text-gray-400">(as it appears on your payout records)</span>
+                  Account Name <span className="text-[11px] font-medium text-gray-400">(verified by Paystack)</span>
                 </label>
                 <input
                   type="text"
                   value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  placeholder="e.g. JOHN DOE"
-                  className="w-full px-4 py-3 rounded-[10px] border border-[#E3E8F4] text-[14px] font-semibold text-[#040B37] placeholder-gray-400 focus:outline-none focus:border-[#1C4ED1] bg-white transition-all uppercase"
+                  readOnly={payoutCountry === 'NG'}
+                  onChange={(e) => {
+                    setAccountName(e.target.value);
+                    setAccountVerified(false);
+                  }}
+                  placeholder={payoutCountry === 'NG' ? 'Account name appears after verification' : 'e.g. JOHN DOE'}
+                  className="w-full px-4 py-3 rounded-[10px] border border-[#E3E8F4] text-[14px] font-semibold text-[#040B37] placeholder-gray-400 focus:outline-none focus:border-[#1C4ED1] bg-white transition-all uppercase read-only:bg-[#F8FAFF]"
                 />
+                {accountVerified && (
+                  <p className="mt-1.5 flex items-center gap-2 text-[12px] font-semibold text-emerald-700">
+                    <CheckCircle2 size={13} /> Account verified and ready for automatic Paystack payouts.
+                  </p>
+                )}
               </div>
 
               {/* Preview card */}

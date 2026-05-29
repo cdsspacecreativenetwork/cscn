@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Plus, ArrowUpRight, MoreHorizontal, GraduationCap, Clock, CheckCircle2, Flame, Share2, EyeOff } from 'lucide-react';
+import { Plus, ArrowUpRight, MoreHorizontal, GraduationCap, Clock, CheckCircle2, Flame, Share2, EyeOff, Sparkles, BookOpen } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useRouter } from 'next/navigation';
 import { useDashboardStore } from '@/lib/store/dashboardStore';
@@ -55,6 +55,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
 
   const visibleRecs = data.recommendations.filter(r => !dismissedRecs.includes(r.id));
   const currentLearning = data.activeEnrollments.slice(0, 1);
+  const hasLearningActivity = currentLearning.length > 0;
   const markThumbnailBroken = (courseId: string) => {
     setBrokenThumbnailIds((current) => current.includes(courseId) ? current : [...current, courseId]);
   };
@@ -62,8 +63,8 @@ export default function StudentDashboardClient({ data, user }: Props) {
   return (
     <div className="p-[clamp(16px,2.78vw,48px)] space-y-[clamp(32px,4.6vw,80px)] max-w-[1728px] mx-auto font-jakarta">
       {/* Header section - Fluid Scaling */}
-      <div className="flex items-center justify-between w-full gap-4">
-        <div className="space-y-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
+        <div className="space-y-1 w-full">
           <h1 className="text-[clamp(18px,1.25vw,22px)] font-bold text-[#040B37] leading-tight">
             {greeting}, {userName} 👋
           </h1>
@@ -72,11 +73,12 @@ export default function StudentDashboardClient({ data, user }: Props) {
           </p>
         </div>
         <Button
-          variant="primary"
+          variant="gradient"
           size="sm"
           rounded="[10px]"
+          className="w-full sm:w-auto"
           hasBorder={false}
-          onClick={() => router.push('/dashboard/courses')}
+          onClick={() => router.push('/courses')}
           leftIcon={<Plus size={18} className="sm:w-[20px] sm:h-[20px]" />}
         >
           Explore Courses
@@ -112,29 +114,83 @@ export default function StudentDashboardClient({ data, user }: Props) {
         {/* Continue Learning */}
         <div className="mlg:col-span-3 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-[18px] xl:text-[20px] font-semibold text-[#040B37]">Continue Learning</h2>
-            <button 
-              onClick={() => router.push('/dashboard/courses')}
-              className="text-[#1C4ED1] font-medium hover:underline text-[15px]"
-            >
-              View all
-            </button>
+            <h2 className="text-[18px] xl:text-[20px] font-semibold text-[#040B37]">
+              {hasLearningActivity ? 'Continue Learning' : 'Start Your Learning Journey'}
+            </h2>
+            {hasLearningActivity ? (
+              <button
+                onClick={() => router.push('/dashboard/courses')}
+                className="text-[#1C4ED1] font-medium hover:underline text-[15px]"
+              >
+                View all
+              </button>
+            ) : null}
           </div>
 
           <div className="space-y-6">
-            {currentLearning.map((enrollment) => (
-              <div 
-                key={enrollment.id} 
+            {!hasLearningActivity ? (
+              <div className="overflow-hidden rounded-[18px] border border-[#E3E8F4] bg-white shadow-sm">
+                <div className="relative p-6 sm:p-8">
+                  <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#1C4ED1]/10 blur-3xl" />
+                  <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="max-w-2xl">
+                      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.12em] text-[#1C4ED1]">
+                        <Sparkles size={14} />
+                        New learner
+                      </div>
+                      <h3 className="text-[24px] font-black leading-tight text-[#040B37] sm:text-[30px]">
+                        Choose your first course and we will personalize your dashboard as you learn.
+                      </h3>
+                      <p className="mt-3 text-[14px] font-medium leading-relaxed text-[#6B7280] sm:text-[15px]">
+                        Your continue-learning card, progress, streaks, and recommendations will update after you enroll or watch a lesson.
+                      </p>
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        {['AI', 'Design', 'Web Dev', 'Branding', 'Product'].map((interest) => (
+                          <span
+                            key={interest}
+                            className="rounded-full border border-[#E3E8F4] bg-[#F8FAFF] px-3 py-1.5 text-[12px] font-bold text-[#4B5563]"
+                          >
+                            {interest}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">
+                      <Button
+                        variant="gradient"
+                        size="md"
+                        rounded="[10px]"
+                        hasBorder={false}
+                        leftIcon={<BookOpen size={18} />}
+                        onClick={() => router.push('/courses')}
+                      >
+                        Browse Courses
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="md"
+                        rounded="[10px]"
+                        onClick={() => router.push('/dashboard/profile')}
+                      >
+                        Complete Profile
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : currentLearning.map((enrollment) => (
+              <div
+                key={enrollment.id}
                 className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[12px] p-6 flex flex-col gap-6 shadow-sm hover:shadow-[0px_4px_12px_rgba(23,26,31,0.06)] transition-all duration-300"
               >
                 {/* Top Row: Thumbnail (16:9), Course Title */}
                 <div className="flex items-center gap-4">
                   <div className="w-[64px] h-[36px] rounded-[6px] border border-[#E3E8F4] overflow-hidden relative shrink-0 bg-[#F4F6FB]">
-                    <Image 
-                      src={enrollment.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg"} 
-                      alt={enrollment.title} 
-                      fill 
-                      className="object-cover" 
+                    <Image
+                      src={enrollment.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg"}
+                      alt={enrollment.title}
+                      fill
+                      className="object-cover"
                     />
                   </div>
                   <h3 className="text-[16px] sm:text-[18px] font-semibold text-[#040B37] leading-snug line-clamp-2">
@@ -179,19 +235,23 @@ export default function StudentDashboardClient({ data, user }: Props) {
                       <span>{enrollment.nextActivityType || "Video"} ({enrollment.nextActivityDuration || "5 minutes"})</span>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => openResumeModal({ 
-                      id: enrollment.courseId, 
+                  <Button
+                    variant="gradient"
+                    size="sm"
+                    rounded="[10px]"
+                    hasBorder={false}
+                    onClick={() => openResumeModal({
+                      id: enrollment.courseId,
                       slug: enrollment.slug,
                       nextLessonId: enrollment.nextLessonId,
-                      title: enrollment.title, 
-                      image: enrollment.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg", 
-                      lessonInfo: `Lesson ${enrollment.completedLessons} of ${enrollment.totalLessons}` 
+                      title: enrollment.title,
+                      image: enrollment.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg",
+                      lessonInfo: `Lesson ${enrollment.completedLessons} of ${enrollment.totalLessons}`
                     })}
                     className="bg-[#1C4ED1] text-white px-4 py-2 rounded-[8px] text-[12px] font-semibold cursor-pointer hover:bg-[#163fa3] transition-colors shadow-sm shrink-0"
                   >
                     Resume
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
@@ -240,9 +300,11 @@ export default function StudentDashboardClient({ data, user }: Props) {
         {/* Recommended */}
         <div className="mlg:col-span-3 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-[18px] xl:text-[20px] font-semibold text-[#040B37]">Recommended For You</h2>
-            <button 
-              onClick={() => router.push('/dashboard/courses')}
+            <h2 className="text-[18px] xl:text-[20px] font-semibold text-[#040B37]">
+              {hasLearningActivity ? 'Recommended For You' : 'Popular Courses To Start'}
+            </h2>
+            <button
+              onClick={() => router.push('/courses')}
               className="text-[#1C4ED1] font-medium hover:underline text-[15px]"
             >
               View all
@@ -283,17 +345,17 @@ export default function StudentDashboardClient({ data, user }: Props) {
 
                     {/* Floating Options Button */}
                     <div className="absolute top-3 right-3 z-10">
-                      <button 
+                      <button
                         onClick={() => setActiveDropdown(activeDropdown === course.id ? null : course.id)}
                         className="w-8 h-8 rounded-full bg-white/90 hover:bg-white text-[#4B5563] flex items-center justify-center shadow-md transition-all cursor-pointer hover:scale-105"
                       >
                         <MoreHorizontal size={18} />
                       </button>
-                      
+
                       {activeDropdown === course.id && (
                         <>
-                          <div 
-                            className="fixed inset-0 z-10" 
+                          <div
+                            className="fixed inset-0 z-10"
                             onClick={() => setActiveDropdown(null)}
                           />
                           <div className="absolute right-0 mt-1 w-40 bg-white border border-[#E3E8F4] rounded-[8px] shadow-lg py-1 z-20 animate-in fade-in slide-in-from-top-1 duration-150">
@@ -328,13 +390,13 @@ export default function StudentDashboardClient({ data, user }: Props) {
 
                   {/* Card Content Wrapper */}
                   <div className="p-5 flex flex-col flex-1 gap-4">
-                    
+
                     {/* Category & Title */}
                     <div>
                       {/* <span className="text-[11px] font-bold tracking-wider text-[#1C4ED1] uppercase">
                         {course.category || "UI/UX DESIGN"} • {course.difficulty || "BEGINNER"}
                       </span> */}
-                      <h3 
+                      <h3
                         className="text-[17px] font-bold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors line-clamp-2 cursor-pointer animate-duration-300"
                         onClick={() => router.push(`/courses/${course.slug}`)}
                       >
@@ -372,7 +434,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
                           </div>
                         </div>
                         <Button
-                          variant="primary"
+                          variant="gradient"
                           size="sm"
                           rounded="[10px]"
                           hasBorder={false}
@@ -443,15 +505,15 @@ export default function StudentDashboardClient({ data, user }: Props) {
       {/* Modals */}
       {selectedCourse && (
         <>
-          <ResumeCourseModal 
-            isOpen={activeModal === 'resume'} 
-            onClose={closeModals} 
+          <ResumeCourseModal
+            isOpen={activeModal === 'resume'}
+            onClose={closeModals}
             course={selectedCourse}
             onAction={navigateToPlayer}
           />
-          <GetStartedModal 
-            isOpen={activeModal === 'start'} 
-            onClose={closeModals} 
+          <GetStartedModal
+            isOpen={activeModal === 'start'}
+            onClose={closeModals}
             course={selectedCourse}
             onAction={navigateToPlayer}
           />
