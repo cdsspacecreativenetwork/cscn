@@ -25,16 +25,16 @@ export default function Navbar() {
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center border-b border-[#C8D1E0] bg-background/86 backdrop-blur-md">
-        <div className="mx-auto flex min-h-[76px] w-full max-w-[88rem] items-center justify-between gap-5 px-4 lg:min-h-[84px] lg:px-6">
+        <div className="mx-auto flex min-h-[70px] w-full max-w-[88rem] items-center justify-between gap-4 px-4 lg:min-h-[76px] lg:px-6">
           {/* Logo & Links Group */}
-          <div className="flex items-center gap-4 xl:gap-7">
+          <div className="flex items-center gap-4 xl:gap-6">
             <Link href="/" className="flex items-center shrink-0">
               <Image 
                 src="/assets/Group 162.svg" 
                 alt="CSCN Logo" 
                 width={34} 
                 height={33} 
-                className="h-9 w-auto lg:h-10"
+                className="h-8 w-auto lg:h-9"
                 unoptimized
               />
             </Link>
@@ -46,7 +46,7 @@ export default function Navbar() {
                   <Link 
                     key={link.name} 
                     href={link.path}
-                    className={`rounded-full px-3 py-2 text-[15px] transition-colors hover:text-primary tracking-tight xl:px-4 ${
+                    className={`rounded-full px-3 py-1.5 text-[14px] transition-colors hover:text-primary tracking-tight xl:px-3.5 ${
                       isActive ? 'bg-primary/5 font-bold text-primary' : 'font-medium text-text-body'
                     }`}
                   >
@@ -59,13 +59,13 @@ export default function Navbar() {
 
           {/* Actions Group */}
           <div className="flex items-center gap-2.5 lg:gap-3">
-            <button className="rounded-full p-2.5 transition-colors hover:bg-black/5" aria-label="Search">
+            <button className="rounded-full p-2 transition-colors hover:bg-black/5" aria-label="Search">
               <Image 
                 src="/assets/search-01.svg" 
                 alt="Search" 
                 width={24} 
                 height={24} 
-                className="w-6 h-6"
+                className="h-5 w-5"
                 unoptimized
               />
             </button>
@@ -76,7 +76,7 @@ export default function Navbar() {
                   variant="gradient"
                   size="sm"
                   rounded="full"
-                  className="min-w-[128px] xl:min-w-[142px]"
+                  className="min-w-[118px] xl:min-w-[132px]"
                 >
                   {isLoggedIn ? "Dashboard" : "Sign in"}
                 </Button>

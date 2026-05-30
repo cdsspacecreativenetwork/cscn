@@ -2,8 +2,31 @@ import Image from 'next/image';
 import { db } from '@/lib/db';
 import { MENTORS, MENTORSHIP_BENEFITS } from '@/lib/mentorship';
 import MentorCard from '@/components/ui/MentorCard';
-import FAQSection from '@/components/marketing/FAQSection';
+import FAQSection, { type FAQEntry } from '@/components/marketing/FAQSection';
 import { generateTapbackAvatar } from '@/lib/avatar';
+
+const MENTORSHIP_FAQS: FAQEntry[] = [
+  {
+    question: 'What is CSCN Mentorship?',
+    answer: 'CSCN Mentorship connects you with experienced professionals who provide guidance, feedback, and practical insights to help you grow faster.',
+  },
+  {
+    question: 'How does mentorship work?',
+    answer: 'Choose a mentor based on your goals, book a session, and connect for personalized guidance, feedback, or career support.',
+  },
+  {
+    question: 'Who can join mentorship sessions?',
+    answer: 'Anyone can join. Beginners, intermediate learners, or professionals looking to improve their skills or career direction.',
+  },
+  {
+    question: 'What happens during a mentorship session?',
+    answer: "Sessions may include portfolio reviews, project feedback, career advice, skill coaching, or answering specific challenges you're facing.",
+  },
+  {
+    question: 'Are mentorship sessions free or paid?',
+    answer: 'Some mentors offer free sessions, while others may charge a booking fee depending on the mentor and session type.',
+  },
+];
 
 function publicSlug(user: { id: string; name: string | null; publicProfileSlug: string | null }) {
   return (
@@ -138,7 +161,7 @@ export default async function MentorshipPage() {
       </div>
 
       <div className="mt-16 md:mt-20">
-        <FAQSection />
+        <FAQSection title="Mentorship FAQs" items={MENTORSHIP_FAQS} />
       </div>
     </main>
   );
