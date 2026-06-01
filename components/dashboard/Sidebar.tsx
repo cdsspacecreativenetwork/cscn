@@ -67,7 +67,7 @@ const adminPersonalItems: NavItem[] = [
   { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
   { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },
   { name: 'Resources', href: '/dashboard/resources', Icon: Library },
-  { name: 'Subscriptions', href: '/dashboard/subscriptions', Icon: CreditCard },
+  { name: 'Purchases', href: '/dashboard/purchases', Icon: CreditCard },
 ];
 
 const adminAccountItems: NavItem[] = [
@@ -87,7 +87,7 @@ const instructorPersonalItems: NavItem[] = [
   { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
   { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },
   { name: 'Resources', href: '/dashboard/resources', Icon: Library },
-  { name: 'Subscriptions', href: '/dashboard/subscriptions', Icon: CreditCard },
+  { name: 'Purchases', href: '/dashboard/purchases', Icon: CreditCard },
 ];
 
 const instructorAccountItems: NavItem[] = [
@@ -104,7 +104,7 @@ const learnerItems: NavItem[] = [
 ];
 
 const learnerAccountItems: NavItem[] = [
-  { name: 'Subscriptions', href: '/dashboard/subscriptions', icon: '/assets/dashboard/user/payment-02.svg' },
+  { name: 'Purchases', href: '/dashboard/purchases', icon: '/assets/dashboard/user/payment-02.svg' },
   { name: 'Profile', href: '/dashboard/profile', icon: '/assets/dashboard/user/user.svg' },
   { name: 'Settings', href: '/dashboard/settings', icon: '/assets/dashboard/user/setting-07.svg' },
 ];

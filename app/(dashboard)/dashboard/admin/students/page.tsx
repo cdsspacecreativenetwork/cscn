@@ -69,7 +69,7 @@ export default async function AdminStudentsPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      <section className="grid grid-cols-1 gap-[clamp(16px,1.39vw,24px)] sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-1 gap-[clamp(16px,1.39vw,24px)] sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
           <div
             key={card.label}

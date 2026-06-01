@@ -11,19 +11,21 @@ import {
   endOfWeek, 
   isSameMonth, 
   isSameDay, 
-  addDays, 
   eachDayOfInterval 
 } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
-
 interface MiniCalendarProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
+  markedDates?: Set<string>;
 }
 
-export const MiniCalendar = ({ selectedDate, onDateSelect }: MiniCalendarProps) => {
-  const [currentMonth, setCurrentMonth] = React.useState(new Date(2026, 3)); // April 2026 as per design
+function dateKey(date: Date) {
+  return format(date, 'yyyy-MM-dd');
+}
+
+export const MiniCalendar = ({ selectedDate, onDateSelect, markedDates = new Set() }: MiniCalendarProps) => {
+  const [currentMonth, setCurrentMonth] = React.useState(() => new Date());
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -76,6 +78,7 @@ export const MiniCalendar = ({ selectedDate, onDateSelect }: MiniCalendarProps) 
           {calendarDays.map((day, idx) => {
             const isSelected = isSameDay(day, selectedDate);
             const isCurrentMonth = isSameMonth(day, monthStart);
+            const hasEvents = markedDates.has(dateKey(day));
 
             return (
               <div 
@@ -85,13 +88,20 @@ export const MiniCalendar = ({ selectedDate, onDateSelect }: MiniCalendarProps) 
               >
                 <div 
                   className={`
-                    w-[32px] h-[32px] flex items-center justify-center rounded-full cursor-pointer transition-all text-[12px] font-medium
+                    relative w-[32px] h-[32px] flex items-center justify-center rounded-full cursor-pointer transition-all text-[12px] font-medium
                     ${isSelected ? 'bg-[#1C4ED1] text-white shadow-lg' : ''}
                     ${!isSelected && isCurrentMonth ? 'text-[#4B5563] hover:bg-[#F4F6FB]' : ''}
                     ${!isSelected && !isCurrentMonth ? 'text-[#9CA3AF] opacity-30' : ''}
                   `}
                 >
-                  {format(day, 'd').padStart(2, '0')}
+                  <span>{format(day, 'd').padStart(2, '0')}</span>
+                  {hasEvents && (
+                    <span
+                      className={`absolute bottom-[3px] h-1 w-1 rounded-full ${
+                        isSelected ? 'bg-white' : 'bg-[#1C4ED1]'
+                      }`}
+                    />
+                  )}
                 </div>
               </div>
             );

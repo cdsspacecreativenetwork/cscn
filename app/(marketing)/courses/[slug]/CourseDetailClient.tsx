@@ -151,16 +151,16 @@ export default function CourseDetailClient({ course }: { course: Course }) {
             
             <div className="p-8">
               <div className="flex flex-col gap-1 mb-8">
-                <span className="text-2xl font-bold text-navy">Included with Pro</span>
-                <span className="text-sm text-text-mute">Get unlimited access to this and 100+ other courses.</span>
+                <span className="text-2xl font-bold text-navy">Own this course</span>
+                <span className="text-sm text-text-mute">Pay once and keep access to this course in your purchases.</span>
               </div>
               
               <div className="flex flex-col gap-3 mb-8">
                 <Button className="w-full py-6 text-lg">Start Learning</Button>
-                <Button variant="outline" className="w-full py-6 text-lg">View Subscription Plans</Button>
+                <Button variant="outline" className="w-full py-6 text-lg">View My Purchases</Button>
               </div>
               
-              <p className="text-center text-xs text-text-mute mb-8 font-medium">Cancel anytime. 7-day free trial.</p>
+              <p className="text-center text-xs text-text-mute mb-8 font-medium">Course access is managed per purchase.</p>
               
               <div className="space-y-4">
                 <h5 className="font-bold text-navy text-sm uppercase tracking-widest mb-2">This course includes:</h5>

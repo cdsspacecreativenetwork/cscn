@@ -62,7 +62,7 @@ export function AdminBillingConsole({ data }: Props) {
         </div>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
           <div key={card.label} className="flex min-h-[142px] flex-col gap-5 rounded-[12px] border border-[#E3E8F4] bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between">
