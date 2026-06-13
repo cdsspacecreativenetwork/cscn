@@ -25,7 +25,13 @@ export default function RootLayout({
       <body>
         <SessionProvider>
           <UploadProvider>
-            <Toaster position="top-center" richColors />
+            <Toaster
+              position="top-center"
+              richColors
+              toastOptions={{
+                duration: 4500,
+              }}
+            />
             {children}
             <UploadQueuePanel />
           </UploadProvider>
@@ -34,4 +40,3 @@ export default function RootLayout({
     </html>
   );
 }
-

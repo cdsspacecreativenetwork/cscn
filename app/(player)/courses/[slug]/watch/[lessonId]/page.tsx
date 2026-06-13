@@ -11,7 +11,7 @@ import { getCourseRatingSummary, getUserCourseRating } from '@/data/course-ratin
 
 interface Props {
   params: Promise<{ slug: string; lessonId: string }>;
-  searchParams: Promise<{ autoEnroll?: string }>;
+  searchParams: Promise<{ autoEnroll?: string; preview?: string }>;
 }
 
 function normalizeTimestamps(value: unknown): Array<{ time: string; label: string }> {
@@ -69,7 +69,7 @@ function buildSidebarModules(
 
 export default async function WatchPage({ params, searchParams }: Props) {
   const { slug, lessonId } = await params;
-  const { autoEnroll } = await searchParams;
+  const { autoEnroll, preview } = await searchParams;
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -157,7 +157,12 @@ export default async function WatchPage({ params, searchParams }: Props) {
     !!isCreator ||
     session?.user?.role === 'ADMIN' ||
     session?.user?.role === 'SUPER_ADMIN';
-
+  const previewRole =
+    session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN'
+      ? 'Admin'
+      : isCreator
+        ? 'Instructor'
+        : null;
   // Security: non-creators/non-admins cannot access draft courses!
   if (courseDetail.status !== 'PUBLISHED' && !isAuthorizedPreview) {
     notFound();
@@ -219,6 +224,8 @@ export default async function WatchPage({ params, searchParams }: Props) {
 
   const isEnrolled = !!enrollment;
   const isAuthenticated = !!userId;
+  const showAuthorizedPreview =
+    !!previewRole && (preview === 'true' || courseDetail.status !== 'PUBLISHED' || !isEnrolled);
   const canWatch = lesson.isPreview || isEnrolled || isAuthorizedPreview;
   const visibleModules = isAuthorizedPreview
     ? courseDetail.modules
@@ -362,7 +369,8 @@ export default async function WatchPage({ params, searchParams }: Props) {
         isAuthenticated={isAuthenticated}
         nextLessonId={nextLessonId}
         isCurrentLessonCompleted={completedSet.has(lessonId)}
-        isPreviewMode={isAuthorizedPreview}
+        isPreviewMode={showAuthorizedPreview}
+        previewModeLabel={showAuthorizedPreview ? previewRole : null}
         isCourseCompleted={isCourseCompleted}
         ratingSummary={ratingSummary}
         userRating={userRating}

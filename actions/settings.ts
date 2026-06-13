@@ -11,6 +11,7 @@ import { sendPasswordChangeOTPEmail } from "@/lib/mail";
 import { verifyTOTP, generateBase32Secret } from "@/lib/totp";
 import { getInstructorPublicProfileEligibility } from "@/lib/profile-eligibility";
 import { createPaystackTransferRecipient } from "@/lib/payments/paystack";
+import { normalizeScheduleTimeZone } from "@/lib/schedule-time";
 
 export const settings = async (values: z.infer<typeof SettingsSchema>) => {
   const user = await currentUser();
@@ -38,6 +39,9 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
     where: { id: dbUser.id },
     data: {
       ...values,
+      timezone: values.timezone
+        ? normalizeScheduleTimeZone(values.timezone)
+        : dbUser.timezone ?? "Africa/Lagos",
     },
   });
 

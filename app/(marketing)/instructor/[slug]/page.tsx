@@ -1,21 +1,23 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, BadgeCheck, Globe } from "lucide-react";
 import {
-  ArrowLeft,
-  BadgeCheck,
-  BriefcaseBusiness,
-  Camera,
-  Code2,
-  Globe,
-  Send,
-  UserRound,
-  Video,
-} from "lucide-react";
+  FaXTwitter,
+  FaLinkedin,
+  FaInstagram,
+  FaTelegram,
+  FaGithub,
+  FaBehance,
+  FaDribbble,
+  FaYoutube,
+} from "react-icons/fa6";
 
 import { generateTapbackAvatar } from "@/lib/avatar";
 import { db } from "@/lib/db";
+import { buildMentorBookingSlots } from "@/lib/mentor-booking-slots";
 import { getInstructorPublicProfileEligibility } from "@/lib/profile-eligibility";
+import { MentorProfileBookingCard } from "@/components/marketing/MentorProfileBookingCard";
 
 interface Socials {
   linkedin?: string;
@@ -47,8 +49,15 @@ function formatCourseMeta(lessons: number, minutes: number) {
   return `${lessons} lessons / ${minutes || 0} minutes`;
 }
 
-export default async function InstructorPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function InstructorPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ bookingError?: string }>;
+}) {
   const { slug } = await params;
+  const query = searchParams ? await searchParams : {};
   const formattedName = slug.replace(/-/g, " ");
 
   const instructor = await db.user.findFirst({
@@ -80,6 +89,26 @@ export default async function InstructorPage({ params }: { params: Promise<{ slu
           },
         },
       },
+      mentorAvailabilities: {
+        where: { status: "ACTIVE" },
+        orderBy: [{ type: "asc" }, { weekday: "asc" }, { date: "asc" }, { startTime: "asc" }],
+        select: {
+          id: true,
+          type: true,
+          weekday: true,
+          date: true,
+          startTime: true,
+          endTime: true,
+          timezone: true,
+          sessionDuration: true,
+          bufferMinutes: true,
+          maxBookings: true,
+          bookings: {
+            where: { status: { in: ["PENDING", "CONFIRMED"] } },
+            select: { startsAt: true, status: true },
+          },
+        },
+      },
     },
   });
 
@@ -97,15 +126,32 @@ export default async function InstructorPage({ params }: { params: Promise<{ slu
   });
   const legacySocials = (instructor.socials as Socials | null) ?? {};
   const isVerified = instructor.instructorVerificationStatus === "VERIFIED";
+  const mentorshipTopics = Array.isArray(instructor.mentorshipTopics)
+    ? instructor.mentorshipTopics.filter((topic): topic is string => typeof topic === "string")
+    : [];
+  const mentorshipIsPublic =
+    instructor.mentorshipEligible &&
+    instructor.mentorshipEnabled &&
+    instructor.instructorVerificationStatus === "VERIFIED" &&
+    instructor.publicProfileStatus === "PUBLIC";
+  const mentorshipPriceLabel = instructor.mentorshipFree
+    ? "Free session"
+    : instructor.mentorshipPrice
+      ? `${instructor.mentorshipCurrency} ${instructor.mentorshipPrice.toString()}`
+      : "Paid session";
+  const mentorshipSlots = mentorshipIsPublic
+    ? buildMentorBookingSlots(instructor.mentorAvailabilities, 12)
+    : [];
 
   const socialLinks = [
-    { href: instructor.twitterUrl ?? legacySocials.twitter, label: "X", icon: UserRound },
-    { href: instructor.linkedinUrl ?? legacySocials.linkedin, label: "LinkedIn", icon: BriefcaseBusiness },
-    { href: instructor.instagramUrl, label: "Instagram", icon: Camera },
-    { href: instructor.telegramUrl, label: "Telegram", icon: Send },
-    { href: instructor.githubUrl, label: "GitHub", icon: Code2 },
-    { href: instructor.behanceUrl, label: "Behance", icon: BriefcaseBusiness },
-    { href: instructor.youtubeUrl ?? legacySocials.youtube, label: "YouTube", icon: Video },
+    { href: instructor.twitterUrl ?? legacySocials.twitter, label: "X", icon: FaXTwitter },
+    { href: instructor.linkedinUrl ?? legacySocials.linkedin, label: "LinkedIn", icon: FaLinkedin },
+    { href: instructor.instagramUrl, label: "Instagram", icon: FaInstagram },
+    { href: instructor.telegramUrl, label: "Telegram", icon: FaTelegram },
+    { href: instructor.githubUrl, label: "GitHub", icon: FaGithub },
+    { href: instructor.behanceUrl, label: "Behance", icon: FaBehance },
+    { href: instructor.dribbbleUrl, label: "Dribbble", icon: FaDribbble },
+    { href: instructor.youtubeUrl ?? legacySocials.youtube, label: "YouTube", icon: FaYoutube },
     { href: instructor.websiteUrl ?? instructor.portfolioUrl ?? legacySocials.website, label: "Website", icon: Globe },
   ].filter((item) => !!item.href);
 
@@ -148,13 +194,13 @@ export default async function InstructorPage({ params }: { params: Promise<{ slu
           {/* Left Sidebar Card: Aligned to Figma Specs */}
           <aside className="h-fit overflow-hidden rounded-[16px] border border-stroke bg-white p-2 shadow-[0px_1px_3px_rgba(16,24,40,0.05)]">
             {/* Avatar Container: Exactly 280px Height and 10px Radius */}
-            <div className="relative w-full h-[280px] overflow-hidden rounded-[10px] bg-[#EAF2FF]">
+            <div className="relative h-[420px] w-full overflow-hidden rounded-[10px] bg-[#EAF2FF] sm:h-[520px] lg:h-[280px]">
               <Image
                 src={instructorImage}
                 alt={instructorName}
                 fill
                 priority
-                className="object-cover"
+                className="object-cover object-[center_20%]"
                 sizes="280px"
                 unoptimized={instructorImage.includes("tapback.co") || instructorImage.includes("dicebear.com")}
               />
@@ -234,12 +280,37 @@ export default async function InstructorPage({ params }: { params: Promise<{ slu
                 </div>
               )}
             </div>
+
+            {mentorshipIsPublic && (
+              <>
+              {query.bookingError && (
+                <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-semibold text-red-700">
+                  {query.bookingError}
+                </div>
+              )}
+              <MentorProfileBookingCard
+                mentor={{
+                  id: instructor.id,
+                  name: instructorName,
+                  role: instructor.headline ?? "CSCN Instructor",
+                  image: instructorImage,
+                  profileUrl: `/instructor/${slug}`,
+                  priceLabel: mentorshipPriceLabel,
+                  intro: instructor.mentorshipBio,
+                  instructions: instructor.mentorshipInstructions,
+                  topics: mentorshipTopics,
+                  availability: instructor.mentorAvailabilities,
+                  slots: mentorshipSlots,
+                }}
+              />
+              </>
+            )}
           </section>
         </section>
 
         {/* All Courses Section: exact spacing and heading styles */}
         <section className="mt-24 lg:mt-32">
-          <h2 className="text-[32px] font-semibold tracking-tight text-text-title">All Courses</h2>
+          <h2 className="text-[32px] font-semibold tracking-tight text-text-title">Browse courses by {instructorName}</h2>
 
           {hasCourses ? (
             <div className="mt-8 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

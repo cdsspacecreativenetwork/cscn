@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
@@ -15,6 +15,7 @@ import {
   deleteModule,
   reorderModules,
   createLesson,
+  createStandaloneLesson,
   updateLesson,
   updateLessonPublishState,
   updateModulePublishState,
@@ -28,7 +29,7 @@ import {
   updateCourseInstructorRole,
   requireCourseAccess,
 } from "@/data/instructor";
-import type { CourseInstructorRole, Difficulty, ContentType, ResourceType, QuizMode, QuizQuestionType } from "@prisma/client";
+import type { CourseInstructorRole, CourseType, Difficulty, ContentType, ResourceType, QuizMode, QuizQuestionType } from "@prisma/client";
 import { assertCreatorReadyForReview } from "@/lib/trust-gates";
 
 const supabase = createClient(
@@ -46,12 +47,18 @@ async function requireInstructor() {
   return user.id;
 }
 
+async function requireStudioUser() {
+  const session = await auth();
+  const user = session?.user;
+  if (!user?.id) throw new Error("Unauthorized");
+  return user.id;
+}
+
 async function assertCourseReadyForLearners(courseId: string) {
   const course = await db.course.findUnique({
     where: { id: courseId },
     select: {
       thumbnail: true,
-      promoVideo: true,
       modules: {
         where: { isPublished: true },
         take: 1,
@@ -68,7 +75,6 @@ async function assertCourseReadyForLearners(courseId: string) {
 
   if (!course) throw new Error("Course not found.");
   if (!course.thumbnail) throw new Error("Add a course thumbnail before submitting for review.");
-  if (!course.promoVideo) throw new Error("Add a course trailer before submitting for review.");
   if (!course.modules.some((module) => module.lessons.length > 0)) {
     throw new Error("Publish at least one module and one lesson before submitting for review.");
   }
@@ -96,6 +102,7 @@ export async function updateCourseSettingsAction(
     thumbnail?: string;
     promoVideo?: string | null;
     difficulty?: Difficulty;
+    courseType?: CourseType;
     categoryId?: string | null;
     previewCount?: number;
     requirements?: string[];
@@ -208,26 +215,26 @@ export async function uploadThumbnailAction(
 // ── Modules ───────────────────────────────────────────────────────────────────
 
 export async function createModuleAction(courseId: string, title: string) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   const mod = await createModule(courseId, userId, title);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
   return mod;
 }
 
 export async function updateModuleAction(moduleId: string, title: string, courseId: string) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   await updateModule(moduleId, userId, title);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
 
 export async function deleteModuleAction(moduleId: string, courseId: string) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   await deleteModule(moduleId, userId);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
 
 export async function reorderModulesAction(courseId: string, orderedIds: string[]) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   await reorderModules(courseId, userId, orderedIds);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
@@ -239,10 +246,20 @@ export async function createLessonAction(
   title: string,
   courseId: string
 ) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   const lesson = await createLesson(moduleId, userId, title);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
   return lesson;
+}
+
+export async function createStandaloneLessonAction(
+  courseId: string,
+  title: string
+) {
+  const userId = await requireStudioUser();
+  const result = await createStandaloneLesson(courseId, userId, title);
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  return result;
 }
 
 export async function updateLessonAction(
@@ -259,7 +276,7 @@ export async function updateLessonAction(
     contentType?: ContentType;
   }
 ) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   await updateLesson(lessonId, userId, data);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
@@ -303,7 +320,7 @@ export async function updateLessonQuizAction(
     }[];
   }
 ) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   await requireLessonAccess(courseId, lessonId, userId);
 
   const normalizedQuestions = data.questions.map((question, questionIndex) => ({
@@ -468,7 +485,7 @@ export async function updateModulePublishStateAction(
 }
 
 export async function deleteLessonAction(lessonId: string, courseId: string) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   await deleteLesson(lessonId, userId);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
@@ -478,7 +495,7 @@ export async function reorderLessonsAction(
   courseId: string,
   orderedIds: string[]
 ) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   await reorderLessons(moduleId, userId, orderedIds);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
@@ -490,7 +507,7 @@ export async function moveAndReorderLessonsAction(
   targetOrderedIds: string[],
   courseId: string
 ) {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   await moveAndReorderLessons(lessonId, sourceModuleId, targetModuleId, targetOrderedIds, userId);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
@@ -543,7 +560,7 @@ async function ensureLessonMediaBucket() {
 }
 
 async function requireLessonAccess(courseId: string, lessonId: string, userId: string) {
-  await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(courseId, userId, "TEACHING_ASSISTANT");
   const lesson = await import("@/lib/db").then(({ db }) =>
     db.lesson.findFirst({
       where: { id: lessonId, module: { courseId } },
@@ -557,7 +574,7 @@ export async function listReusableLessonResourcesAction(
   courseId: string,
   lessonId: string
 ): Promise<LessonResourcePayload[]> {
-  const userId = await requireInstructor();
+  const userId = await requireStudioUser();
   await requireLessonAccess(courseId, lessonId, userId);
   const { db } = await import("@/lib/db");
 
@@ -586,7 +603,7 @@ export async function addLessonResourceLinkAction(
   data: { title: string; url: string }
 ): Promise<{ resource?: LessonResourcePayload; error?: string }> {
   try {
-    const userId = await requireInstructor();
+    const userId = await requireStudioUser();
     await requireLessonAccess(courseId, lessonId, userId);
 
     const title = data.title.trim();
@@ -613,7 +630,7 @@ export async function uploadLessonResourceAction(
   formData: FormData
 ): Promise<{ resource?: LessonResourcePayload; error?: string }> {
   try {
-    const userId = await requireInstructor();
+    const userId = await requireStudioUser();
     await requireLessonAccess(courseId, lessonId, userId);
 
     const file = formData.get("file") as File | null;
@@ -660,7 +677,7 @@ export async function uploadLessonMediaImageAction(
   formData: FormData
 ): Promise<{ url?: string; error?: string }> {
   try {
-    const userId = await requireInstructor();
+    const userId = await requireStudioUser();
     await requireLessonAccess(courseId, lessonId, userId);
 
     const file = formData.get("file") as File | null;
@@ -697,7 +714,7 @@ export async function attachExistingLessonResourceAction(
   sourceResourceId: string
 ): Promise<{ resource?: LessonResourcePayload; error?: string }> {
   try {
-    const userId = await requireInstructor();
+    const userId = await requireStudioUser();
     await requireLessonAccess(courseId, lessonId, userId);
     const { db } = await import("@/lib/db");
 
@@ -739,7 +756,7 @@ export async function deleteLessonResourceAction(
   resourceId: string
 ): Promise<{ success?: boolean; error?: string }> {
   try {
-    const userId = await requireInstructor();
+    const userId = await requireStudioUser();
     await requireLessonAccess(courseId, lessonId, userId);
     const { db } = await import("@/lib/db");
     await db.lessonResource.deleteMany({
@@ -766,11 +783,10 @@ export async function getCourseInstructorsAction(courseId: string) {
 
 export async function inviteCoInstructorAction(
   courseId: string,
-  email: string,
-  role: CourseInstructorRole = "CO_INSTRUCTOR"
+  email: string
 ) {
   const userId = await requireInstructor();
-  const invite = await createCourseInvite(courseId, userId, email, role);
+  const invite = await createCourseInvite(courseId, userId, email);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
   return invite;
 }

@@ -1,8 +1,7 @@
-import { db } from "@/lib/db";
-import type { Difficulty, CourseStatus, CourseInstructorRole, ContentType } from "@prisma/client";
+﻿import { db } from "@/lib/db";
+import type { Difficulty, CourseStatus, CourseInstructorRole, ContentType, CourseType } from "@prisma/client";
 import { createNotification } from "@/data/notifications";
 import { sendCourseInviteEmail } from "@/lib/mail";
-import { getInstructorRoleTransitionData } from "@/lib/instructor-onboarding";
 
 // ── Ownership guard (OWNER only — for destructive / admin actions) ────────────
 
@@ -93,7 +92,7 @@ export async function getInstructorCourses(userId: string) {
 // Accessible by OWNER and any CourseInstructor entry (CO_INSTRUCTOR / TEACHING_ASSISTANT)
 
 export async function getStudioCourse(courseId: string, userId: string) {
-  return db.course.findFirst({
+  const course = await db.course.findFirst({
     where: {
       id: courseId,
       OR: [
@@ -110,6 +109,7 @@ export async function getStudioCourse(courseId: string, userId: string) {
       thumbnail: true,
       promoVideo: true,
       difficulty: true,
+      courseType: true,
       status: true,
       previewCount: true,
       categoryId: true,
@@ -137,6 +137,18 @@ export async function getStudioCourse(courseId: string, userId: string) {
         },
       },
       finalExamId: true,
+      revisions: {
+        where: { status: { in: ["DRAFT", "PENDING_REVIEW"] } },
+        orderBy: { version: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          version: true,
+          status: true,
+          submittedAt: true,
+          changeSummary: true,
+        },
+      },
       modules: {
         orderBy: { position: "asc" },
         select: {
@@ -144,6 +156,7 @@ export async function getStudioCourse(courseId: string, userId: string) {
           title: true,
           position: true,
           isPublished: true,
+          isDefault: true,
           lessons: {
             orderBy: { position: "asc" },
             select: {
@@ -203,6 +216,14 @@ export async function getStudioCourse(courseId: string, userId: string) {
       },
     },
   });
+
+  if (!course) return null;
+
+  const { revisions, ...rest } = course;
+  return {
+    ...rest,
+    revision: revisions[0] ?? null,
+  };
 }
 
 // ── Analytics ────────────────────────────────────────────────────────────────
@@ -447,6 +468,7 @@ export async function updateCourseSettings(
     includes?: string[];
     certificateEnabled?: boolean;
     examGated?: boolean;
+    courseType?: CourseType;
     metaTitle?: string | null;
     metaDescription?: string | null;
     price?: number | null;
@@ -499,7 +521,7 @@ export async function deleteCourse(courseId: string, userId: string) {
 // ── Modules ──────────────────────────────────────────────────────────────────
 
 export async function createModule(courseId: string, userId: string, title: string) {
-  await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(courseId, userId, "TEACHING_ASSISTANT");
   const [course, last] = await Promise.all([
     db.course.findUnique({
       where: { id: courseId },
@@ -519,7 +541,7 @@ export async function createModule(courseId: string, userId: string, title: stri
       position: (last?.position ?? 0) + 1,
       isPublished: course.status !== "PUBLISHED",
     },
-    select: { id: true, title: true, position: true, isPublished: true },
+    select: { id: true, title: true, position: true, isPublished: true, isDefault: true },
   });
   return { ...mod, lessons: [] as never[] };
 }
@@ -530,7 +552,7 @@ export async function updateModule(moduleId: string, userId: string, title: stri
     select: { courseId: true },
   });
   if (!mod) throw new Error("Module not found");
-  await requireCourseAccess(mod.courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(mod.courseId, userId, "TEACHING_ASSISTANT");
   return db.module.update({ where: { id: moduleId }, data: { title } });
 }
 
@@ -540,7 +562,7 @@ export async function deleteModule(moduleId: string, userId: string) {
     select: { courseId: true },
   });
   if (!mod) throw new Error("Module not found");
-  await requireCourseAccess(mod.courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(mod.courseId, userId, "TEACHING_ASSISTANT");
   return db.module.delete({ where: { id: moduleId } });
 }
 
@@ -549,7 +571,7 @@ export async function reorderModules(
   userId: string,
   orderedIds: string[]
 ) {
-  await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(courseId, userId, "TEACHING_ASSISTANT");
   await Promise.all(
     orderedIds.map((id, idx) =>
       db.module.update({ where: { id }, data: { position: idx + 1 } })
@@ -565,7 +587,7 @@ export async function createLesson(moduleId: string, userId: string, title: stri
     select: { courseId: true, course: { select: { status: true } } },
   });
   if (!mod) throw new Error("Module not found");
-  await requireCourseAccess(mod.courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(mod.courseId, userId, "TEACHING_ASSISTANT");
 
   const last = await db.lesson.findFirst({
     where: { moduleId },
@@ -589,13 +611,49 @@ export async function createLesson(moduleId: string, userId: string, title: stri
   return { ...lesson, quiz: null, resources: [] as { id: string; title: string; url: string; type: string }[] };
 }
 
+export async function createStandaloneLesson(courseId: string, userId: string, title: string) {
+  await requireCourseAccess(courseId, userId, "TEACHING_ASSISTANT");
+  const course = await db.course.findUnique({
+    where: { id: courseId },
+    select: { status: true },
+  });
+  if (!course) throw new Error("Course not found");
+
+  let defaultModule = await db.module.findFirst({
+    where: { courseId, isDefault: true },
+    select: { id: true, title: true, position: true, isPublished: true, isDefault: true },
+  });
+
+  if (!defaultModule) {
+    const last = await db.module.findFirst({
+      where: { courseId },
+      orderBy: { position: "desc" },
+      select: { position: true },
+    });
+
+    defaultModule = await db.module.create({
+      data: {
+        title: "Lessons",
+        courseId,
+        position: (last?.position ?? 0) + 1,
+        isPublished: course.status !== "PUBLISHED",
+        isDefault: true,
+      },
+      select: { id: true, title: true, position: true, isPublished: true, isDefault: true },
+    });
+  }
+
+  const lesson = await createLesson(defaultModule.id, userId, title);
+  return { module: { ...defaultModule, lessons: [] as never[] }, lesson };
+}
+
 export async function updateLessonPublishState(lessonId: string, userId: string, isPublished: boolean) {
   const lesson = await db.lesson.findUnique({
     where: { id: lessonId },
     select: { module: { select: { courseId: true } } },
   });
   if (!lesson) throw new Error("Lesson not found");
-  await requireCourseAccess(lesson.module.courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(lesson.module.courseId, userId, "TEACHING_ASSISTANT");
   return db.lesson.update({
     where: { id: lessonId },
     data: { isPublished },
@@ -636,7 +694,7 @@ export async function updateLesson(
     select: { module: { select: { courseId: true } } },
   });
   if (!lesson) throw new Error("Lesson not found");
-  await requireCourseAccess(lesson.module.courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(lesson.module.courseId, userId, "TEACHING_ASSISTANT");
   return db.lesson.update({ where: { id: lessonId }, data });
 }
 
@@ -660,7 +718,7 @@ export async function reorderLessons(
     select: { courseId: true },
   });
   if (!mod) throw new Error("Module not found");
-  await requireCourseAccess(mod.courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(mod.courseId, userId, "TEACHING_ASSISTANT");
   await Promise.all(
     orderedIds.map((id, idx) =>
       db.lesson.update({ where: { id }, data: { position: idx + 1 } })
@@ -680,14 +738,14 @@ export async function moveAndReorderLessons(
     select: { module: { select: { courseId: true } } },
   });
   if (!lesson) throw new Error("Lesson not found");
-  await requireCourseAccess(lesson.module.courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(lesson.module.courseId, userId, "TEACHING_ASSISTANT");
 
   const targetMod = await db.module.findUnique({
     where: { id: targetModuleId },
     select: { courseId: true },
   });
   if (!targetMod) throw new Error("Target module not found");
-  await requireCourseAccess(targetMod.courseId, userId, "CO_INSTRUCTOR");
+  await requireCourseAccess(targetMod.courseId, userId, "TEACHING_ASSISTANT");
 
   if (lesson.module.courseId !== targetMod.courseId) {
     throw new Error("Cannot move lessons across different courses");
@@ -737,31 +795,42 @@ export async function getCourseInstructors(courseId: string, userId: string) {
 export async function createCourseInvite(
   courseId: string,
   ownerId: string,
-  email: string,
-  role: CourseInstructorRole = "CO_INSTRUCTOR"
+  email: string
 ) {
   await verifyCourseOwnership(courseId, ownerId);
+  const normalizedEmail = email.trim().toLowerCase();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  const [invite, course] = await Promise.all([
-    db.courseInvite.create({
-      data: { courseId, email, role, invitedBy: ownerId, expiresAt },
-      select: { id: true, token: true, email: true, role: true, expiresAt: true },
+  const [targetUser, course] = await Promise.all([
+    db.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true, role: true, instructorProfileEnabled: true },
     }),
     db.course.findUnique({ where: { id: courseId }, select: { title: true } }),
   ]);
+
+  const role: CourseInstructorRole =
+    targetUser?.role === "INSTRUCTOR" ||
+    targetUser?.role === "ADMIN" ||
+    targetUser?.role === "SUPER_ADMIN" ||
+    targetUser?.instructorProfileEnabled
+      ? "CO_INSTRUCTOR"
+      : "TEACHING_ASSISTANT";
+
+  const invite = await db.courseInvite.create({
+    data: { courseId, email: normalizedEmail, role, invitedBy: ownerId, expiresAt },
+    select: { id: true, token: true, email: true, role: true, expiresAt: true },
+  });
 
   const roleLabel = role === "CO_INSTRUCTOR" ? "Co-Instructor" : "Teaching Assistant";
 
   // Always send invite email
   const inviter = await db.user.findUnique({ where: { id: ownerId }, select: { name: true } });
-  await sendCourseInviteEmail(email, invite.token, course?.title ?? "a course", role, inviter?.name ?? undefined);
+  await sendCourseInviteEmail(normalizedEmail, invite.token, course?.title ?? "a course", role, inviter?.name ?? undefined);
 
-  // If the invited email already belongs to a platform user, also send in-app notification
-  const existingUser = await db.user.findUnique({ where: { email }, select: { id: true } });
-  if (existingUser) {
+  if (targetUser) {
     await createNotification(
-      existingUser.id,
+      targetUser.id,
       "COURSE_INVITE",
       `You've been invited as ${roleLabel}`,
       `You have been invited to join "${course?.title ?? "a course"}" as ${roleLabel}.`,
@@ -830,16 +899,30 @@ export async function acceptCourseInvite(token: string, userId: string) {
     data: { usedAt: new Date(), usedBy: userId },
   });
 
-  // Upgrade user to INSTRUCTOR platform role when accepting as CO_INSTRUCTOR
-  if (invite.role === "CO_INSTRUCTOR" && user?.role === "USER") {
-    await db.user.update({
-      where: { id: userId },
-      data: {
-        role: "INSTRUCTOR",
-        ...getInstructorRoleTransitionData("INSTRUCTOR"),
-      },
-    });
+  return { courseId: invite.courseId };
+}
+
+export async function declineCourseInvite(token: string, userId: string) {
+  const invite = await db.courseInvite.findUnique({
+    where: { token },
+    select: { id: true, courseId: true, expiresAt: true, usedAt: true, email: true },
+  });
+  if (!invite) throw new Error("Invalid invite link.");
+  if (invite.usedAt) throw new Error("This invite has already been used.");
+  if (invite.expiresAt < new Date()) throw new Error("This invite has expired.");
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  if (user?.email !== invite.email) {
+    throw new Error("This invite was sent to a different email address.");
   }
+
+  await db.courseInvite.update({
+    where: { id: invite.id },
+    data: { usedAt: new Date(), usedBy: userId },
+  });
 
   return { courseId: invite.courseId };
 }

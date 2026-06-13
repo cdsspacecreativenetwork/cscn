@@ -10,6 +10,12 @@ import { User } from '@prisma/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Link as LinkIcon, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { CustomSelect } from '@/components/ui/CustomSelect';
+import {
+  FALLBACK_LOCATION_TIMEZONE_OPTIONS,
+  getLocationTimezoneOption,
+  type LocationTimezoneOption,
+} from '@/lib/location-timezones';
 
 const FormField = ({ 
   label, 
@@ -106,14 +112,30 @@ function splitExpertise(value: string) {
 
 interface ProfileFormProps {
   user: User;
+  locationTimezoneOptions?: LocationTimezoneOption[];
 }
 
-export const ProfileForm = ({ user }: ProfileFormProps) => {
+export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_TIMEZONE_OPTIONS }: ProfileFormProps) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<'idle' | 'dirty' | 'saving' | 'saved' | 'error'>('idle');
   const lastSavedRef = useRef('');
   const [expertiseText, setExpertiseText] = useState(() => normalizeExpertise(user.expertise).join(', '));
+  const normalizedLocationOptions = useMemo(
+    () => locationTimezoneOptions.length > 0 ? locationTimezoneOptions : FALLBACK_LOCATION_TIMEZONE_OPTIONS,
+    [locationTimezoneOptions]
+  );
+  const initialLocationOption = useMemo(
+    () => getLocationTimezoneOption(user.timezone, user.location, normalizedLocationOptions),
+    [normalizedLocationOptions, user.location, user.timezone]
+  );
+  const locationSelectOptions = useMemo(
+    () => normalizedLocationOptions.map((option) => ({
+      value: `${option.location}::${option.timezone}`,
+      label: `${option.country} - ${option.timezone}`,
+    })),
+    [normalizedLocationOptions]
+  );
 
   // Parse existing socials safely, or provide defaults
   const defaultSocials = React.useMemo(() => {
@@ -143,7 +165,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       lastName: user.lastName || (user.name ? user.name.split(' ').slice(1).join(' ') : '') || '',
       bio: user.bio || '',
       headline: user.headline || '',
-      location: user.location || '',
+      location: user.location || initialLocationOption.location,
+      timezone: user.timezone || initialLocationOption.timezone,
       yearsExperience: user.yearsExperience ?? undefined,
       websiteUrl: user.websiteUrl || '',
       portfolioUrl: user.portfolioUrl || '',
@@ -297,14 +320,32 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
             error={form.formState.errors.bio?.message}
           />
 
-          <FormField 
-            className='md:col-span-2 '
-            label="Location" 
-            placeholder="City, Country" 
-            name="location"
-            register={form.register}
-            error={form.formState.errors.location?.message}
-          />
+          <div className="md:col-span-2 flex flex-col gap-2">
+            <label className="text-[14px] md:text-[16px] font-semibold text-[#4B5563] tracking-tight">
+              Location and timezone
+            </label>
+            <CustomSelect
+              value={`${form.watch('location') || initialLocationOption.location}::${form.watch('timezone') || initialLocationOption.timezone}`}
+              options={locationSelectOptions}
+              searchable
+              searchPlaceholder="Search country or timezone"
+              onChange={(value) => {
+                const option = normalizedLocationOptions.find((item) => `${item.location}::${item.timezone}` === value);
+                if (!option) return;
+                form.setValue('location', option.location, { shouldDirty: true, shouldValidate: true });
+                form.setValue('timezone', option.timezone, { shouldDirty: true, shouldValidate: true });
+              }}
+              className="w-full [&>button]:h-[56px] [&>button]:rounded-[16px] [&>button]:border-[#E3E8F4] [&>button]:bg-background [&>button]:px-6 [&>button_span]:text-[15px] md:[&>button_span]:text-[16px]"
+            />
+            <input type="hidden" {...form.register('location')} />
+            <input type="hidden" {...form.register('timezone')} />
+            <p className="text-xs font-medium text-[#9CA3AF]">
+              This powers your schedule defaults, reminders, and calendar display across CSCN.
+            </p>
+            {form.formState.errors.location?.message && (
+              <p className="text-red-500 text-xs mt-1">{form.formState.errors.location.message}</p>
+            )}
+          </div>
 
           <FormField
             label="Years of experience"

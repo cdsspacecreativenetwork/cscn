@@ -23,14 +23,28 @@ export async function GET(request: Request) {
     }
 
     const fulfilled = await fulfillPaystackTransaction(result.data);
-    if (!fulfilled.success || !fulfilled.courseSlug) {
+    const mentorBookingId = "mentorBookingId" in fulfilled ? fulfilled.mentorBookingId : undefined;
+    const courseSlug = "courseSlug" in fulfilled ? fulfilled.courseSlug : undefined;
+
+    if (!fulfilled.success) {
+      if (mentorBookingId) {
+        return NextResponse.redirect(`${baseUrl}/mentorship?bookingError=${encodeURIComponent("Mentorship payment was not completed. The slot has been released.")}`);
+      }
       return NextResponse.redirect(`${baseUrl}/dashboard/courses?payment=pending`);
     }
 
-    const firstLesson = await getFirstPlayableLessonForCourseSlug(fulfilled.courseSlug);
+    if (mentorBookingId) {
+      return NextResponse.redirect(`${baseUrl}/dashboard/schedule?booking=confirmed`);
+    }
+
+    if (!courseSlug) {
+      return NextResponse.redirect(`${baseUrl}/dashboard/courses?payment=pending`);
+    }
+
+    const firstLesson = await getFirstPlayableLessonForCourseSlug(courseSlug);
     const destination = firstLesson
-      ? `/courses/${fulfilled.courseSlug}/watch/${firstLesson.id}`
-      : `/courses/${fulfilled.courseSlug}?payment=success`;
+      ? `/courses/${courseSlug}/watch/${firstLesson.id}`
+      : `/courses/${courseSlug}?payment=success`;
 
     return NextResponse.redirect(`${baseUrl}${destination}`);
   } catch {

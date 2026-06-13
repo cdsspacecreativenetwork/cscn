@@ -60,19 +60,33 @@ export default async function AdminCourseDetailPage({ params, searchParams }: Pr
   };
 
   const serializedCourse = JSON.parse(JSON.stringify(course));
+  const pendingRevision = serializedCourse.revisions?.[0] ?? null;
+  const pendingDraftSnapshot = pendingRevision?.draftSnapshot ?? null;
+  const shouldReviewDraftSnapshot =
+    serializedCourse.status === "PUBLISHED" &&
+    pendingRevision?.status === "PENDING_REVIEW" &&
+    pendingDraftSnapshot;
+  const studioCourse = shouldReviewDraftSnapshot
+    ? {
+        ...serializedCourse,
+        ...pendingDraftSnapshot,
+        id: serializedCourse.id,
+        status: serializedCourse.status,
+        instructor: serializedCourse.instructor,
+        category: serializedCourse.category,
+        pricingProposals: serializedCourse.pricingProposals,
+        revisions: serializedCourse.revisions,
+        revision: pendingRevision,
+      }
+    : {
+        ...serializedCourse,
+        revision: pendingRevision,
+      };
 
   return (
     <div className="bg-background">
-      <AdminCourseApprovalWorkspace
-        course={serializedCourse}
-        permissions={{
-          canReviewCourses: hasAdminPermission(session.user, 'canReviewCourses'),
-          canPublishCourses: hasAdminPermission(session.user, 'canPublishCourses'),
-          canManageBilling: hasAdminPermission(session.user, 'canManageBilling'),
-        }}
-      />
       <CourseStudio
-        course={serializedCourse}
+        course={studioCourse}
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
         analytics={analytics}
         initialTab={tab ?? 'settings'}
@@ -83,6 +97,16 @@ export default async function AdminCourseDetailPage({ params, searchParams }: Pr
         openFeedbackCount={openFeedbackCount}
         initialRosterData={JSON.parse(JSON.stringify(rosterData))}
         initialFeedbackData={JSON.parse(JSON.stringify(feedbackData))}
+        adminReviewSlot={
+          <AdminCourseApprovalWorkspace
+            course={serializedCourse}
+            permissions={{
+              canReviewCourses: hasAdminPermission(session.user, 'canReviewCourses'),
+              canPublishCourses: hasAdminPermission(session.user, 'canPublishCourses'),
+              canManageBilling: hasAdminPermission(session.user, 'canManageBilling'),
+            }}
+          />
+        }
       />
     </div>
   );

@@ -97,6 +97,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
   const courseModules = course.modules.map((module) => ({
     id: module.id,
     title: module.title,
+    isDefault: module.isDefault,
     lessons: module.lessons.map((lesson) => ({
       id: lesson.id,
       title: lesson.title,
@@ -134,7 +135,11 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
       headline: course.instructor.headline,
       publicProfileSlug: course.instructor.publicProfileSlug,
     },
-    ...('instructors' in course ? course.instructors.map((record) => record.user) : []),
+    ...('instructors' in course
+      ? course.instructors
+          .filter((record) => record.role !== 'TEACHING_ASSISTANT')
+          .map((record) => record.user)
+      : []),
   ];
   const uniqueInstructors = Array.from(
     new Map(courseInstructors.map((instructor) => [instructor.id, instructor])).values()
@@ -199,7 +204,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
 
       <div className="px-4 md:px-[clamp(20px,11.57vw,200px)] w-full flex justify-center">
         <div className="grid grid-cols-1 mlg:grid-cols-12 gap-[clamp(24px,1.85vw,32px)] items-start w-full max-w-[1440px]">
-          <div className="mlg:col-span-4 w-full">
+          <div className="mlg:col-span-5 w-full">
             <ClassLessons
               totalLessons={totalLessons}
               totalDuration={totalDuration}
@@ -207,7 +212,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
             />
           </div>
 
-          <div className="mlg:col-span-8 w-full">
+          <div className="mlg:col-span-7 w-full">
             <CourseDetails
               enrolledCount={course._count.enrollments.toLocaleString()}
               ratingAverage={course.ratingAverage ?? 0}

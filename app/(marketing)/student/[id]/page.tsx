@@ -1,30 +1,83 @@
+import type { ComponentType, ElementType } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   ArrowLeft,
   Award,
-  BookCheck,
   BookOpen,
-  Flame,
+  BriefcaseBusiness,
+  Globe,
   MapPin,
   ShieldCheck,
   Sparkles,
-  TrendingUp,
   Trophy,
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
+import { FaGithub, FaInstagram, FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import CourseCard from '@/components/ui/CourseCard';
 import { generateTapbackAvatar } from '@/lib/avatar';
 import { db } from '@/lib/db';
 
-const statCardClass =
-  'rounded-[28px] border border-white/12 bg-white/8 px-5 py-4 backdrop-blur-md';
-const panelClass =
-  'rounded-[30px] border border-[#DCE5F5] bg-white/92 p-6 shadow-[0_18px_60px_rgba(4,11,55,0.08)] backdrop-blur-sm md:p-8';
+const socialButtonClass =
+  'flex h-10 w-10 items-center justify-center rounded-[10px] border border-stroke-ii bg-white text-text-title transition-all duration-200 hover:border-primary hover:text-primary active:scale-95 hover:shadow-sm';
+
+type SocialLink = {
+  label: string;
+  href: string;
+  icon: ElementType<{ size?: number; className?: string }>;
+};
 
 interface Params {
   id: string;
+}
+
+type PublicCourse = {
+  id: string;
+  title: string;
+  slug: string;
+  shortDesc: string | null;
+  thumbnail: string | null;
+  difficulty: string;
+  price: unknown;
+  category: { name: string } | null;
+  instructor: { name: string | null; image: string | null };
+  _count: { enrollments: number };
+  modules: {
+    _count: { lessons: number };
+    lessons: { duration: number | null }[];
+  }[];
+};
+
+function formatCourseDuration(minutes: number) {
+  if (minutes >= 60) return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  return `${minutes}m`;
+}
+
+function toCourseCard(course: PublicCourse) {
+  const totalLessons = course.modules.reduce((sum, module) => sum + module._count.lessons, 0);
+  const totalMinutes = course.modules
+    .flatMap((module) => module.lessons)
+    .reduce((sum, lesson) => sum + (lesson.duration ?? 0), 0);
+  const price = Number(course.price ?? 0);
+
+  return {
+    id: course.id,
+    slug: course.slug,
+    title: course.title,
+    category: course.category?.name ?? 'General',
+    description: course.shortDesc ?? '',
+    lessons: String(totalLessons),
+    duration: formatCourseDuration(totalMinutes),
+    author: course.instructor.name ?? 'Instructor',
+    authorAvatar: course.instructor.image ?? generateTapbackAvatar(course.instructor.name ?? 'Instructor'),
+    image: course.thumbnail ?? '/assets/default-course.jpg',
+    rating: 4.8,
+    reviews: course._count.enrollments,
+    students: course._count.enrollments.toLocaleString(),
+    level: course.difficulty,
+    priceLabel: price > 0 ? `₦${price.toLocaleString()}` : 'Free',
+  };
 }
 
 export default async function StudentPortfolioPage({ params }: { params: Promise<Params> }) {
@@ -34,7 +87,7 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
     where: { id },
     include: {
       enrollments: {
-        where: { status: 'COMPLETED' },
+        where: { course: { is: { status: 'PUBLISHED' } } },
         include: {
           course: {
             select: {
@@ -59,7 +112,36 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
             },
           },
         },
-        orderBy: { completedAt: 'desc' },
+        orderBy: [{ completedAt: 'desc' }, { enrolledAt: 'desc' }],
+      },
+      courseInstructors: {
+        where: {
+          role: 'TEACHING_ASSISTANT',
+          course: { is: { status: 'PUBLISHED' } },
+        },
+        include: {
+          course: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              shortDesc: true,
+              thumbnail: true,
+              difficulty: true,
+              price: true,
+              category: { select: { name: true } },
+              instructor: { select: { name: true, image: true } },
+              _count: { select: { enrollments: true } },
+              modules: {
+                select: {
+                  _count: { select: { lessons: true } },
+                  lessons: { select: { duration: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
       },
       achievements: {
         include: { achievement: true },
@@ -72,18 +154,24 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
     notFound();
   }
 
-  const [activeCount, totalEnrollments] = await Promise.all([
-    db.enrollment.count({
-      where: { userId: student.id, status: 'ACTIVE' },
-    }),
-    db.enrollment.count({
-      where: { userId: student.id },
-    }),
-  ]);
+  const totalEnrollments = await db.enrollment.count({ where: { userId: student.id } });
 
-  const studentImage =
-    student.image ?? generateTapbackAvatar(student.name ?? student.email.split('@')[0]);
   const displayName = student.name ?? student.email.split('@')[0];
+  const studentImage = student.image ?? generateTapbackAvatar(displayName);
+  const learningCourseCards = student.enrollments.map((enrollment) => toCourseCard(enrollment.course));
+  const assistedCourseCards = student.courseInstructors.map((courseInstructor) => toCourseCard(courseInstructor.course));
+  const featuredAchievements = student.achievements.slice(0, 6);
+  const completedEnrollments = student.enrollments.filter((enrollment) => enrollment.status === 'COMPLETED');
+  const certificateEnrollments = completedEnrollments.filter((enrollment) => enrollment.course.certificateEnabled);
+  const socialLinks: SocialLink[] = [
+    { label: 'Website', href: student.websiteUrl, icon: Globe },
+    { label: 'Portfolio', href: student.portfolioUrl, icon: BriefcaseBusiness },
+    { label: 'LinkedIn', href: student.linkedinUrl, icon: FaLinkedin },
+    { label: 'GitHub', href: student.githubUrl, icon: FaGithub },
+    { label: 'X', href: student.twitterUrl, icon: FaXTwitter },
+    { label: 'Instagram', href: student.instagramUrl, icon: FaInstagram },
+    { label: 'YouTube', href: student.youtubeUrl, icon: FaYoutube },
+  ].flatMap((link) => (link.href ? [{ ...link, href: link.href }] : []));
   const totalCompletedLessons = student.enrollments.reduce(
     (sum, enrollment) =>
       sum + enrollment.course.modules.reduce((inner, module) => inner + module._count.lessons, 0),
@@ -96,241 +184,170 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
     return sum + minutes;
   }, 0);
 
-  const completedCourseCards = student.enrollments.map((enrollment) => {
-    const course = enrollment.course;
-    const totalLessons = course.modules.reduce((sum, module) => sum + module._count.lessons, 0);
-    const totalMinutes = course.modules
-      .flatMap((module) => module.lessons)
-      .reduce((sum, lesson) => sum + (lesson.duration ?? 0), 0);
-
-    return {
-      id: course.id,
-      slug: course.slug,
-      title: course.title,
-      category: course.category?.name ?? 'General',
-      description: course.shortDesc ?? '',
-      lessons: String(totalLessons),
-      duration: totalMinutes >= 60
-        ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`
-        : `${totalMinutes}m`,
-      author: course.instructor.name ?? 'Instructor',
-      authorAvatar:
-        course.instructor.image ?? generateTapbackAvatar(course.instructor.name ?? 'Instructor'),
-      image: course.thumbnail ?? '/assets/default-course.jpg',
-      rating: 4.8,
-      reviews: course._count.enrollments,
-      students: course._count.enrollments.toLocaleString(),
-      level: course.difficulty,
-      priceLabel: course.price ? `₦${Number(course.price).toLocaleString()}` : 'Free',
-    };
-  });
-
-  const featuredAchievements = student.achievements.slice(0, 6);
-  const certificateEnrollments = student.enrollments.filter(
-    (enrollment) => enrollment.course.certificateEnabled
-  );
-
   return (
-    <div className="min-h-screen bg-[#F4F7FC] pb-24">
-      <section className="relative overflow-hidden bg-[#040B37] pt-28 pb-16 text-white md:pt-32 md:pb-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,159,67,0.18),_transparent_30%),radial-gradient(circle_at_bottom_left,_rgba(5,117,255,0.20),_transparent_32%)]" />
-        <div className="relative mx-auto flex w-full max-w-[1440px] flex-col gap-10 px-4 md:px-8">
-          <Link href="/courses" className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-white/72 transition-colors hover:text-white">
-            <ArrowLeft size={16} />
-            Back to courses
-          </Link>
+    <div className="min-h-screen bg-[#F4F6FB] pb-24">
+      <div className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-6 lg:px-8">
+        <Link
+          href="/courses"
+          className="inline-flex h-12 items-center gap-2 rounded-full border border-stroke bg-white px-5 text-[15px] font-semibold text-text-body shadow-sm transition hover:border-primary hover:text-primary"
+        >
+          <ArrowLeft size={18} />
+          Back
+        </Link>
 
-          <div className="grid gap-8 xl:grid-cols-[300px_minmax(0,1fr)] xl:items-end">
-            <div className="relative mx-auto h-[220px] w-[220px] overflow-hidden rounded-[36px] border border-white/12 bg-white/8 shadow-[0_28px_80px_rgba(0,0,0,0.28)] md:h-[260px] md:w-[260px] xl:mx-0">
+        <section className="mt-8 grid gap-6 lg:grid-cols-[290px_1fr] lg:gap-10">
+          <aside className="h-fit overflow-hidden rounded-[16px] border border-stroke bg-white p-2 shadow-[0px_1px_3px_rgba(16,24,40,0.05)]">
+            <div className="relative h-[420px] w-full overflow-hidden rounded-[10px] bg-[#EAF2FF] sm:h-[520px] lg:h-[280px]">
               <Image
                 src={studentImage}
                 alt={displayName}
                 fill
                 priority
-                className="object-cover"
-                sizes="(max-width: 768px) 220px, 260px"
+                className="object-cover object-[center_20%]"
+                sizes="(max-width: 1024px) 100vw, 280px"
+                unoptimized={studentImage.includes('tapback.co') || studentImage.includes('dicebear.com')}
               />
             </div>
 
-            <div className="flex flex-col gap-6 text-center xl:text-left">
-              <div className="space-y-4">
-                <span className="inline-flex rounded-full border border-white/12 bg-white/8 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#FFD2A6]">
-                  CSCN Student Profile
+            <div className="px-3 pb-[18px] pt-5 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-title">
+                  {displayName}
+                </h1>
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white">
+                  <Sparkles size={12} />
                 </span>
-                <div className="space-y-3">
-                  <h1 className="text-[clamp(2.4rem,5vw,4.4rem)] font-bold leading-[0.98] tracking-[-0.05em]">
-                    {displayName}
-                  </h1>
-                  {student.headline && (
-                    <p className="text-lg font-semibold text-white/86 md:text-2xl">{student.headline}</p>
-                  )}
-                  <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-white/68 xl:justify-start">
-                    {student.location && (
-                      <span className="inline-flex items-center gap-2">
-                        <MapPin size={15} />
-                        {student.location}
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-2">
-                      <Sparkles size={15} />
-                      Learning publicly on CSCN
-                    </span>
-                  </div>
-                  <p className="mx-auto max-w-3xl text-sm leading-7 text-white/68 md:text-base xl:mx-0">
-                    {student.bio ??
-                      'A committed learner steadily building practical skills, course completions, and a credible learning track record.'}
-                  </p>
+              </div>
+              <p className="mt-2 text-[15px] font-medium text-text-body">
+                {student.headline ?? student.learningFocus ?? 'CSCN Learner'}
+              </p>
+
+              <hr className="mx-2 my-5 border-t border-dashed border-stroke" />
+
+              <div className="grid grid-cols-3 divide-x divide-dashed divide-stroke text-center">
+                <div>
+                  <p className="text-[22px] font-semibold text-text-title">{completedEnrollments.length}</p>
+                  <p className="mt-1 text-[12px] font-medium text-text-body">Completed</p>
+                </div>
+                <div>
+                  <p className="text-[22px] font-semibold text-text-title">{student.currentStreak}d</p>
+                  <p className="mt-1 text-[12px] font-medium text-text-body">Streak</p>
+                </div>
+                <div>
+                  <p className="text-[22px] font-semibold text-text-title">{student.achievements.length}</p>
+                  <p className="mt-1 text-[12px] font-medium text-text-body">Badges</p>
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className={statCardClass}>
-                  <div className="flex items-center gap-2 text-white/62">
-                    <Flame size={16} />
-                    <span className="text-xs uppercase tracking-[0.16em]">Current streak</span>
-                  </div>
-                  <p className="mt-3 text-3xl font-bold tracking-[-0.04em]">{student.currentStreak}d</p>
-                </div>
-                <div className={statCardClass}>
-                  <div className="flex items-center gap-2 text-white/62">
-                    <BookCheck size={16} />
-                    <span className="text-xs uppercase tracking-[0.16em]">Completed</span>
-                  </div>
-                  <p className="mt-3 text-3xl font-bold tracking-[-0.04em]">{student.enrollments.length}</p>
-                </div>
-                <div className={statCardClass}>
-                  <div className="flex items-center gap-2 text-white/62">
-                    <TrendingUp size={16} />
-                    <span className="text-xs uppercase tracking-[0.16em]">In progress</span>
-                  </div>
-                  <p className="mt-3 text-3xl font-bold tracking-[-0.04em]">{activeCount}</p>
-                </div>
-                <div className={statCardClass}>
-                  <div className="flex items-center gap-2 text-white/62">
-                    <Trophy size={16} />
-                    <span className="text-xs uppercase tracking-[0.16em]">Achievements</span>
-                  </div>
-                  <p className="mt-3 text-3xl font-bold tracking-[-0.04em]">{student.achievements.length}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+              <hr className="mx-2 my-5 border-t border-dashed border-stroke" />
 
-      <div className="mx-auto -mt-6 flex w-full max-w-[1440px] flex-col gap-8 px-4 md:px-8 lg:-mt-8 lg:grid lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
-        <aside className="flex flex-col gap-6">
-          <section className={panelClass}>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-bold tracking-[-0.03em] text-[#040B37]">Learning Snapshot</h2>
-              <span className="rounded-full bg-[#FFF1E4] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#D97706]">
-                Active learner
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              <div className="rounded-[22px] bg-[#F4F7FC] p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-[#6B7280]">Time invested</p>
-                <p className="mt-2 text-lg font-semibold text-[#040B37]">
-                  {Math.floor(totalLearningMinutes / 60)}h {totalLearningMinutes % 60}m across completed courses.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-[22px] bg-[#F4F7FC] p-4 text-center">
-                  <p className="text-2xl font-bold tracking-[-0.04em] text-[#040B37]">{student.longestStreak}</p>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-[#6B7280]">Longest streak</p>
-                </div>
-                <div className="rounded-[22px] bg-[#F4F7FC] p-4 text-center">
-                  <p className="text-2xl font-bold tracking-[-0.04em] text-[#040B37]">{totalCompletedLessons}</p>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-[#6B7280]">Lessons finished</p>
-                </div>
-              </div>
-              <div className="rounded-[22px] bg-[#F4F7FC] p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-[#6B7280]">Journey depth</p>
-                <p className="mt-2 text-lg font-semibold text-[#040B37]">
-                  {totalEnrollments} total enrollments with {certificateEnrollments.length} certificate-ready completions.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section className={panelClass}>
-            <h2 className="text-xl font-bold tracking-[-0.03em] text-[#040B37]">Achievements</h2>
-            <p className="mt-2 text-sm leading-6 text-[#667085]">
-              Milestones unlocked through consistency, completions, and platform activity.
-            </p>
-
-            <div className="mt-5 flex flex-col gap-3">
-              {featuredAchievements.length > 0 ? featuredAchievements.map((userAchievement) => {
-                const iconName = userAchievement.achievement.icon as keyof typeof LucideIcons;
-                const IconComponent =
-                  (LucideIcons[iconName] as React.ComponentType<{ size?: number; className?: string }>) ??
-                  Award;
-
-                return (
-                  <div
-                    key={userAchievement.id}
-                    className="flex items-start gap-4 rounded-[22px] border border-[#DCE5F5] bg-[#F8FBFF] p-4"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#1C4ED1] shadow-sm">
-                      <IconComponent size={22} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-[#040B37]">{userAchievement.achievement.name}</p>
-                      <p className="mt-1 text-sm leading-6 text-[#667085]">
-                        {userAchievement.achievement.description}
-                      </p>
-                    </div>
-                  </div>
-                );
-              }) : (
-                <div className="rounded-[22px] bg-[#F4F7FC] px-4 py-5 text-sm text-[#667085]">
-                  New achievements will appear here as the learner completes lessons and keeps their streak alive.
+              {socialLinks.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-3">
+                  {socialLinks.map(({ label, href, icon: Icon }) => (
+                    <Link
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={socialButtonClass}
+                      aria-label={label}
+                    >
+                      <Icon size={18} />
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>
-          </section>
-        </aside>
+          </aside>
 
-        <main className="flex flex-col gap-6">
-          <section className={panelClass}>
+          <section className="flex flex-col gap-7 pt-1">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-stroke pb-4">
+              <h2 className="text-[20px] font-semibold tracking-tight text-text-title">About Me</h2>
+              <span className="text-[16px] font-semibold text-text-title">
+                {totalCompletedLessons} Lessons ({Math.floor(totalLearningMinutes / 60)}h)
+              </span>
+            </div>
+
+            <div className="max-w-[850px] whitespace-pre-line text-[16px] font-medium leading-[1.65] text-text-body">
+              {student.bio ||
+                `${displayName} is building a visible learning portfolio on CSCN through completed courses, streaks, projects, and course participation.`}
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              {student.location && (
+                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-2 text-[13px] font-semibold text-text-body shadow-sm ring-1 ring-stroke">
+                  <MapPin size={15} />
+                  {student.location}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-3.5 py-2 text-[13px] font-semibold text-primary">
+                <Sparkles size={15} />
+                Learning publicly on CSCN
+              </span>
+            </div>
+
+          </section>
+        </section>
+
+        <main className="mt-16 flex flex-col gap-10">
+          <section className="p-0">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1C4ED1]">Completed learning</p>
-                <h2 className="mt-2 text-[clamp(1.8rem,3vw,2.6rem)] font-bold tracking-[-0.05em] text-[#040B37]">
-                  Courses completed by {displayName}
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Learning portfolio</p>
+                <h2 className="mt-2 text-[clamp(1.45rem,3vw,2rem)] font-semibold tracking-[-0.04em] text-text-title">
+                  Courses {displayName} is learning
                 </h2>
               </div>
-              <div className="rounded-full bg-[#EEF4FF] px-4 py-2 text-sm font-semibold text-[#1C4ED1]">
-                {completedCourseCards.length} completed {completedCourseCards.length === 1 ? 'course' : 'courses'}
+              <div className="rounded-full bg-primary/5 px-4 py-2 text-sm font-semibold text-primary">
+                {learningCourseCards.length} {learningCourseCards.length === 1 ? 'course' : 'courses'}
               </div>
             </div>
 
-            {completedCourseCards.length > 0 ? (
+            {learningCourseCards.length > 0 ? (
               <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
-                {completedCourseCards.map((course) => (
+                {learningCourseCards.map((course) => (
                   <CourseCard key={course.id} {...course} />
                 ))}
               </div>
             ) : (
-              <div className="mt-8 rounded-[28px] border border-dashed border-[#C9D8F7] bg-[#F8FBFF] px-6 py-12 text-center">
-                <h3 className="text-xl font-bold text-[#040B37]">No completed courses yet</h3>
-                <p className="mt-3 text-sm leading-6 text-[#667085]">
-                  This learner is still in progress. Their completed courses will appear here over time.
+              <div className="mt-8 rounded-[18px] border border-dashed border-[#C9D8F7] bg-[#F8FBFF] px-6 py-12 text-center">
+                <h3 className="text-xl font-semibold text-text-title">No public learning yet</h3>
+                <p className="mt-3 text-sm leading-6 text-text-body">
+                  Courses will appear here as this learner joins published learning experiences.
                 </p>
               </div>
             )}
           </section>
 
+          {assistedCourseCards.length > 0 && (
+            <section className="p-0">
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Course collaboration</p>
+                <h2 className="text-[clamp(1.45rem,3vw,2rem)] font-semibold tracking-[-0.04em] text-text-title">
+                  Courses {displayName} assisted on
+                </h2>
+                <p className="max-w-2xl text-sm font-medium leading-6 text-text-body">
+                  Teaching assistant contributions show courses where this learner helped support the learning experience.
+                </p>
+              </div>
+
+              <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                {assistedCourseCards.map((course) => (
+                  <CourseCard key={course.id} {...course} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {certificateEnrollments.length > 0 && (
-            <section className={panelClass}>
+            <section className="rounded-[18px] border border-stroke bg-white p-5 shadow-sm sm:p-8">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF4FF] text-[#1C4ED1]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
                   <ShieldCheck size={22} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1C4ED1]">Verified certificates</p>
-                  <h2 className="mt-1 text-2xl font-bold tracking-[-0.04em] text-[#040B37]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Verified certificates</p>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-text-title">
                     Certificate-ready achievements
                   </h2>
                 </div>
@@ -340,15 +357,15 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
                 {certificateEnrollments.map((enrollment) => (
                   <div
                     key={enrollment.id}
-                    className="flex flex-col gap-4 rounded-[24px] border border-[#DCE5F5] bg-[#F8FBFF] p-5 md:flex-row md:items-center md:justify-between"
+                    className="flex flex-col gap-4 rounded-[16px] border border-stroke bg-[#F8FBFF] p-5 md:flex-row md:items-center md:justify-between"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#1C4ED1] shadow-sm">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-sm">
                         <BookOpen size={20} />
                       </div>
                       <div>
-                        <p className="font-semibold text-[#040B37]">{enrollment.course.title}</p>
-                        <p className="mt-1 text-sm text-[#667085]">
+                        <p className="font-semibold text-text-title">{enrollment.course.title}</p>
+                        <p className="mt-1 text-sm text-text-body">
                           Completed on{' '}
                           {enrollment.completedAt
                             ? new Date(enrollment.completedAt).toLocaleDateString(undefined, {
@@ -363,7 +380,7 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
 
                     <Link
                       href={`/certificate/verify?enrollmentId=${enrollment.id}`}
-                      className="inline-flex w-full items-center justify-center rounded-full border border-[#1C4ED1] px-5 py-3 text-sm font-semibold text-[#1C4ED1] transition-colors hover:bg-[#1C4ED1] hover:text-white md:w-auto"
+                      className="inline-flex w-full items-center justify-center rounded-full border border-primary px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white md:w-auto"
                     >
                       View Certificate
                     </Link>
@@ -372,6 +389,51 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
               </div>
             </section>
           )}
+
+          <section className="p-0">
+            <h2 className="text-[clamp(1.45rem,3vw,2rem)] font-semibold tracking-[-0.04em] text-text-title">Achievements</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-body">
+              Milestones unlocked through consistency, completions, and platform activity.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredAchievements.length > 0 ? featuredAchievements.map((userAchievement) => {
+                const iconName = userAchievement.achievement.icon as keyof typeof LucideIcons;
+                const IconComponent =
+                  (LucideIcons[iconName] as ComponentType<{ size?: number; className?: string }>) ??
+                  Award;
+
+                return (
+                  <div
+                    key={userAchievement.id}
+                    className="flex items-start gap-4 rounded-[16px] bg-[#F4F6FB] p-4"
+                  >
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+                      <IconComponent size={20} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-text-title">{userAchievement.achievement.name}</p>
+                      <p className="mt-1 text-sm leading-6 text-text-body">
+                        {userAchievement.achievement.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              }) : (
+                <div className="rounded-[16px] bg-[#F4F6FB] px-4 py-5 text-sm text-text-body">
+                  New achievements will appear here as the learner completes lessons and keeps their streak alive.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-[16px] bg-[#F4F6FB] p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-mute">Learning snapshot</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-text-title">
+                {Math.floor(totalLearningMinutes / 60)}h {totalLearningMinutes % 60}m completed,
+                {' '}{student.longestStreak}d longest streak, and {totalEnrollments} total enrollments.
+              </p>
+            </div>
+          </section>
         </main>
       </div>
     </div>

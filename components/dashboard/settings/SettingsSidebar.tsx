@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import { User, Bell, Palette, Globe } from 'lucide-react';
-
 interface SettingsSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -15,6 +13,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
     ...(userRole === 'INSTRUCTOR' || userRole === 'ADMIN' || userRole === 'SUPER_ADMIN'
       ? [{ id: 'Payouts', label: 'Instructor Payouts' }]
       : []),
+    { id: 'Integrations', label: 'Integrations' },
     { id: 'Notifications', label: 'Notifications' },
     { id: 'Appearance', label: 'Appearance' },
     { id: 'Language', label: 'Language' },

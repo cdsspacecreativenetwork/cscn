@@ -13,6 +13,15 @@ interface CoursesFilterProps {
 }
 const INITIAL_VISIBLE_COUNT = 8;
 const LOAD_MORE_INCREMENT = 4;
+const SORT_OPTIONS = [
+  'Most relevant',
+  'Newest',
+  'Popular',
+  'Highest rated',
+  'Beginner friendly',
+  'Short courses',
+  'Certificate courses',
+] as const;
 
 // --- Custom Dropdown Component ---
 interface DropdownProps {
@@ -92,6 +101,7 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
   );
   const [activeCategory, setActiveCategory] = useState<string>('All Categories');
   const [activeInstructor, setActiveInstructor] = useState<string>('All Instructors');
+  const [activeSort, setActiveSort] = useState<(typeof SORT_OPTIONS)[number]>('Most relevant');
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<'grid' | 'list'>(() => {
     if (typeof window === 'undefined') return 'grid';
@@ -113,14 +123,33 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
   }, [searchQuery]);
 
   const filteredCourses = useMemo(() => {
-    return courses.filter(course => {
+    const filtered = courses.filter(course => {
       const matchesCategory = activeCategory === 'All Categories' || course.category === activeCategory;
       const matchesInstructor = activeInstructor === 'All Instructors' || course.author === activeInstructor;
       const matchesSearch = course.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         course.author.toLowerCase().includes(debouncedSearch.toLowerCase());
       return matchesCategory && matchesInstructor && matchesSearch;
     });
-  }, [courses, activeCategory, activeInstructor, debouncedSearch]);
+
+    return [...filtered].sort((a, b) => {
+      if (activeSort === 'Popular') return Number(b.students?.replace(/\D/g, '') || 0) - Number(a.students?.replace(/\D/g, '') || 0);
+      if (activeSort === 'Highest rated') return (b.rating ?? 0) - (a.rating ?? 0) || (b.reviews ?? 0) - (a.reviews ?? 0);
+      if (activeSort === 'Beginner friendly') {
+        const score = (course: CourseCardProps) => ['All Levels', 'Beginner'].includes(course.level ?? '') ? 1 : 0;
+        return score(b) - score(a);
+      }
+      if (activeSort === 'Short courses') {
+        const score = (course: CourseCardProps) => course.courseType === 'Short Course' ? 1 : 0;
+        return score(b) - score(a);
+      }
+      if (activeSort === 'Certificate courses') {
+        const score = (course: CourseCardProps) => course.courseType === 'Professional Certificate' ? 1 : 0;
+        return score(b) - score(a);
+      }
+      if (activeSort === 'Newest') return 0;
+      return (b.rating ?? 0) - (a.rating ?? 0) || Number(b.students?.replace(/\D/g, '') || 0) - Number(a.students?.replace(/\D/g, '') || 0);
+    });
+  }, [courses, activeCategory, activeInstructor, debouncedSearch, activeSort]);
 
   const paginatedCourses = useMemo(() => {
     return filteredCourses.slice(0, visibleCount);
@@ -159,6 +188,11 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
 
   const handleInstructorChange = (value: string) => {
     setActiveInstructor(value);
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  };
+
+  const handleSortChange = (value: string) => {
+    setActiveSort(value as (typeof SORT_OPTIONS)[number]);
     setVisibleCount(INITIAL_VISIBLE_COUNT);
   };
 
@@ -207,6 +241,12 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
               options={['All Instructors', ...instructors]}
               selected={activeInstructor}
               onChange={handleInstructorChange}
+            />
+
+            <CustomDropdown
+              options={SORT_OPTIONS}
+              selected={activeSort}
+              onChange={handleSortChange}
             />
 
             {/* View Toggle */}

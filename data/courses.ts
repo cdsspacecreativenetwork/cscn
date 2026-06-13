@@ -43,7 +43,9 @@ export async function getPublishedCourses(page = 1, categorySlug?: string) {
         slug: true,
         shortDesc: true,
         thumbnail: true,
+        promoVideo: true,
         difficulty: true,
+        courseType: true,
         previewCount: true,
         price: true,
         baseCurrency: true,
@@ -90,6 +92,7 @@ export async function getFeaturedPublishedCourses(limit = 8) {
       thumbnail: true,
       promoVideo: true,
       difficulty: true,
+      courseType: true,
       previewCount: true,
       price: true,
       baseCurrency: true,
@@ -131,6 +134,7 @@ export async function getCourseBySlug(slug: string) {
       thumbnail: true,
       promoVideo: true,
       difficulty: true,
+      courseType: true,
       previewCount: true,
       price: true,
       baseCurrency: true,
@@ -149,6 +153,7 @@ export async function getCourseBySlug(slug: string) {
       },
       instructors: {
         select: {
+          role: true,
           user: {
             select: {
               id: true,
@@ -167,6 +172,7 @@ export async function getCourseBySlug(slug: string) {
           title: true,
           position: true,
           isPublished: true,
+          isDefault: true,
           lessons: {
             orderBy: { position: "asc" },
             select: {
@@ -349,6 +355,7 @@ export async function getCourseForPlayer(slug: string, userId: string) {
           id: true,
           title: true,
           position: true,
+          isDefault: true,
           lessons: {
             where: { isPublished: true },
             orderBy: { position: "asc" },

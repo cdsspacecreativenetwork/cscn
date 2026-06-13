@@ -18,6 +18,17 @@ export function formatDate(value: Date | null | undefined) {
   }).format(value);
 }
 
+type StudentPaymentHistoryItem = {
+  id: string;
+  courseTitle: string;
+  status: string;
+  amount: number;
+  currency: string;
+  provider: string | null;
+  channel: string | null;
+  date: Date;
+};
+
 export async function getStudentPurchasesDashboard(userId: string) {
   const [user, orders, enrollments] = await Promise.all([
     db.user.findUnique({
@@ -150,7 +161,7 @@ export async function getStudentPurchasesDashboard(userId: string) {
       currency: enrollment.course.baseCurrency,
     }));
 
-  const paymentHistory = orders.flatMap((order) =>
+  const paymentHistory: StudentPaymentHistoryItem[] = orders.flatMap((order): StudentPaymentHistoryItem[] =>
     order.payments.length > 0
       ? order.payments.map((payment) => ({
           id: `${order.id}-${payment.createdAt.toISOString()}`,
@@ -169,7 +180,7 @@ export async function getStudentPurchasesDashboard(userId: string) {
             status: order.status,
             amount: money(order.amount),
             currency: order.currency,
-            provider: order.provider,
+            provider: order.provider ?? null,
             channel: null,
             date: order.paidAt ?? order.createdAt,
           },

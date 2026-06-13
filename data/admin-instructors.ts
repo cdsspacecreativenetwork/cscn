@@ -21,7 +21,7 @@ function getTabWhere(tab?: string) {
   if (tab === "pending") return { instructorVerificationStatus: "PENDING" as const };
   if (tab === "verified") return { instructorVerificationStatus: "VERIFIED" as const };
   if (tab === "featured") return { instructorFeatured: true };
-  if (tab === "mentorship") return { mentorshipEnabled: true };
+  if (tab === "mentorship") return { mentorshipEligible: true };
   if (tab === "rejected") return { instructorVerificationStatus: "REJECTED" as const };
   return {};
 }
@@ -86,7 +86,12 @@ export async function getAdminInstructors(filters: AdminInstructorsFilter = {}) 
         instructorVerifiedAt: true,
         instructorFeatured: true,
         instructorFeaturedOrder: true,
+        mentorshipEligible: true,
         mentorshipEnabled: true,
+        mentorshipApprovedAt: true,
+        mentorshipFree: true,
+        mentorshipPrice: true,
+        mentorshipCurrency: true,
         payoutSetup: true,
         payoutDetails: true,
         createdAt: true,
@@ -128,7 +133,12 @@ export async function getAdminInstructors(filters: AdminInstructorsFilter = {}) 
         verifiedAt: user.instructorVerifiedAt,
         featured: user.instructorFeatured,
         featuredOrder: user.instructorFeaturedOrder,
+        mentorshipEligible: user.mentorshipEligible,
         mentorshipEnabled: user.mentorshipEnabled,
+        mentorshipApprovedAt: user.mentorshipApprovedAt,
+        mentorshipFree: user.mentorshipFree,
+        mentorshipPrice: user.mentorshipPrice,
+        mentorshipCurrency: user.mentorshipCurrency,
         profileComplete: eligibility.eligible,
         missingLabels: eligibility.missingLabels,
         publishedCourses: user.taughtCourses.length,
@@ -156,7 +166,7 @@ export async function getAdminInstructorStats() {
     db.user.count({ where: { instructorProfileEnabled: true, instructorVerificationStatus: "PENDING" } }),
     db.user.count({ where: { instructorProfileEnabled: true, instructorVerificationStatus: "VERIFIED" } }),
     db.user.count({ where: { instructorProfileEnabled: true, instructorFeatured: true } }),
-    db.user.count({ where: { instructorProfileEnabled: true, mentorshipEnabled: true } }),
+    db.user.count({ where: { instructorProfileEnabled: true, mentorshipEligible: true } }),
   ]);
 
   return { total, pending, verified, featured, mentorship };

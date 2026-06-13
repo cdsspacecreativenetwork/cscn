@@ -1,9 +1,33 @@
 import React from 'react';
+import { auth } from '@/auth';
 import { getUserSecurityDetails } from '@/actions/settings';
 import { SettingsTabsWrapper } from '@/components/dashboard/settings/SettingsTabsWrapper';
+import { getCalendarIntegrationStatus } from '@/data/integrations';
 
-export default async function SettingsPage() {
-  const userData = await getUserSecurityDetails();
+type SearchParams = Promise<{
+  tab?: string;
+}>;
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const [userData, session, params] = await Promise.all([
+    getUserSecurityDetails(),
+    auth(),
+    searchParams,
+  ]);
+  const integrations = session?.user?.id
+    ? await getCalendarIntegrationStatus(session.user.id)
+    : {
+        googleCalendar: {
+          connected: false,
+          email: null,
+          status: null,
+          connectedAt: null,
+        },
+      };
 
   return (
     <div className="p-6 md:p-10 space-y-8 md:space-y-10 max-w-[1600px] mx-auto font-jakarta pb-20">
@@ -20,7 +44,11 @@ export default async function SettingsPage() {
       </div>
 
       {/* Settings Layout Grid */}
-      <SettingsTabsWrapper initialUserData={userData} />
+      <SettingsTabsWrapper
+        initialUserData={userData}
+        initialIntegrations={integrations}
+        initialActiveTab={params.tab || 'Account'}
+      />
     </div>
   );
 }

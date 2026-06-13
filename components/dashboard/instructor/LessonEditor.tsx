@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { Clock, ExternalLink, FileQuestion, FileText, Link2, Loader2, Plus, Save, Trash2, Video } from 'lucide-react';
+import { ClipboardPaste, Clock, ExternalLink, FileQuestion, FileText, Link2, Loader2, Plus, Save, Trash2, Video } from 'lucide-react';
 import { updateLessonAction } from '@/actions/instructor';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
@@ -90,6 +90,27 @@ function serializeVideoMetadata(timestamps: TimestampItem[]) {
   return clean.length > 0 ? JSON.stringify({ timestamps: clean }) : null;
 }
 
+function parseTimestampLines(value: string) {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const valid: TimestampItem[] = [];
+  const invalid: string[] = [];
+  const timePattern = /^\d{1,2}:\d{2}(?::\d{2})?$/;
+
+  for (const line of lines) {
+    const match = line.match(/^(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)$/);
+    if (!match || !timePattern.test(match[1]) || !match[2].trim()) {
+      invalid.push(line);
+      continue;
+    }
+    valid.push({ time: match[1], label: match[2].trim() });
+  }
+
+  return { valid, invalid };
+}
+
 export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug, onUpdate, onDirtyChange, isReadOnly = false }: Props) {
   const [saving, startSave] = useTransition();
 
@@ -107,6 +128,9 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
   const [timestamps, setTimestamps] = useState<TimestampItem[]>(
     parseVideoMetadata(lesson.bodyContent).timestamps
   );
+  const [showTimestampPaste, setShowTimestampPaste] = useState(false);
+  const [timestampPasteText, setTimestampPasteText] = useState('');
+  const [timestampPasteErrors, setTimestampPasteErrors] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const mountedRef = useRef(false);
 
@@ -202,11 +226,26 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
     setDuration(estimateArticleReadTime(nextBody));
   };
 
+  const addPastedTimestamps = () => {
+    const parsed = parseTimestampLines(timestampPasteText);
+    setTimestampPasteErrors(parsed.invalid);
+    if (parsed.invalid.length > 0) return;
+    if (parsed.valid.length === 0) {
+      setTimestampPasteErrors(['Paste at least one timestamp line.']);
+      return;
+    }
+    setTimestamps((prev) => [...prev, ...parsed.valid]);
+    setTimestampPasteText('');
+    setTimestampPasteErrors([]);
+    setShowTimestampPaste(false);
+    toast.success(`${parsed.valid.length} timestamp${parsed.valid.length === 1 ? '' : 's'} added.`);
+  };
+
   return (
-    <div className="bg-white rounded-[8px] border border-stroke flex flex-col gap-5 p-6">
-      <div className="flex items-center justify-between gap-3">
+    <div className="bg-white rounded-[8px] border border-stroke flex flex-col gap-5 p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h2 className="font-semibold text-navy text-base">Edit Lesson</h2>
+          <h2 className="font-semibold text-navy text-lg leading-tight sm:text-base">Edit Lesson</h2>
           {!isReadOnly && (
             <p className={`text-xs font-medium mt-0.5 ${
               saveStatus === 'error' ? 'text-red-500' :
@@ -218,21 +257,22 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center">
           <Link
-            href={`/courses/${courseSlug}/watch/${lesson.id}`}
+            href={`/courses/${courseSlug}/watch/${lesson.id}?preview=true`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3.5 py-2 border border-stroke rounded-[8px] text-xs font-semibold text-navy hover:bg-background transition-colors shrink-0"
+            className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-[8px] border border-stroke px-3 text-xs font-semibold text-navy transition-colors hover:bg-background sm:h-auto sm:shrink-0 sm:py-2"
           >
             <ExternalLink size={13} />
-            <span>Preview in Player</span>
+            <span className="truncate">Preview</span>
           </Link>
           {!isReadOnly && (
             <Button
               variant="primary"
               size="sm"
               rounded="md"
+              className="h-10 w-full sm:h-auto sm:w-auto"
               leftIcon={saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               onClick={handleSave}
               disabled={saving || !isDirty}
@@ -354,7 +394,7 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
       )}
 
       {/* Duration + Preview toggle */}
-      <div className="flex items-start gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
         {contentType !== 'QUIZ' && (
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-navy">{durationLabel} (mins)</label>
@@ -370,25 +410,25 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5 flex-1">
+        <div className="flex min-w-0 flex-col gap-1.5">
           <label className="text-sm font-semibold text-navy">Free Preview</label>
           <button
             type="button"
             onClick={() => !isReadOnly && setIsPreview((v) => !v)}
             disabled={isReadOnly}
-            className={`w-fit flex items-center gap-2 px-4 py-2.5 rounded-[8px] border text-sm font-medium transition-all ${
+            className={`inline-flex h-[42px] w-fit max-w-full items-center gap-2 rounded-[8px] border px-3 text-sm font-semibold leading-none transition-all sm:px-4 ${
               isReadOnly ? 'bg-gray-50 border-stroke text-text-mute cursor-not-allowed' :
               isPreview
                 ? 'bg-primary/10 border-primary/30 text-primary'
                 : 'bg-white border-stroke text-text-mute hover:border-primary/30'
             }`}
           >
-            <span className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
+            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
               isPreview ? 'border-primary bg-primary' : 'border-text-mute'
             }`}>
               {isPreview && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
             </span>
-            {isPreview ? 'Publicly visible' : 'Enrolled only'}
+            <span className="whitespace-nowrap">{isPreview ? 'Public preview' : 'Enrolled only'}</span>
           </button>
         </div>
       </div>
@@ -400,6 +440,15 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
           <div className="flex items-center justify-between gap-3">
             <label className="text-sm font-semibold text-navy">Timestamps</label>
             {!isReadOnly && (
+              <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowTimestampPaste(true)}
+                className="flex items-center gap-1.5 rounded-[8px] border border-[#C8D7FF] bg-[#1C4ED1]/5 px-3 py-1.5 text-xs font-bold text-primary hover:bg-[#1C4ED1]/10"
+              >
+                <ClipboardPaste size={13} />
+                Paste timestamps
+              </button>
               <button
                 type="button"
                 onClick={() => setTimestamps((prev) => [...prev, { time: '', label: '' }])}
@@ -408,8 +457,57 @@ export default function LessonEditor({ lesson, courseId, courseTitle, courseSlug
                 <Plus size={13} />
                 Add timestamp
               </button>
+              </div>
             )}
           </div>
+          {!isReadOnly && showTimestampPaste && (
+            <div className={`rounded-[14px] border border-dashed p-3 ${
+              timestampPasteErrors.length > 0 ? 'border-red-300 bg-red-50/60' : 'border-[#C8D7FF] bg-[#F8FAFF]'
+            }`}>
+              <div className="flex flex-col gap-1">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-primary">Paste multiple timestamps</p>
+                <p className="text-[11px] font-medium leading-4 text-text-mute">
+                  Format: <span className="font-bold text-navy">00:00 Introduction</span> or <span className="font-bold text-navy">01:02:15 Final walkthrough</span>. One timestamp per line.
+                </p>
+              </div>
+              <textarea
+                value={timestampPasteText}
+                onChange={(event) => {
+                  setTimestampPasteText(event.target.value);
+                  if (timestampPasteErrors.length > 0) setTimestampPasteErrors([]);
+                }}
+                rows={4}
+                className={`${inputCls} mt-3 resize-y bg-white ${timestampPasteErrors.length > 0 ? 'border-red-300 focus:border-red-400 focus:ring-red-100' : ''}`}
+                placeholder={`00:00 Introduction\n04:30 Project setup\n12:10 Wrap up`}
+              />
+              {timestampPasteErrors.length > 0 && (
+                <div className="mt-2 rounded-[10px] border border-red-200 bg-white px-3 py-2 text-[11px] font-semibold leading-5 text-red-600">
+                  Use MM:SS or HH:MM:SS followed by a chapter title. Invalid line{timestampPasteErrors.length === 1 ? '' : 's'}: {timestampPasteErrors.slice(0, 3).join(' | ')}
+                </div>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={addPastedTimestamps}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-[#1C4ED1] px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-[#173FA8]"
+                >
+                  <ClipboardPaste size={14} />
+                  Add pasted timestamps
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimestampPasteText('');
+                    setTimestampPasteErrors([]);
+                    setShowTimestampPaste(false);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-stroke bg-white px-3 py-2 text-sm font-bold text-primary transition-colors hover:bg-[#1C4ED1]/5"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             {timestamps.length === 0 ? (
               <div className="rounded-[8px] border border-dashed border-[#C8D1E0] bg-[#F8FAFF] px-4 py-3 text-xs font-medium text-text-mute">

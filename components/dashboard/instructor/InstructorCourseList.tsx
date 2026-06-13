@@ -12,7 +12,7 @@ import Button from '@/components/ui/Button';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 type CourseStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'PENDING_REVIEW';
-type Difficulty = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+type Difficulty = 'ALL_LEVELS' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 
 interface InstructorCourse {
   id: string;
@@ -37,6 +37,7 @@ interface Props {
   courses: InstructorCourse[];
   categories: Category[];
   studioPath?: string; // defaults to /dashboard/instructor/courses
+  canCreateCourse?: boolean;
 }
 
 const STATUS_CONFIG: Record<CourseStatus, { label: string; classes: string }> = {
@@ -47,10 +48,10 @@ const STATUS_CONFIG: Record<CourseStatus, { label: string; classes: string }> = 
 };
 
 const DIFF_LABEL: Record<Difficulty, string> = {
-  BEGINNER: 'Beginner', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced',
+  ALL_LEVELS: 'All levels', BEGINNER: 'Beginner', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced',
 };
 
-export default function InstructorCourseList({ courses, categories, studioPath = '/dashboard/instructor/courses' }: Props) {
+export default function InstructorCourseList({ courses, categories, studioPath = '/dashboard/instructor/courses', canCreateCourse = true }: Props) {
   const router = useRouter();
   const [creating, startCreate] = useTransition();
   const [deleting, startDelete] = useTransition();
@@ -130,16 +131,18 @@ export default function InstructorCourseList({ courses, categories, studioPath =
           </p>
         </div>
 
-        <Button
-          variant="gradient"
-          size="sm"
-          rounded="[10px]"
-          hasBorder={false}
-          leftIcon={<Plus size={15} />}
-          onClick={() => setShowModal(true)}
-        >
-          New Course
-        </Button>
+        {canCreateCourse && (
+          <Button
+            variant="gradient"
+            size="sm"
+            rounded="[10px]"
+            hasBorder={false}
+            leftIcon={<Plus size={15} />}
+            onClick={() => setShowModal(true)}
+          >
+            New Course
+          </Button>
+        )}
       </div>
 
       {/* Filter tabs — Figma pill style */}
@@ -172,15 +175,17 @@ export default function InstructorCourseList({ courses, categories, studioPath =
             <BookOpen size={28} className="text-text-mute" />
           </div>
           <p className="text-text-mute font-medium">No courses here yet.</p>
-          <Button
-            variant="gradient"
-            size="sm"
-            rounded="[10px]"
-            hasBorder={false}
-            onClick={() => setShowModal(true)}
-          >
-            Create your first course
-          </Button>
+          {canCreateCourse && (
+            <Button
+              variant="gradient"
+              size="sm"
+              rounded="[10px]"
+              hasBorder={false}
+              onClick={() => setShowModal(true)}
+            >
+              Create your first course
+            </Button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -267,7 +272,7 @@ export default function InstructorCourseList({ courses, categories, studioPath =
       )}
 
       {/* New Course Modal */}
-      {showModal && typeof document !== 'undefined' && createPortal(
+      {canCreateCourse && showModal && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#040B37]/45 p-4 backdrop-blur-sm">
           <div className="flex w-full max-w-md flex-col gap-5 rounded-[20px] border border-white/80 bg-white p-5 shadow-[0_24px_80px_rgba(4,11,55,0.22)] md:p-6">
             <div className="flex items-center justify-between">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CourseHeader } from './CourseHeader';
 import { VideoPlayer } from './VideoPlayer';
@@ -41,6 +41,7 @@ export interface CoursePlayerViewProps {
   nextLessonId: string | null;
   isCurrentLessonCompleted: boolean;
   isPreviewMode?: boolean;
+  previewModeLabel?: string | null;
   isCourseCompleted: boolean;
   ratingSummary: { average: number; count: number };
   userRating: { rating: number; comment: string | null } | null;
@@ -56,9 +57,8 @@ export const CoursePlayerView = ({
   isAuthenticated,
   nextLessonId,
   isCurrentLessonCompleted,
-  courseDescription,
-  instructorName,
   isPreviewMode,
+  previewModeLabel,
   isCourseCompleted,
   ratingSummary,
   userRating,
@@ -69,6 +69,7 @@ export const CoursePlayerView = ({
   const [showNextPrompt, setShowNextPrompt] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [autoplayNext, setAutoplayNext] = useState(true);
+  const [activeMobilePanel, setActiveMobilePanel] = useState<'overview' | 'content' | 'notes' | 'transcript' | 'resources'>('overview');
   const canWriteNotes = canWatch && isEnrolled && !isPreviewMode;
   const isQuizLesson = lesson.contentType === 'QUIZ';
   const nextLesson = useMemo(
@@ -110,6 +111,86 @@ export const CoursePlayerView = ({
     />
   );
 
+  const resourcesPanel = (
+    lesson.resources.length === 0 ? (
+      <div className="rounded-[12px] bg-[#F4F6FB] px-4 py-8 text-center">
+        <p className="text-sm font-bold text-[#040B37]">No resources yet</p>
+        <p className="mt-1 text-xs font-medium text-text-mute">Any files or links for this lesson will appear here.</p>
+      </div>
+    ) : (
+      <div className="grid gap-3">
+        {lesson.resources.map((resource) => (
+          <a
+            key={resource.id}
+            href={resource.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-[12px] border border-[#E3E8F4] bg-white p-4 transition hover:border-[#1C4ED1]/35 hover:bg-[#F8FAFF]"
+          >
+            <p className="text-sm font-black text-[#040B37]">{resource.title}</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-text-mute">{resource.type}</p>
+          </a>
+        ))}
+      </div>
+    )
+  );
+
+  const mobilePanels: Array<{ id: typeof activeMobilePanel; label: string; show: boolean; content: ReactNode }> = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      show: true,
+      content: (
+        <div className="rounded-[14px] border border-[#E3E8F4] bg-white p-5">
+          <h3 className="text-base font-black text-[#040B37]">Lesson Overview</h3>
+          {lesson.overview ? (
+            <p className="mt-3 whitespace-pre-line text-sm font-medium leading-7 text-text-body">{lesson.overview}</p>
+          ) : (
+            <p className="mt-3 text-sm font-medium leading-7 text-text-mute">This lesson does not have an overview yet.</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'content',
+      label: 'Content',
+      show: true,
+      content: (
+        <CourseContentSidebar
+          modules={modules}
+          courseSlug={courseSlug}
+          currentLessonId={lesson.id}
+        />
+      ),
+    },
+    {
+      id: 'notes',
+      label: 'Notes',
+      show: true,
+      content: (
+        <LessonNotesPanel
+          lessonId={lesson.id}
+          initialNotes={lesson.notes}
+          currentTime={currentPlaybackTime}
+          canWrite={canWriteNotes}
+          onSeek={handleSeekToNote}
+        />
+      ),
+    },
+    {
+      id: 'transcript',
+      label: 'Transcript',
+      show: lesson.contentType === 'VIDEO',
+      content: <TranscriptSidebar transcript={lesson.transcript} />,
+    },
+    {
+      id: 'resources',
+      label: 'Resources',
+      show: true,
+      content: resourcesPanel,
+    },
+  ];
+
   const openNextLessonPrompt = () => {
     if (!nextLessonId || !nextLesson) return;
     setCountdown(autoplayNext ? 5 : 0);
@@ -117,21 +198,18 @@ export const CoursePlayerView = ({
   };
 
   return (
-    <div className="p-6 lg:p-10 flex flex-col gap-8 max-w-[1728px] mx-auto w-full overflow-x-hidden font-jakarta">
+    <div className="p-3 lg:p-10 flex flex-col gap-8 max-w-[1728px] mx-auto w-full overflow-x-hidden font-jakarta">
       {isPreviewMode && (
-        <div className="w-full bg-[#1C4ED1]/5 border border-[#1C4ED1]/20 rounded-2xl p-4 flex items-center justify-between backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <span className="flex h-2.5 w-2.5 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1C4ED1] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#1C4ED1]"></span>
+        <div className="flex w-fit max-w-full items-center gap-2 rounded-full border border-[#1C4ED1]/20 bg-[#1C4ED1]/5 px-3 py-2 text-[#1C4ED1]">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-[#1C4ED1]" />
+          <p className="truncate text-[12px] font-black uppercase tracking-[0.1em]">
+            Preview mode
+          </p>
+          {previewModeLabel && (
+            <span className="shrink-0 rounded-full bg-[#1C4ED1]/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em]">
+              {previewModeLabel}
             </span>
-            <p className="text-[14px] font-semibold text-[#1C4ED1] font-jakarta">
-              👁️ Creator Preview Mode — You are viewing this lesson with Admin/Instructor permissions.
-            </p>
-          </div>
-          <span className="text-[11px] font-bold text-[#1C4ED1] bg-[#1C4ED1]/10 px-2.5 py-1 rounded-full uppercase tracking-wider font-jakarta">
-            Authorized
-          </span>
+          )}
         </div>
       )}
 
@@ -143,6 +221,7 @@ export const CoursePlayerView = ({
         isEnrolled={isEnrolled}
         isCompleted={isCurrentLessonCompleted}
         allowManualComplete={!isQuizLesson}
+        isPreviewMode={isPreviewMode}
       />
 
       <div className={`grid w-full grid-cols-1 gap-6 lg:items-start ${
@@ -237,12 +316,38 @@ export const CoursePlayerView = ({
           )}
 
           {!isQuizLesson && (
-            <CourseTabs
-              description={courseDescription}
-              lessonOverview={lesson.overview}
-              instructorName={instructorName}
-              resources={lesson.resources}
-            />
+            <>
+              <div className="lg:hidden">
+                <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-3 shadow-sm">
+                  <div className="custom-scrollbar flex gap-2 overflow-x-auto rounded-[12px] bg-[#E3E8F4] p-1">
+                    {mobilePanels.filter((panel) => panel.show).map((panel) => (
+                      <button
+                        key={panel.id}
+                        type="button"
+                        onClick={() => setActiveMobilePanel(panel.id)}
+                        className={`shrink-0 rounded-[10px] px-4 py-2 text-sm font-bold transition ${
+                          activeMobilePanel === panel.id
+                            ? 'bg-white text-[#1C4ED1] shadow-[0px_2px_8px_rgba(4,11,55,0.08)]'
+                            : 'text-text-mute hover:text-[#040B37]'
+                        }`}
+                      >
+                        {panel.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="custom-scrollbar mt-3 max-h-[62vh] overflow-y-auto">
+                    {mobilePanels.find((panel) => panel.id === activeMobilePanel)?.content}
+                  </div>
+                </div>
+              </div>
+
+              <div className="hidden lg:block">
+                <CourseTabs
+                  lessonOverview={lesson.overview}
+                  resources={lesson.resources}
+                />
+              </div>
+            </>
           )}
           {isCourseCompleted && isEnrolled && !isPreviewMode && (
             <div className="mt-6">
@@ -256,7 +361,7 @@ export const CoursePlayerView = ({
         </div>
 
         {!isQuizLesson && (
-          <div className="flex w-full min-w-[300px] flex-col gap-4">
+          <div className="hidden w-full min-w-[300px] flex-col gap-4 lg:flex">
             {lesson.contentType === 'VIDEO' && (
               <TranscriptSidebar transcript={lesson.transcript} />
             )}

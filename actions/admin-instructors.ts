@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { assertEmailVerifiedByUserId } from "@/lib/trust-gates";
 import { hasAdminPermission } from "@/lib/admin-permissions";
+import { createNotification } from "@/data/notifications";
 
 async function requireInstructorManager() {
   const session = await auth();
@@ -34,6 +35,7 @@ export async function toggleInstructorMentorshipAction(instructorId: string, ena
     where: { id: instructorId },
     select: {
       id: true,
+      mentorshipEligible: true,
       instructorProfileEnabled: true,
       instructorVerificationStatus: true,
     },
@@ -44,15 +46,35 @@ export async function toggleInstructorMentorshipAction(instructorId: string, ena
   }
 
   if (enabled && instructor.instructorVerificationStatus !== "VERIFIED") {
-    return { error: "Only verified instructors can be opened for mentorship." };
+    return { error: "Only verified instructors can be approved for mentorship." };
   }
 
   await db.user.update({
     where: { id: instructorId },
-    data: { mentorshipEnabled: enabled },
+    data: {
+      mentorshipEligible: enabled,
+      mentorshipApprovedAt: enabled ? new Date() : null,
+      ...(enabled ? {} : { mentorshipEnabled: false }),
+    },
   });
 
+  if (enabled && !instructor.mentorshipEligible) {
+    await createNotification(
+      instructorId,
+      "SYSTEM",
+      "You are eligible for mentorship",
+      "CSCN has approved you to mentor learners. Turn on mentorship and add availability windows to appear publicly.",
+      { kind: "MENTORSHIP_ELIGIBILITY_APPROVED" },
+      {
+        actionRequired: true,
+        actionLabel: "Set availability",
+        actionUrl: "/dashboard/instructor/mentorship",
+      }
+    );
+  }
+
   revalidatePath("/dashboard/admin/instructors");
+  revalidatePath("/dashboard/admin/mentorship");
   revalidatePath("/mentorship");
-  return { success: enabled ? "Mentorship enabled." : "Mentorship disabled." };
+  return { success: enabled ? "Mentorship eligibility approved." : "Mentorship eligibility removed." };
 }

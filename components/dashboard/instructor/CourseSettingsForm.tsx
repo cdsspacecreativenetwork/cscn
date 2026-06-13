@@ -1,11 +1,13 @@
 import { useState, useTransition, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { X, Plus, ChevronDown, Camera, ImageIcon, CheckCircle2, XCircle, Clock3 } from 'lucide-react';
+import { X, Plus, Camera, ImageIcon, CheckCircle2, XCircle, Clock3, ClipboardPaste } from 'lucide-react';
 import { updateCourseSettingsAction, uploadThumbnailAction, getAvailableExamsAction } from '@/actions/instructor';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
-type Difficulty = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+type Difficulty = 'ALL_LEVELS' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+type CourseType = 'SHORT_COURSE' | 'FULL_COURSE' | 'PROFESSIONAL_CERTIFICATE';
 
 interface LatestReview {
   id: string;
@@ -21,7 +23,7 @@ interface Props {
     id: string; title: string; shortDesc: string | null;
     description: string; thumbnail: string | null;
     promoVideo?: string | null;
-    difficulty: string; categoryId: string | null;
+    difficulty: string; courseType?: string; categoryId: string | null;
     previewCount: number; requirements: unknown; includes: unknown;
     certificateEnabled: boolean;
     examGated: boolean;
@@ -65,28 +67,24 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 function SelectField({
-  value, onChange, children, disabled = false,
+  value, onChange, options, disabled = false, placeholder = 'Select option',
 }: {
   value: string;
   onChange: (v: string) => void;
-  children: React.ReactNode;
+  options: { value: string; label: string; disabled?: boolean }[];
   disabled?: boolean;
+  placeholder?: string;
 }) {
   return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className={`${inputCls} appearance-none pr-10 cursor-pointer disabled:bg-[#F4F6FB] disabled:text-[#9CA3AF] disabled:cursor-not-allowed`}
-      >
-        {children}
-      </select>
-      <ChevronDown
-        size={16}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-mute pointer-events-none shrink-0"
-      />
-    </div>
+    <CustomSelect
+      value={value}
+      onChange={onChange}
+      options={options}
+      disabled={disabled}
+      placeholder={placeholder}
+      className="w-full"
+      triggerClassName="h-[42px] rounded-xl border-stroke"
+    />
   );
 }
 
@@ -96,6 +94,170 @@ const REVIEW_BANNER: Record<string, { icon: React.ElementType; classes: string; 
   REJECTED: { icon: XCircle,      classes: 'bg-red-50 border-red-200 text-red-800',       label: 'Course rejected' },
   APPROVED: { icon: CheckCircle2, classes: 'bg-green-50 border-green-200 text-green-800', label: 'Course approved' },
 };
+
+const difficultyOptions = [
+  { value: 'ALL_LEVELS', label: 'All levels' },
+  { value: 'BEGINNER', label: 'Beginner' },
+  { value: 'INTERMEDIATE', label: 'Intermediate' },
+  { value: 'ADVANCED', label: 'Advanced' },
+];
+
+const courseTypeOptions = [
+  { value: 'SHORT_COURSE', label: 'Short course' },
+  { value: 'FULL_COURSE', label: 'Full course' },
+  { value: 'PROFESSIONAL_CERTIFICATE', label: 'Professional certificate' },
+];
+
+function parseBulkItems(value: string) {
+  return value
+    .split(/\r?\n|•|●|;/)
+    .map((item) => item.replace(/^[-*]\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function BulkListInput({
+  title,
+  hint,
+  label,
+  placeholder,
+  items,
+  setItems,
+  isLocked,
+}: {
+  title?: string;
+  hint?: string;
+  label: string;
+  placeholder: string;
+  items: string[];
+  setItems: (items: string[]) => void;
+  isLocked: boolean;
+}) {
+  const [bulkText, setBulkText] = useState('');
+  const [showPasteBox, setShowPasteBox] = useState(false);
+
+  const addBulkItems = () => {
+    const parsed = parseBulkItems(bulkText);
+    if (parsed.length === 0) {
+      toast.error('Paste at least one item.');
+      return;
+    }
+    setItems([...items.filter((item) => item.trim()), ...parsed]);
+    setBulkText('');
+    setShowPasteBox(false);
+    toast.success(`${parsed.length} ${parsed.length === 1 ? 'item' : 'items'} added.`);
+  };
+
+  const addItem = () => setItems([...items, '']);
+  const updateItem = (index: number, value: string) => {
+    const next = [...items];
+    next[index] = value;
+    setItems(next);
+  };
+  const removeItem = (index: number) => setItems(items.filter((_, itemIndex) => itemIndex !== index));
+
+  return (
+    <div className="flex flex-col gap-4">
+      {title && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-semibold text-navy text-base">{title}</h2>
+            {hint && <p className="text-sm text-text-mute mt-0.5">{hint}</p>}
+          </div>
+          {!isLocked && (
+            <button
+              type="button"
+              onClick={() => setShowPasteBox(true)}
+              className="inline-flex w-fit items-center gap-1.5 rounded-[10px] border border-[#C8D7FF] bg-[#1C4ED1]/5 px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-primary transition-colors hover:bg-[#1C4ED1]/10"
+            >
+              <ClipboardPaste size={14} />
+              Paste items
+            </button>
+          )}
+        </div>
+      )}
+
+      {!title && !isLocked && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowPasteBox(true)}
+            className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#C8D7FF] bg-[#1C4ED1]/5 px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-primary transition-colors hover:bg-[#1C4ED1]/10"
+          >
+            <ClipboardPaste size={14} />
+            Paste items
+          </button>
+        </div>
+      )}
+
+      {items.map((item, index) => (
+        <div key={index} className="flex gap-2">
+          <input
+            value={item}
+            onChange={(event) => updateItem(index, event.target.value)}
+            disabled={isLocked}
+            placeholder={placeholder}
+            className={`${inputCls} flex-1`}
+          />
+          {!isLocked && (
+            <button
+              type="button"
+              onClick={() => removeItem(index)}
+              className="p-2 text-text-mute hover:text-red-500 transition-colors shrink-0 rounded-lg hover:bg-red-50"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      ))}
+
+      {!isLocked && showPasteBox && (
+        <div className="rounded-[14px] border border-dashed border-[#C8D7FF] bg-[#F8FAFF] p-3">
+          <label className="text-xs font-black uppercase tracking-[0.12em] text-primary">
+            Paste multiple {label.toLowerCase()}
+          </label>
+          <textarea
+            value={bulkText}
+            onChange={(event) => setBulkText(event.target.value)}
+            rows={3}
+            className={`${inputCls} mt-2 resize-y bg-white`}
+            placeholder={`Paste one ${label.toLowerCase()} per line, or separate with bullets/semicolons.`}
+          />
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={addBulkItems}
+              className="inline-flex items-center gap-1.5 rounded-[10px] bg-[#1C4ED1] px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-[#173FA8]"
+            >
+              <ClipboardPaste size={14} />
+              Add pasted items
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setBulkText('');
+                setShowPasteBox(false);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-stroke bg-white px-3 py-2 text-sm font-bold text-primary transition-colors hover:bg-[#1C4ED1]/5"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isLocked && (
+        <button
+          type="button"
+          onClick={addItem}
+          className="inline-flex w-fit items-center gap-1.5 rounded-[10px] border border-stroke bg-white px-3 py-2 text-sm font-bold text-primary transition-colors hover:bg-[#1C4ED1]/5"
+        >
+          <Plus size={14} />
+          Add one manually
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function CourseSettingsForm({ course, categories, latestReview, isLocked = false }: Props) {
   const [saving, startSave] = useTransition();
@@ -111,6 +273,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
   const [shortDesc, setShortDesc] = useState(course.shortDesc ?? '');
   const [description, setDescription] = useState(course.description);
   const [difficulty, setDifficulty] = useState<Difficulty>(course.difficulty as Difficulty);
+  const [courseType, setCourseType] = useState<CourseType>((course.courseType ?? 'FULL_COURSE') as CourseType);
   const [categoryId, setCategoryId] = useState(course.categoryId ?? '');
   const [previewCount, setPreviewCount] = useState(course.previewCount);
   const [thumbnail, setThumbnail] = useState(course.thumbnail ?? '');
@@ -125,6 +288,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
   const [price, setPrice] = useState<string>(displayPrice ? String(displayPrice) : '');
   const [finalExamId, setFinalExamId] = useState(course.finalExamId ?? '');
   const [availableExams, setAvailableExams] = useState<{ id: string; title: string; duration: number }[]>([]);
+  const isProfessionalCertificate = courseType === 'PROFESSIONAL_CERTIFICATE';
 
   useEffect(() => {
     getAvailableExamsAction()
@@ -135,16 +299,18 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
   const handleSave = () => {
     startSave(async () => {
       try {
+        const shouldSaveCertificate = courseType === 'PROFESSIONAL_CERTIFICATE';
         const result = await updateCourseSettingsAction(course.id, {
           title, shortDesc: shortDesc || undefined, description,
-          difficulty, categoryId: categoryId || null,
+          difficulty, courseType, categoryId: categoryId || null,
           previewCount, requirements, includes,
-          certificateEnabled, examGated,
+          certificateEnabled: shouldSaveCertificate ? certificateEnabled : false,
+          examGated: shouldSaveCertificate ? examGated : false,
           metaTitle: metaTitle || null,
           metaDescription: metaDescription || null,
           promoVideo: promoVideo.trim() || null,
           price: price ? parseFloat(price) : null,
-          finalExamId: finalExamId || null,
+          finalExamId: shouldSaveCertificate && finalExamId ? finalExamId : null,
         });
         toast.success(
           result?.pricingProposalSubmitted
@@ -155,6 +321,16 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
         toast.error(error instanceof Error ? error.message : 'Failed to save settings.');
       }
     });
+  };
+
+  const handleCourseTypeChange = (value: string) => {
+    const nextCourseType = value as CourseType;
+    setCourseType(nextCourseType);
+    if (nextCourseType !== 'PROFESSIONAL_CERTIFICATE') {
+      setCertificateEnabled(false);
+      setExamGated(false);
+      setFinalExamId('');
+    }
   };
 
   const processFile = (file: File) => {
@@ -206,13 +382,6 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
       toast.error('Failed to remove thumbnail.')
     );
   };
-
-  const addItem    = (list: string[], set: (v: string[]) => void) => set([...list, '']);
-  const updateItem = (list: string[], set: (v: string[]) => void, i: number, val: string) => {
-    const next = [...list]; next[i] = val; set(next);
-  };
-  const removeItem = (list: string[], set: (v: string[]) => void, i: number) =>
-    set(list.filter((_, idx) => idx !== i));
 
   const reviewBanner = latestReview ? REVIEW_BANNER[latestReview.status] : null;
   const proposalCurrency = String(
@@ -269,19 +438,35 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Category">
-              <SelectField value={categoryId} onChange={setCategoryId} disabled={isLocked}>
-                <option value="">Uncategorized</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </SelectField>
+              <SelectField
+                value={categoryId}
+                onChange={setCategoryId}
+                disabled={isLocked}
+                placeholder="Uncategorized"
+                options={[
+                  { value: '', label: 'Uncategorized' },
+                  ...categories.map((category) => ({ value: category.id, label: category.name })),
+                ]}
+              />
             </Field>
             <Field label="Difficulty">
-              <SelectField value={difficulty} onChange={(v) => setDifficulty(v as Difficulty)} disabled={isLocked}>
-                <option value="BEGINNER">Beginner</option>
-                <option value="INTERMEDIATE">Intermediate</option>
-                <option value="ADVANCED">Advanced</option>
-              </SelectField>
+              <SelectField
+                value={difficulty}
+                onChange={(v) => setDifficulty(v as Difficulty)}
+                disabled={isLocked}
+                options={difficultyOptions}
+              />
             </Field>
           </div>
+
+          <Field label="Course Type" hint="Tell learners what kind of commitment and outcome this course offers.">
+            <SelectField
+              value={courseType}
+              onChange={handleCourseTypeChange}
+              disabled={isLocked}
+              options={courseTypeOptions}
+            />
+          </Field>
 
           <Field label="Free Preview Lessons" hint="How many lessons non-enrolled users can watch">
             <input type="number" min={0} max={50} value={previewCount}
@@ -387,6 +572,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
         </div>
 
         {/* Certificate & Assessments */}
+        {isProfessionalCertificate && (
         <div className="bg-white rounded-2xl border border-stroke p-6 flex flex-col gap-5">
           <div>
             <h2 className="font-semibold text-navy text-base">Certificate & Assessments</h2>
@@ -429,14 +615,19 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
               {examGated && (
                 <Field label="Link Graded Exam" hint="Choose the assessment student must pass.">
                   {availableExams.length > 0 ? (
-                    <SelectField value={finalExamId} onChange={setFinalExamId} disabled={isLocked}>
-                      <option value="">-- Select Exam --</option>
-                      {availableExams.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {e.title} ({e.duration} min)
-                        </option>
-                      ))}
-                    </SelectField>
+                    <SelectField
+                      value={finalExamId}
+                      onChange={setFinalExamId}
+                      disabled={isLocked}
+                      placeholder="Select exam"
+                      options={[
+                        { value: '', label: 'Select exam' },
+                        ...availableExams.map((exam) => ({
+                          value: exam.id,
+                          label: `${exam.title} (${exam.duration} min)`,
+                        })),
+                      ]}
+                    />
                   ) : (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
                       No exams available. Certification exams are created by Admins/Owners.
@@ -447,6 +638,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
             </div>
           )}
         </div>
+        )}
 
         {/* Search Engine Optimization */}
         <div className="bg-white rounded-2xl border border-stroke p-6 flex flex-col gap-5">
@@ -480,60 +672,28 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
 
         {/* Requirements */}
         <div className="bg-white rounded-2xl border border-stroke p-6 flex flex-col gap-4">
-          <div>
-            <h2 className="font-semibold text-navy text-base">Requirements</h2>
-            <p className="text-sm text-text-mute mt-0.5">What students need before starting this course.</p>
-          </div>
-          {requirements.map((req, i) => (
-            <div key={i} className="flex gap-2">
-              <input value={req}
-                onChange={(e) => updateItem(requirements, setRequirements, i, e.target.value)}
-                disabled={isLocked}
-                placeholder="e.g. Basic JavaScript knowledge"
-                className={`${inputCls} flex-1`} />
-              {!isLocked && (
-                <button onClick={() => removeItem(requirements, setRequirements, i)}
-                  className="p-2 text-text-mute hover:text-red-500 transition-colors shrink-0 rounded-lg hover:bg-red-50">
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-          ))}
-          {!isLocked && (
-            <button onClick={() => addItem(requirements, setRequirements)}
-              className="flex items-center gap-1.5 text-sm text-primary font-medium hover:underline w-fit">
-              <Plus size={14} /> Add requirement
-            </button>
-          )}
+          <BulkListInput
+            title="Requirements"
+            hint="What students need before starting this course."
+            label="requirements"
+            placeholder="e.g. Basic JavaScript knowledge"
+            items={requirements}
+            setItems={setRequirements}
+            isLocked={isLocked}
+          />
         </div>
 
         {/* What's included */}
         <div className="bg-white rounded-2xl border border-stroke p-6 flex flex-col gap-4">
-          <div>
-            <h2 className="font-semibold text-navy text-base">What&apos;s Included</h2>
-            <p className="text-sm text-text-mute mt-0.5">What students get (certificate, hours of video, etc.).</p>
-          </div>
-          {includes.map((item, i) => (
-            <div key={i} className="flex gap-2">
-              <input value={item}
-                onChange={(e) => updateItem(includes, setIncludes, i, e.target.value)}
-                disabled={isLocked}
-                placeholder="e.g. 10 hours on-demand video"
-                className={`${inputCls} flex-1`} />
-              {!isLocked && (
-                <button onClick={() => removeItem(includes, setIncludes, i)}
-                  className="p-2 text-text-mute hover:text-red-500 transition-colors shrink-0 rounded-lg hover:bg-red-50">
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-          ))}
-          {!isLocked && (
-            <button onClick={() => addItem(includes, setIncludes)}
-              className="flex items-center gap-1.5 text-sm text-primary font-medium hover:underline w-fit">
-              <Plus size={14} /> Add item
-            </button>
-          )}
+          <BulkListInput
+            title="What&apos;s Included"
+            hint="What students get (certificate, hours of video, etc.)."
+            label="included items"
+            placeholder="e.g. 10 hours on-demand video"
+            items={includes}
+            setItems={setIncludes}
+            isLocked={isLocked}
+          />
         </div>
 
         {!isLocked && (

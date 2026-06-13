@@ -2,9 +2,9 @@
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { CheckCheck, MessageSquare, Send, Loader2 } from 'lucide-react';
+import { CheckCheck, MessageSquare, Send, Loader2, Star } from 'lucide-react';
 import { postFeedbackAction } from '@/actions/admin-courses';
-import { resolveFeedbackAction } from '@/actions/instructor';
+import { markFeedbackAddressedAction, resolveFeedbackAction } from '@/actions/instructor';
 import { toast } from 'sonner';
 
 interface FeedbackAuthor {
@@ -16,6 +16,10 @@ interface FeedbackAuthor {
 
 interface FeedbackItem {
   id: string;
+  rawId?: string;
+  source?: 'COURSE_FEEDBACK' | 'ADMIN_REVIEW' | 'STUDENT_REVIEW';
+  status?: string | null;
+  rating?: number | null;
   body: string;
   resolvedAt: string | null;
   resolvedBy: string | null;
@@ -57,12 +61,39 @@ function FeedbackCard({
   const [resolving, startResolve] = useTransition();
   const isResolved = !!item.resolvedAt;
   const isOwnItem = item.author.id === currentUserId;
-  const canResolve = !isResolved && !isAdmin && !isOwnItem;
+  const source = item.source ?? 'COURSE_FEEDBACK';
+  const isStudentReview = source === 'STUDENT_REVIEW';
+  const isAdminReview = source === 'ADMIN_REVIEW';
+  const canResolve = !isResolved && !isAdmin && !isOwnItem && !isStudentReview;
+
+  const sourceLabel =
+    source === 'ADMIN_REVIEW'
+      ? item.status === 'REJECTED'
+        ? 'Admin review: rejected'
+        : item.status === 'CHANGES_REQUESTED'
+          ? 'Admin review: changes requested'
+          : 'Admin review'
+      : source === 'STUDENT_REVIEW'
+        ? 'Student review'
+        : 'Course feedback';
+
+  const sourceClass =
+    source === 'ADMIN_REVIEW'
+      ? item.status === 'REJECTED'
+        ? 'bg-red-50 text-red-600'
+        : 'bg-amber-50 text-amber-700'
+      : source === 'STUDENT_REVIEW'
+        ? 'bg-[#EEF3FF] text-[#1C4ED1]'
+        : 'bg-primary/10 text-primary';
 
   const handleResolve = () => {
     startResolve(async () => {
       try {
-        await resolveFeedbackAction(item.id, courseId);
+        if (isAdminReview) {
+          await markFeedbackAddressedAction(item.rawId ?? item.id.replace(/^review:/, ''), courseId);
+        } else {
+          await resolveFeedbackAction(item.rawId ?? item.id.replace(/^feedback:/, ''), courseId);
+        }
         onResolved(item.id);
         toast.success('Feedback marked as resolved.');
       } catch {
@@ -73,7 +104,7 @@ function FeedbackCard({
 
   return (
     <div className={`bg-white border rounded-2xl p-5 flex flex-col gap-3 transition-all ${
-      isResolved ? 'border-stroke opacity-60' : 'border-amber-200 shadow-sm'
+      isResolved || isStudentReview ? 'border-stroke' : 'border-amber-200 shadow-sm'
     }`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -94,15 +125,25 @@ function FeedbackCard({
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {item.rating ? (
+            <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+              <Star size={12} className="fill-current" /> {item.rating}/5
+            </span>
+          ) : null}
+          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${sourceClass}`}>
+            {sourceLabel}
+          </span>
         {isResolved ? (
           <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full shrink-0">
             <CheckCheck size={12} /> Resolved
           </span>
-        ) : (
+        ) : isStudentReview ? null : (
           <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full shrink-0">
             Open
           </span>
         )}
+        </div>
       </div>
 
       <p className="text-sm text-navy leading-relaxed whitespace-pre-wrap">{item.body}</p>
@@ -166,8 +207,10 @@ export default function FeedbackTab({ courseId, isAdmin, currentUserId, initialI
     );
   };
 
-  const open = items.filter((i) => !i.resolvedAt);
-  const resolved = items.filter((i) => i.resolvedAt);
+  const actionItems = items.filter((i) => i.source !== 'STUDENT_REVIEW');
+  const studentReviews = items.filter((i) => i.source === 'STUDENT_REVIEW');
+  const open = actionItems.filter((i) => !i.resolvedAt);
+  const resolved = actionItems.filter((i) => i.resolvedAt);
 
   if (loading) {
     return (
@@ -256,6 +299,29 @@ export default function FeedbackTab({ courseId, isAdmin, currentUserId, initialI
               : 'No feedback from the admin yet. Check back after your course is reviewed.'}
           </p>
         </div>
+      )}
+
+      {studentReviews.length > 0 && (
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-navy">
+            Student reviews
+            <span className="rounded-full bg-[#EEF3FF] px-2 py-0.5 text-[11px] font-bold text-[#1C4ED1]">
+              {studentReviews.length}
+            </span>
+          </h2>
+          <div className="space-y-3">
+            {studentReviews.map((item) => (
+              <FeedbackCard
+                key={item.id}
+                item={item}
+                courseId={courseId}
+                isAdmin={isAdmin}
+                currentUserId={currentUserId}
+                onResolved={handleResolved}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Resolved items (collapsed section) */}

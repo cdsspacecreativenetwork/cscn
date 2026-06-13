@@ -16,6 +16,7 @@ import {
   CreditCard,
   FileClock,
   GraduationCap,
+  Handshake,
   Layers,
   LayoutDashboard,
   Library,
@@ -53,6 +54,8 @@ const adminOperationItems: NavItem[] = [
   { name: 'Students', href: '/dashboard/admin/students', Icon: GraduationCap, permissions: ['canManageLearners', 'canManageUsers'] },
   { name: 'Instructors', href: '/dashboard/admin/instructors', Icon: UserCheck, permissions: ['canManageInstructors', 'canVerifyInstructors'] },
   { name: 'Invites', href: '/dashboard/admin/invites', Icon: Link2, permissions: ['canManageInvites', 'canManageUsers'] },
+  { name: 'Platform Events', href: '/dashboard/admin/platform-events', Icon: CalendarDays, permissions: ['canManageCourses', 'canManageInstructors', 'canManageSettings'] },
+  { name: 'Mentorship', href: '/dashboard/admin/mentorship', Icon: Handshake, permissions: ['canManageInstructors', 'canVerifyInstructors', 'canManageBilling'] },
   { name: 'Announcements', href: '/dashboard/admin/announcements', Icon: Megaphone, permissions: ['canManageAnnouncements'] },
   { name: 'Billing', href: '/dashboard/admin/billing', Icon: CreditCard, permissions: ['canManageBilling'] },
   { name: 'Marketing', href: '/dashboard/admin/marketing', Icon: Tags, permissions: ['canManageMarketing'] },
@@ -78,6 +81,8 @@ const adminAccountItems: NavItem[] = [
 const instructorItems: NavItem[] = [
   { name: 'Overview', href: '/dashboard', Icon: LayoutDashboard },
   { name: 'Courses', href: '/dashboard/instructor/courses', Icon: BookPlus },
+  { name: 'Live Sessions', href: '/dashboard/instructor/live-sessions', Icon: CalendarDays },
+  { name: 'Mentorship', href: '/dashboard/instructor/mentorship', Icon: GraduationCap },
   { name: 'Earnings', href: '/dashboard/instructor/earnings', Icon: CreditCard },
   { name: 'Analytics', href: '/dashboard/instructor/analytics', Icon: BarChart2 },
 ];
@@ -217,6 +222,7 @@ function SidebarSection({
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [hasCourseCollaborations, setHasCourseCollaborations] = React.useState(false);
   const role = session?.user?.role;
   const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
   const isInstructor = role === 'INSTRUCTOR';
@@ -226,6 +232,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
     if (!item.permissions) return true;
     return hasAnyAdminPermission(session?.user, item.permissions);
   });
+  const learnerMainItems = hasCourseCollaborations
+    ? [
+        ...learnerItems,
+        { name: 'Studio', href: '/dashboard/instructor/courses', Icon: BookPlus },
+      ]
+    : learnerItems;
+
+  React.useEffect(() => {
+    if (!session?.user?.id || isAdmin || isInstructor) {
+      setHasCourseCollaborations(false);
+      return;
+    }
+
+    let cancelled = false;
+    fetch('/api/me/course-collaborations')
+      .then((res) => (res.ok ? res.json() : { hasCourseCollaborations: false }))
+      .then((data) => {
+        if (!cancelled) setHasCourseCollaborations(Boolean(data.hasCourseCollaborations));
+      })
+      .catch(() => {
+        if (!cancelled) setHasCourseCollaborations(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id, isAdmin, isInstructor]);
 
   return (
     <aside
@@ -322,7 +355,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
           <>
             <SidebarSection
               label="Main"
-              items={learnerItems}
+              items={learnerMainItems}
               collapsed={effectivelyCollapsed}
               pathname={pathname}
               onClick={handleNavClick}

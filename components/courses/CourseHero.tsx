@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { Play } from 'lucide-react';
 
 interface CourseHeroProps {
   courseTitle: string;
@@ -58,14 +59,16 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
   instructorImage,
   publishDate,
   videoThumbnail,
-  videoUrl = 'https://res.cloudinary.com/emediong/video/upload/v1778071570/CDS_Space_Branding_Agency_hhhxkq.mp4',
+  videoUrl,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<number | null>(null);
-  const youtubeId = extractYouTubeId(videoUrl);
+  const hasPlayableTrailer = Boolean(videoUrl);
+  const youtubeId = videoUrl ? extractYouTubeId(videoUrl) : null;
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
   const clearControlsTimeout = useCallback(() => {
     if (controlsTimeoutRef.current) {
@@ -94,14 +97,17 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
   }, [clearControlsTimeout, revealControls, youtubeId]);
 
   const playVideo = useCallback(async () => {
+    if (!hasPlayableTrailer) return;
+    setHasStarted(true);
     if (!videoRef.current) return;
 
     await videoRef.current.play();
     setIsPlaying(true);
     revealControls();
-  }, [revealControls]);
+  }, [hasPlayableTrailer, revealControls]);
 
   const togglePlayback = useCallback(async () => {
+    if (!hasPlayableTrailer) return;
     if (!videoRef.current) return;
 
     if (videoRef.current.paused) {
@@ -113,7 +119,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
     setIsPlaying(false);
     setShowControls(true);
     clearControlsTimeout();
-  }, [clearControlsTimeout, playVideo]);
+  }, [clearControlsTimeout, hasPlayableTrailer, playVideo]);
 
   const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
@@ -132,6 +138,23 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
   }, [revealControls]);
 
   const handleSurfacePress = useCallback(async () => {
+    if (!hasPlayableTrailer) return;
+    if (youtubeId && !hasStarted) {
+      setHasStarted(true);
+      return;
+    }
+
+    if (!hasStarted) {
+      setHasStarted(true);
+      window.setTimeout(() => {
+        videoRef.current?.play().then(() => {
+          setIsPlaying(true);
+          revealControls();
+        }).catch(() => {});
+      }, 0);
+      return;
+    }
+
     if (!videoRef.current) return;
 
     if (videoRef.current.paused) {
@@ -140,7 +163,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
     }
 
     revealControls();
-  }, [playVideo, revealControls]);
+  }, [hasPlayableTrailer, hasStarted, playVideo, revealControls, youtubeId]);
 
   return (
     <div className="bg-[#040B37] w-full px-[clamp(16px,5vw,200px)] py-[clamp(16px,2vw,24px)] relative overflow-hidden">
@@ -149,9 +172,35 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
         onTouchStart={!youtubeId ? revealControls : undefined}
         className="relative w-full aspect-video md:h-[clamp(400px,46.3vw,800px)] border-[clamp(2px,0.46vw,8px)] border-[#0E1648] rounded-[clamp(12px,1.39vw,24px)] overflow-hidden bg-black group shadow-2xl"
       >
-        {youtubeId ? (
+        {!hasStarted ? (
+          <>
+            {hasPlayableTrailer && (
+              <button
+                type="button"
+                onClick={handleSurfacePress}
+                className="absolute inset-0 z-20 cursor-pointer"
+                aria-label="Play course trailer"
+              />
+            )}
+            <Image
+              src={videoThumbnail}
+              alt={`${courseTitle} trailer thumbnail`}
+              fill
+              priority
+              className="object-cover"
+            />
+            <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#040B37]/72 via-[#040B37]/12 to-transparent" />
+            {hasPlayableTrailer && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <div className="flex h-[clamp(60px,7vw,104px)] w-[clamp(60px,7vw,104px)] items-center justify-center rounded-full border border-white/40 bg-white/95 text-[#1C4ED1] shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-105">
+                <Play size={34} fill="currentColor" className="ml-1" />
+              </div>
+            </div>
+            )}
+          </>
+        ) : youtubeId ? (
           <iframe
-            src={`https://www.youtube.com/embed/${youtubeId}?rel=0&modestbranding=1&playsinline=1`}
+            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
             title={courseTitle}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
@@ -183,7 +232,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
           </>
         )}
 
-        {!isPlaying && !youtubeId && (
+        {!hasStarted && (
           <div className="hidden md:block absolute left-[clamp(20px,2.78vw,48px)] bottom-[clamp(40px,5.56vw,96px)] w-full max-w-[280px] mlg:max-w-[clamp(300px,28.07vw,485px)] backdrop-blur-md bg-[rgba(0,0,0,0.64)] p-4 mlg:p-[clamp(16px,1.39vw,24px)] rounded-[16px] border border-white/10 z-20 transition-opacity duration-500">
             <h1 className="text-[16px] mlg:text-[clamp(20px,1.85vw,32px)] font-bold text-white tracking-tight leading-[1.24] mb-3 mlg:mb-6">
               {courseTitle}
@@ -205,7 +254,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
           </div>
         )}
 
-        {!isPlaying && !youtubeId && (
+        {!hasStarted && hasPlayableTrailer && (
           <div className="md:hidden absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
             <div className="h-14 w-14 rounded-full bg-[#1C4ED1]/92 shadow-2xl flex items-center justify-center backdrop-blur-sm">
               <div className="relative h-6 w-6 ml-0.5">
@@ -215,7 +264,7 @@ export const CourseHero: React.FC<CourseHeroProps> = ({
           </div>
         )}
 
-        {!youtubeId && (
+        {hasStarted && !youtubeId && (
           <div
             className={`absolute bottom-3 right-3 md:bottom-5 md:right-5 z-20 flex items-center gap-1.5 rounded-full border border-white/12 bg-[rgba(4,11,55,0.74)] px-2 py-1.5 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.32)] transition-all duration-300 md:gap-2 md:px-2.5 md:py-2 ${
               !isPlaying

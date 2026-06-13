@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getCourseInviteByToken, acceptCourseInvite } from "@/data/instructor";
+import { getCourseInviteByToken, acceptCourseInvite, declineCourseInvite } from "@/data/instructor";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -37,6 +37,27 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
   try {
     const result = await acceptCourseInvite(token, session.user.id);
+    return NextResponse.json({ success: true, courseId: result.courseId });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Server error";
+    const status =
+      message.includes("expired") || message.includes("already been used") ? 410 :
+      message.includes("different email") ? 403 :
+      message.includes("Invalid") ? 404 : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { token } = await params;
+
+  try {
+    const result = await declineCourseInvite(token, session.user.id);
     return NextResponse.json({ success: true, courseId: result.courseId });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";

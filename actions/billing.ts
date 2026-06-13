@@ -336,3 +336,163 @@ export async function markPayoutPaidAction(requestId: string, providerReference?
     return { error: error instanceof Error ? error.message : "Failed to mark payout paid." };
   }
 }
+
+export async function approveRefundRequestAction(refundId: string) {
+  try {
+    const admin = await requireBillingAdmin();
+    const refund = await db.refund.update({
+      where: { id: refundId },
+      data: { status: "APPROVED", reviewedById: admin.id, reviewedAt: new Date() },
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        order: {
+          select: {
+            userId: true,
+            type: true,
+            course: { select: { title: true } },
+            mentorBooking: { select: { topic: true } },
+          },
+        },
+      },
+    });
+
+    await createAuditLog({
+      actorId: admin.id,
+      actorName: admin.name,
+      actorEmail: admin.email,
+      action: "refund.approved",
+      entityType: "REFUND",
+      entityId: refund.id,
+      entityName: refund.order.course?.title ?? refund.order.mentorBooking?.topic ?? refund.order.type,
+      metadata: { amount: refund.amount, currency: refund.currency },
+    });
+
+    await createNotification(
+      refund.order.userId,
+      "SYSTEM",
+      "Refund request approved",
+      `Finance approved your ${refund.currency} ${toNumber(refund.amount).toLocaleString()} refund request. Processing will continue through the payment provider.`,
+      { refundId: refund.id, area: "billing" }
+    );
+
+    revalidatePath("/dashboard/admin/billing");
+    revalidatePath("/dashboard/purchases");
+    return { success: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Failed to approve refund." };
+  }
+}
+
+export async function rejectRefundRequestAction(refundId: string, adminNote?: string) {
+  try {
+    const admin = await requireBillingAdmin();
+    const refund = await db.refund.update({
+      where: { id: refundId },
+      data: {
+        status: "REJECTED",
+        reviewedById: admin.id,
+        reviewedAt: new Date(),
+        reason: adminNote?.trim() || undefined,
+      },
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        order: {
+          select: {
+            userId: true,
+            type: true,
+            course: { select: { title: true } },
+            mentorBooking: { select: { topic: true } },
+          },
+        },
+      },
+    });
+
+    await createAuditLog({
+      actorId: admin.id,
+      actorName: admin.name,
+      actorEmail: admin.email,
+      action: "refund.rejected",
+      entityType: "REFUND",
+      entityId: refund.id,
+      entityName: refund.order.course?.title ?? refund.order.mentorBooking?.topic ?? refund.order.type,
+      metadata: { amount: refund.amount, currency: refund.currency, hasNote: Boolean(adminNote?.trim()) },
+    });
+
+    await createNotification(
+      refund.order.userId,
+      "SYSTEM",
+      "Refund request rejected",
+      adminNote?.trim() || "Finance reviewed your refund request and could not approve it under the current policy.",
+      { refundId: refund.id, area: "billing" }
+    );
+
+    revalidatePath("/dashboard/admin/billing");
+    revalidatePath("/dashboard/purchases");
+    return { success: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Failed to reject refund." };
+  }
+}
+
+export async function markRefundProcessedAction(refundId: string, providerReference?: string) {
+  try {
+    const admin = await requireBillingAdmin();
+    const refund = await db.refund.update({
+      where: { id: refundId },
+      data: {
+        status: "SUCCEEDED",
+        providerReference: providerReference?.trim() || null,
+        reviewedById: admin.id,
+        completedAt: new Date(),
+      },
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        orderId: true,
+        order: {
+          select: {
+            userId: true,
+            type: true,
+            course: { select: { title: true } },
+            mentorBooking: { select: { topic: true } },
+          },
+        },
+      },
+    });
+
+    await db.purchaseOrder.update({
+      where: { id: refund.orderId },
+      data: { status: "REFUNDED" },
+    });
+
+    await createAuditLog({
+      actorId: admin.id,
+      actorName: admin.name,
+      actorEmail: admin.email,
+      action: "refund.processed",
+      entityType: "REFUND",
+      entityId: refund.id,
+      entityName: refund.order.course?.title ?? refund.order.mentorBooking?.topic ?? refund.order.type,
+      metadata: { amount: refund.amount, currency: refund.currency, providerReference },
+    });
+
+    await createNotification(
+      refund.order.userId,
+      "SYSTEM",
+      "Refund processed",
+      `Your ${refund.currency} ${toNumber(refund.amount).toLocaleString()} refund has been marked as processed by CSCN finance.`,
+      { refundId: refund.id, area: "billing" }
+    );
+
+    revalidatePath("/dashboard/admin/billing");
+    revalidatePath("/dashboard/purchases");
+    return { success: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Failed to mark refund processed." };
+  }
+}

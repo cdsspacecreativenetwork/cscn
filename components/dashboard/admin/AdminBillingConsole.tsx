@@ -5,6 +5,7 @@ import { AlertTriangle, Banknote, CreditCard, ReceiptText, RefreshCcw, WalletCar
 
 import type { getAdminBillingOverview } from "@/data/admin-billing";
 import { PayoutRequestActions } from "@/components/dashboard/admin/PayoutRequestActions";
+import { RefundRequestActions } from "@/components/dashboard/admin/RefundRequestActions";
 import { formatCurrency } from "@/lib/money";
 import { CurrencyPreferenceSelect } from "@/components/dashboard/CurrencyPreferenceSelect";
 
@@ -143,6 +144,55 @@ export function AdminBillingConsole({ data }: Props) {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="rounded-[18px] border border-[#E3E8F4] bg-white shadow-sm">
+        <div className="border-b border-[#E3E8F4] p-5">
+          <h2 className="text-[18px] font-black text-[#040B37]">Refund review queue</h2>
+          <p className="mt-1 text-[12px] font-semibold text-[#9CA3AF]">
+            Refund cases opened from purchases, mentorship cancellations, or finance review.
+          </p>
+        </div>
+        {data.recentRefundRequests.length > 0 ? (
+          <div className="divide-y divide-[#F4F6FB]">
+            {data.recentRefundRequests.map((refund) => {
+              const subject =
+                refund.order.course?.title ??
+                refund.order.mentorBooking?.topic ??
+                refund.order.type;
+              const mentorName = refund.order.mentorBooking?.mentor.name ?? refund.order.mentorBooking?.mentor.email;
+
+              return (
+                <div key={refund.id} className="flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${statusClass(refund.status)}`}>{refund.status}</span>
+                      <span className="rounded-full bg-[#1C4ED1]/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#1C4ED1]">
+                        {refund.order.type}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-[14px] font-black text-[#040B37]">{subject}</p>
+                    <p className="mt-1 text-[12px] font-semibold text-[#9CA3AF]">
+                      {refund.order.user.name ?? refund.order.user.email} | {formatDate(refund.createdAt)}
+                    </p>
+                    {mentorName && (
+                      <p className="mt-1 text-[12px] font-semibold text-[#4B5563]">Mentor: {mentorName}</p>
+                    )}
+                    {refund.reason && (
+                      <p className="mt-2 max-w-3xl text-[12px] font-medium leading-relaxed text-[#4B5563]">{refund.reason}</p>
+                    )}
+                  </div>
+                  <div className="text-left lg:text-right">
+                    <p className="text-[15px] font-black text-[#040B37]">{formatMoney(refund.amount, refund.currency)}</p>
+                    <RefundRequestActions refundId={refund.id} status={refund.status} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-8 text-center text-[13px] font-semibold text-[#9CA3AF]">No refund cases need review right now.</div>
+        )}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-2">

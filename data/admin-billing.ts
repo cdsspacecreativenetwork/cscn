@@ -41,6 +41,7 @@ export async function getAdminBillingOverview(adminId?: string) {
     refunds,
     recentOrders,
     recentPayoutRequests,
+    recentRefundRequests,
   ] = await Promise.all([
     db.purchaseOrder.aggregate({
       where: { status: "PAID" },
@@ -98,6 +99,33 @@ export async function getAdminBillingOverview(adminId?: string) {
         instructor: { select: { name: true, email: true, payoutSetup: true } },
       },
     }),
+    db.refund.findMany({
+      where: { status: { in: ["REQUESTED", "APPROVED", "PROCESSING"] } },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: {
+        id: true,
+        status: true,
+        amount: true,
+        currency: true,
+        reason: true,
+        createdAt: true,
+        order: {
+          select: {
+            id: true,
+            type: true,
+            user: { select: { name: true, email: true } },
+            mentorBooking: {
+              select: {
+                topic: true,
+                mentor: { select: { name: true, email: true } },
+              },
+            },
+            course: { select: { title: true } },
+          },
+        },
+      },
+    }),
   ]);
 
   const grossRevenue = money(paidOrders._sum.amount);
@@ -129,6 +157,10 @@ export async function getAdminBillingOverview(adminId?: string) {
     recentPayoutRequests: recentPayoutRequests.map((request) => ({
       ...request,
       amount: money(request.amount),
+    })),
+    recentRefundRequests: recentRefundRequests.map((refund) => ({
+      ...refund,
+      amount: money(refund.amount),
     })),
   };
 }
@@ -172,7 +204,13 @@ export async function getInstructorEarningsSummary(instructorId: string) {
         currency: true,
         status: true,
         createdAt: true,
+        holdUntil: true,
         course: { select: { title: true } },
+        order: {
+          select: {
+            mentorBooking: { select: { topic: true } },
+          },
+        },
       },
     }),
   ]);
@@ -213,8 +251,16 @@ export async function getInstructorEarningsDetail(instructorId: string) {
         createdAt: true,
         availableAt: true,
         paidAt: true,
+        holdUntil: true,
+        order: {
+          select: {
+            id: true,
+            paidAt: true,
+            user: { select: { name: true, email: true } },
+            mentorBooking: { select: { topic: true } },
+          },
+        },
         course: { select: { title: true, slug: true, thumbnail: true } },
-        order: { select: { id: true, paidAt: true, user: { select: { name: true, email: true } } } },
       },
     }),
     db.payoutRequest.findMany({
@@ -253,7 +299,7 @@ export async function getInstructorEarningsDetail(instructorId: string) {
     const key = earning.courseId ?? "unknown-course";
     const current = courseMap.get(key) ?? {
       courseId: key,
-      title: earning.course?.title ?? "Course",
+      title: earning.course?.title ?? "Mentorship sessions",
       slug: earning.course?.slug ?? "",
       lifetime: 0,
       available: 0,
@@ -275,11 +321,12 @@ export async function getInstructorEarningsDetail(instructorId: string) {
   const recentEarnings = await Promise.all(
     earnings.slice(0, 12).map(async (earning) => ({
       id: earning.id,
-      courseTitle: earning.course?.title ?? "Course",
+      courseTitle: earning.course?.title ?? earning.order?.mentorBooking?.topic ?? "Mentorship session",
       learnerName: earning.order?.user.name ?? earning.order?.user.email ?? "Learner",
       status: earning.status,
       createdAt: earning.createdAt,
       availableAt: earning.availableAt,
+      holdUntil: earning.holdUntil,
       paidAt: earning.paidAt,
       grossAmount: await convertCurrency(money(earning.grossAmount), earning.currency, summary.displayCurrency),
       platformFee: await convertCurrency(money(earning.platformFee), earning.currency, summary.displayCurrency),

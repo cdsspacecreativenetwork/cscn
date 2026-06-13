@@ -32,6 +32,7 @@ import {
   PenLine,
   Quote,
   Redo2,
+  ALargeSmall,
   Type,
   Undo2,
   X,
@@ -295,21 +296,11 @@ function markdownToHtml(markdown: string) {
       continue;
     }
 
-    if (trimmed.startsWith('### ')) {
+    const heading = trimmed.match(/^(#{1,3})\s*(.+)$/);
+    if (heading) {
       closeList();
-      html.push(`<h3>${inlineMarkdown(trimmed.slice(4))}</h3>`);
-      continue;
-    }
-
-    if (trimmed.startsWith('## ')) {
-      closeList();
-      html.push(`<h2>${inlineMarkdown(trimmed.slice(3))}</h2>`);
-      continue;
-    }
-
-    if (trimmed.startsWith('# ')) {
-      closeList();
-      html.push(`<h1>${inlineMarkdown(trimmed.slice(2))}</h1>`);
+      const level = Math.min(heading[1].length, 3);
+      html.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
       continue;
     }
 
@@ -406,7 +397,7 @@ function sanitizePastedHtml(html: string) {
 }
 
 function looksLikeMarkdown(value: string) {
-  return /(^#{1,3}\s)|(^[-*]\s)|(^\d+\.\s)|(^>\s)|(```)|(\*\*[^*]+\*\*)|(\[[^\]]+\]\(https?:\/\/)/m.test(value);
+  return /(^#{1,3}\s*\S)|(^[-*]\s)|(^\d+\.\s)|(^>\s)|(```)|(\*\*[^*]+\*\*)|(\[[^\]]+\]\(https?:\/\/)/m.test(value);
 }
 
 function getPlainText(html: string) {
@@ -581,6 +572,30 @@ export default function ArticleLessonEditor({ value, onChange, courseId, lessonI
     editor?.chain().focus().toggleCodeBlock({ language: codeLanguage }).run();
   };
 
+  const transformSelectionText = (variant: 'title' | 'upper' | 'lower' | 'sentence') => {
+    if (!editor || disabled) return;
+    const { from, to, empty } = editor.state.selection;
+    if (empty) {
+      toast.info('Highlight text first, then choose a text case.');
+      return;
+    }
+
+    const selectedText = editor.state.doc.textBetween(from, to, '\n');
+    const transformWord = (word: string) =>
+      word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word;
+
+    const nextText =
+      variant === 'upper'
+        ? selectedText.toUpperCase()
+        : variant === 'lower'
+          ? selectedText.toLowerCase()
+          : variant === 'sentence'
+            ? selectedText.toLowerCase().replace(/(^\s*\w|[.!?]\s+\w)/g, (match) => match.toUpperCase())
+            : selectedText.replace(/\S+/g, transformWord);
+
+    editor.chain().focus().insertContentAt({ from, to }, nextText).run();
+  };
+
   const uploadImage = (file: File | null) => {
     if (!file || !editor || disabled) return;
     startImageUpload(async () => {
@@ -641,6 +656,29 @@ export default function ArticleLessonEditor({ value, onChange, courseId, lessonI
             <button type="button" className={`${toolbarButton} ${isActive('bulletList') ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleBulletList().run()} title="Bullet list"><List size={16} /></button>
             <button type="button" className={`${toolbarButton} ${isActive('orderedList') ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleOrderedList().run()} title="Numbered list"><ListOrdered size={16} /></button>
             <button type="button" className={`${toolbarButton} ${isActive('blockquote') ? activeToolbarButton : ''}`} disabled={disabled} onClick={() => editor?.chain().focus().toggleBlockquote().run()} title="Quote"><Quote size={16} /></button>
+            <div className="group relative">
+              <button type="button" className={toolbarButton} disabled={disabled} title="Change selected text case">
+                <ALargeSmall size={17} />
+              </button>
+              <div className="invisible absolute left-0 top-10 z-30 w-[180px] rounded-[10px] border border-[#D8E1F2] bg-white p-1.5 opacity-0 shadow-2xl transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+                {[
+                  { id: 'title', label: 'Title Case' },
+                  { id: 'upper', label: 'UPPERCASE' },
+                  { id: 'lower', label: 'lowercase' },
+                  { id: 'sentence', label: 'Sentence case' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => transformSelectionText(item.id as 'title' | 'upper' | 'lower' | 'sentence')}
+                    className="w-full rounded-[8px] px-3 py-2 text-left text-xs font-bold text-[#040B37] transition-colors hover:bg-[#EEF3FF] hover:text-[#1C4ED1]"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <input
               ref={imageInputRef}
               type="file"

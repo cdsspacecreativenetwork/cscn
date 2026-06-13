@@ -134,6 +134,20 @@ export async function getAllCoursesAdmin(adminId: string) {
           submittedBy: { select: { name: true, email: true } },
         },
       },
+      revisions: {
+        where: { status: "PENDING_REVIEW" },
+        orderBy: { submittedAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          version: true,
+          status: true,
+          changeSummary: true,
+          liveSnapshot: true,
+          draftSnapshot: true,
+          submittedAt: true,
+        },
+      },
       category: { select: { name: true } },
       _count: { select: { enrollments: true } },
       modules: { select: { _count: { select: { lessons: true } } } },
@@ -183,11 +197,8 @@ export async function adminToggleCoursePublish(courseId: string) {
     if (!course.thumbnail) {
       throw new Error("Add a course thumbnail before publishing this course.");
     }
-    if (!course.promoVideo) {
-      throw new Error("Add a course trailer before publishing this course.");
-    }
     if (!course.modules.some((module) => module.lessons.length > 0)) {
-      throw new Error("Publish at least one module and one lesson before publishing this course.");
+      throw new Error("Publish at least one lesson before publishing this course.");
     }
   }
 
@@ -228,6 +239,7 @@ export async function getStudioCourseAdmin(courseId: string) {
       thumbnail: true,
       promoVideo: true,
       difficulty: true,
+      courseType: true,
       status: true,
       previewCount: true,
       categoryId: true,
@@ -257,6 +269,20 @@ export async function getStudioCourseAdmin(courseId: string) {
           submittedBy: { select: { name: true, email: true } },
         },
       },
+      revisions: {
+        where: { status: "PENDING_REVIEW" },
+        orderBy: { submittedAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          version: true,
+          status: true,
+          changeSummary: true,
+          liveSnapshot: true,
+          draftSnapshot: true,
+          submittedAt: true,
+        },
+      },
       finalExamId: true,
       modules: {
         orderBy: { position: "asc" },
@@ -265,6 +291,7 @@ export async function getStudioCourseAdmin(courseId: string) {
           title: true,
           position: true,
           isPublished: true,
+          isDefault: true,
           lessons: {
             orderBy: { position: "asc" },
             select: {

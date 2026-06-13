@@ -384,6 +384,7 @@ What doesn't need to change:
 
 The tab structure ( Settings, Curriculum, Analytics, Instructors, Feedback) is clean
 The Curriculum Builder drag-and-drop is good
+# PASSIVE TAKE NOTE
 10. Analytics (Currently Empty)
 This is genuinely one of the most valuable sections for instructor retention. Here's the full breakdown:
 
@@ -411,7 +412,8 @@ What You're Missing (That You Didn't Ask About)
 1. Course Q&A / Discussion
 The single highest-engagement feature on any LMS. Students ask questions per-lesson, instructors answer. This builds community and reduces refund rates. You have notifications infrastructure — this would plug right in.
 
-2. Certificates
+# PASSIVE TAKE NOTE
+2. Certificates 
 Students expect this. Use @vercel/og or puppeteer to generate a PDF certificate with their name, course title, completion date, and your platform logo. One afternoon of work.
 
 3. Reviews

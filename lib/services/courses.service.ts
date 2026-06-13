@@ -65,12 +65,13 @@ export async function getCoursePreview(slug: string, userId: string, userRole?: 
         },
     select: {
       id: true, title: true, slug: true, description: true, shortDesc: true,
-      thumbnail: true, promoVideo: true, status: true, previewCount: true, price: true, baseCurrency: true, includes: true,
+      thumbnail: true, promoVideo: true, difficulty: true, courseType: true, status: true, previewCount: true, price: true, baseCurrency: true, includes: true,
       requirements: true,
       _count: { select: { enrollments: true } },
       instructor: { select: { id: true, name: true, image: true, headline: true, publicProfileSlug: true } },
       instructors: {
         select: {
+          role: true,
           user: {
             select: {
               id: true,
@@ -85,7 +86,7 @@ export async function getCoursePreview(slug: string, userId: string, userRole?: 
       modules: {
         orderBy: { position: "asc" },
         select: {
-          id: true, title: true, position: true, isPublished: true,
+          id: true, title: true, position: true, isPublished: true, isDefault: true,
           lessons: {
             orderBy: { position: "asc" },
             select: { id: true, title: true, duration: true, contentType: true, isPreview: true, isPublished: true },

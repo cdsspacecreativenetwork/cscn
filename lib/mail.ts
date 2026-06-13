@@ -40,6 +40,15 @@ function verifySmtpOnce() {
   });
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 async function send(opts: nodemailer.SendMailOptions): Promise<{ success: true; messageId: string } | { error: string }> {
   verifySmtpOnce();
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
@@ -153,4 +162,92 @@ export const sendPasswordChangeOTPEmail = async (email: string, code: string, na
   } catch (error) {
     console.error(error);
   }
+};
+
+export const sendLiveSessionReminderEmail = async ({
+  email,
+  name,
+  sessionTitle,
+  sessionTime,
+  reminderLabel,
+  scheduleUrl = `${domain}/dashboard/schedule`,
+}: {
+  email: string;
+  name?: string | null;
+  sessionTitle: string;
+  sessionTime: string;
+  reminderLabel: string;
+  scheduleUrl?: string;
+}) => {
+  const firstName = name?.split(" ")[0] || "Learner";
+  const safeFirstName = escapeHtml(firstName);
+  const safeSessionTitle = escapeHtml(sessionTitle);
+  const safeSessionTime = escapeHtml(sessionTime);
+  const safeReminderLabel = escapeHtml(reminderLabel);
+  const html = `
+    <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; padding: 24px; color: #040B37; max-width: 600px; margin: 0 auto; border: 1px solid #E3E8F4; border-radius: 18px; background-color: #FFFFFF;">
+      <p style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #1C4ED1; margin: 0 0 12px;">Live session reminder</p>
+      <h1 style="font-size: 24px; line-height: 1.25; margin: 0 0 12px; color: #040B37;">${safeReminderLabel}</h1>
+      <p style="font-size: 15px; line-height: 1.6; color: #4B5563; margin: 0 0 18px;">
+        Hi ${safeFirstName}, this is a reminder that <strong>${safeSessionTitle}</strong> is scheduled for ${safeSessionTime}.
+      </p>
+      <a href="${scheduleUrl}" style="display: inline-block; background: linear-gradient(90deg, #1C4ED1, #0A7CFF); color: #FFFFFF; text-decoration: none; font-weight: 800; padding: 13px 20px; border-radius: 10px;">
+        View session
+      </a>
+      <p style="font-size: 12px; line-height: 1.5; color: #9CA3AF; margin: 22px 0 0;">
+        You are receiving this because you enabled reminders for this CSCN live session.
+      </p>
+    </div>
+  `;
+
+  return send({
+    from: `"CSCN Academy" <${defaultFrom}>`,
+    to: email,
+    subject: `${reminderLabel}: ${sessionTitle}`,
+    html,
+  });
+};
+
+export const sendLiveSessionUpdateEmail = async ({
+  email,
+  name,
+  sessionTitle,
+  message,
+  updateLabel,
+  scheduleUrl = `${domain}/dashboard/schedule`,
+}: {
+  email: string;
+  name?: string | null;
+  sessionTitle: string;
+  message: string;
+  updateLabel: string;
+  scheduleUrl?: string;
+}) => {
+  const firstName = name?.split(" ")[0] || "Learner";
+  const safeFirstName = escapeHtml(firstName);
+  const safeSessionTitle = escapeHtml(sessionTitle);
+  const safeMessage = escapeHtml(message);
+  const safeUpdateLabel = escapeHtml(updateLabel);
+  const html = `
+    <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; padding: 24px; color: #040B37; max-width: 600px; margin: 0 auto; border: 1px solid #E3E8F4; border-radius: 18px; background-color: #FFFFFF;">
+      <p style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #1C4ED1; margin: 0 0 12px;">Live session update</p>
+      <h1 style="font-size: 24px; line-height: 1.25; margin: 0 0 12px; color: #040B37;">${safeUpdateLabel}</h1>
+      <p style="font-size: 15px; line-height: 1.6; color: #4B5563; margin: 0 0 18px;">
+        Hi ${safeFirstName}, <strong>${safeSessionTitle}</strong> has an update: ${safeMessage}
+      </p>
+      <a href="${scheduleUrl}" style="display: inline-block; background: linear-gradient(90deg, #1C4ED1, #0A7CFF); color: #FFFFFF; text-decoration: none; font-weight: 800; padding: 13px 20px; border-radius: 10px;">
+        View schedule
+      </a>
+      <p style="font-size: 12px; line-height: 1.5; color: #9CA3AF; margin: 22px 0 0;">
+        You are receiving this because you are enrolled in a course affected by this CSCN live session.
+      </p>
+    </div>
+  `;
+
+  return send({
+    from: `"CSCN Academy" <${defaultFrom}>`,
+    to: email,
+    subject: `${updateLabel}: ${sessionTitle}`,
+    html,
+  });
 };

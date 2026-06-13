@@ -13,6 +13,7 @@ interface CourseHeaderProps {
   isEnrolled: boolean;
   isCompleted: boolean;
   allowManualComplete?: boolean;
+  isPreviewMode?: boolean;
 }
 
 export const CourseHeader = ({
@@ -23,6 +24,7 @@ export const CourseHeader = ({
   isEnrolled,
   isCompleted,
   allowManualComplete = true,
+  isPreviewMode = false,
 }: CourseHeaderProps) => {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -65,7 +67,7 @@ export const CourseHeader = ({
         </h1>
       </div>
 
-      {isEnrolled && allowManualComplete && (
+      {isEnrolled && allowManualComplete && !isPreviewMode && (
         <Button
           variant={done ? 'ghost' : 'primary'}
           rounded="sm"

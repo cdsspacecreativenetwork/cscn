@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Check, CheckCircle2, ChevronDown, ChevronRight, Copy, Plus, Save, Trash2 } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, ChevronRight, ClipboardPaste, Copy, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateLessonQuizAction } from "@/actions/instructor";
@@ -42,6 +42,12 @@ export type LessonQuiz = {
 } | null;
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
+
+type ParsedQuizQuestion = {
+  id: string;
+  question: QuizQuestion;
+  issues: string[];
+};
 
 type QuizLessonBuilderProps = {
   lessonId: string;
@@ -119,11 +125,176 @@ function serializeQuiz(quiz: NonNullable<LessonQuiz>) {
   });
 }
 
+function normalizeQuestionType(value: string | null): QuizQuestionType | null {
+  if (!value) return null;
+  const normalized = value.toLowerCase().replace(/[_-]/g, " ").trim();
+  if (normalized.includes("multi")) return "MULTIPLE_SELECT";
+  if (normalized.includes("true") || normalized.includes("false")) return "TRUE_FALSE";
+  if (normalized.includes("single") || normalized.includes("choice")) return "SINGLE_CHOICE";
+  return null;
+}
+
+function splitQuestionBlocks(input: string) {
+  const normalized = input.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return [];
+  const matches = [...normalized.matchAll(/(?:^|\n)\s*(?:Question|Q)\s*[:.)-]/gi)];
+  if (matches.length === 0) return [normalized];
+
+  return matches.map((match, index) => {
+    const start = match.index ?? 0;
+    const end = matches[index + 1]?.index ?? normalized.length;
+    return normalized.slice(start, end).trim();
+  }).filter(Boolean);
+}
+
+function parseCorrectTokens(value: string) {
+  return value
+    .replace(/^answer\s*[:.)-]\s*/i, "")
+    .split(/[,;/]|\band\b/i)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function parsePastedQuizQuestions(input: string): ParsedQuizQuestion[] {
+  return splitQuestionBlocks(input).map((block, blockIndex) => {
+    const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+    const options: { letter: string; text: string }[] = [];
+    const issues: string[] = [];
+    let prompt = "";
+    let explicitType: QuizQuestionType | null = null;
+    let correctRaw = "";
+    let explanation = "";
+    let activeField: "prompt" | "explanation" | null = null;
+
+    for (const line of lines) {
+      const questionMatch = line.match(/^(?:Question|Q)\s*[:.)-]\s*(.+)$/i);
+      const typeMatch = line.match(/^Type\s*[:.)-]\s*(.+)$/i);
+      const correctMatch = line.match(/^(?:Correct|Answer)\s*[:.)-]\s*(.+)$/i);
+      const explanationMatch = line.match(/^(?:Explanation|Reason|Why)\s*[:.)-]\s*(.+)$/i);
+      const optionMatch = line.match(/^([A-H])[\.)]\s+(.+)$/i);
+
+      if (questionMatch) {
+        prompt = questionMatch[1].trim();
+        activeField = "prompt";
+        continue;
+      }
+
+      if (typeMatch) {
+        explicitType = normalizeQuestionType(typeMatch[1]);
+        if (!explicitType) issues.push(`Question ${blockIndex + 1}: type is not recognized.`);
+        activeField = null;
+        continue;
+      }
+
+      if (optionMatch) {
+        options.push({ letter: optionMatch[1].toUpperCase(), text: optionMatch[2].trim() });
+        activeField = null;
+        continue;
+      }
+
+      if (correctMatch) {
+        correctRaw = correctMatch[1].trim();
+        activeField = null;
+        continue;
+      }
+
+      if (explanationMatch) {
+        explanation = explanationMatch[1].trim();
+        activeField = "explanation";
+        continue;
+      }
+
+      if (activeField === "prompt") {
+        prompt = `${prompt} ${line}`.trim();
+      } else if (activeField === "explanation") {
+        explanation = `${explanation} ${line}`.trim();
+      } else if (!prompt) {
+        prompt = line;
+        activeField = "prompt";
+      }
+    }
+
+    const correctTokens = parseCorrectTokens(correctRaw);
+    const trueFalseByCorrect =
+      correctTokens.some((token) => /^(true|false)$/i.test(token)) ||
+      (options.length === 0 && /^(true|false)$/i.test(correctRaw));
+
+    const inferredType: QuizQuestionType =
+      explicitType ??
+      (trueFalseByCorrect || options.every((option) => /^(true|false)$/i.test(option.text)) && options.length === 2
+        ? "TRUE_FALSE"
+        : correctTokens.length > 1
+          ? "MULTIPLE_SELECT"
+          : "SINGLE_CHOICE");
+
+    const optionSource =
+      inferredType === "TRUE_FALSE" && options.length === 0
+        ? [
+            { letter: "A", text: "True" },
+            { letter: "B", text: "False" },
+          ]
+        : options;
+
+    const correctLetters = new Set<string>();
+    const correctValues = new Set<string>();
+    for (const token of correctTokens) {
+      const letterMatch = token.match(/^[A-H]$/i);
+      if (letterMatch) correctLetters.add(token.toUpperCase());
+      else correctValues.add(token.toLowerCase());
+    }
+
+    const parsedOptions = optionSource.map((option) => {
+      const isCorrect =
+        correctLetters.has(option.letter) ||
+        correctValues.has(option.text.toLowerCase()) ||
+        (inferredType === "TRUE_FALSE" && correctValues.has(option.text.toLowerCase()));
+      return createOption(option.text, isCorrect);
+    });
+
+    if (!prompt.trim()) issues.push("Missing question prompt.");
+    if (parsedOptions.length < 2) issues.push("Add at least two answer options.");
+    if (!correctRaw.trim()) issues.push("Missing correct answer.");
+    if (correctLetters.size > 0) {
+      for (const letter of correctLetters) {
+        if (!optionSource.some((option) => option.letter === letter)) {
+          issues.push(`Correct answer ${letter} does not match any option.`);
+        }
+      }
+    }
+    if (parsedOptions.filter((option) => option.isCorrect).length === 0) {
+      issues.push("No option was marked correct.");
+    }
+    if (inferredType === "SINGLE_CHOICE" && parsedOptions.filter((option) => option.isCorrect).length > 1) {
+      issues.push("Single choice questions can only have one correct answer.");
+    }
+    if (inferredType === "TRUE_FALSE" && parsedOptions.length !== 2) {
+      issues.push("True / false questions should have exactly two options.");
+    }
+
+    return {
+      id: createId("parsed-question"),
+      question: {
+        id: createId("temp-question"),
+        type: inferredType,
+        prompt,
+        explanation: explanation || "",
+        points: 1,
+        required: true,
+        options: parsedOptions,
+      },
+      issues: Array.from(new Set(issues)),
+    };
+  });
+}
+
 export default function QuizLessonBuilder({ lessonId, courseId, quiz, disabled = false, onSaved }: QuizLessonBuilderProps) {
   const [saving, startSaving] = useTransition();
   const [draft, setDraft] = useState(() => normalizeInitialQuiz(quiz));
   const [expandedQuestionId, setExpandedQuestionId] = useState(draft.questions[0]?.id ?? null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [pastePanelOpen, setPastePanelOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [parsedQuestions, setParsedQuestions] = useState<ParsedQuizQuestion[] | null>(null);
   const lastSavedRef = useRef(serializeQuiz(draft));
   const mountedRef = useRef(false);
 
@@ -142,6 +313,49 @@ export default function QuizLessonBuilder({ lessonId, courseId, quiz, disabled =
   const setDraftDirty = (updater: (current: NonNullable<LessonQuiz>) => NonNullable<LessonQuiz>) => {
     setDraft(updater);
     setSaveStatus("dirty");
+  };
+
+  const addQuestion = () => {
+    const question = createQuestion();
+    setDraftDirty((current) => ({ ...current, questions: [...current.questions, question] }));
+    setExpandedQuestionId(question.id ?? null);
+  };
+
+  const previewPastedQuestions = () => {
+    const parsed = parsePastedQuizQuestions(pasteText);
+    if (parsed.length === 0) {
+      toast.error("Paste at least one question first.");
+      return;
+    }
+    setParsedQuestions(parsed);
+  };
+
+  const importParsedQuestions = () => {
+    if (!parsedQuestions) return;
+    const validQuestions = parsedQuestions
+      .filter((item) => item.issues.length === 0)
+      .map((item, index) => ({
+        ...item.question,
+        id: createId("temp-question"),
+        position: draft.questions.length + index + 1,
+        options: item.question.options.map((option, optionIndex) => ({
+          ...option,
+          id: createId("temp-option"),
+          position: optionIndex + 1,
+        })),
+      }));
+
+    if (validQuestions.length === 0) {
+      toast.error("Fix or remove invalid pasted questions before importing.");
+      return;
+    }
+
+    setDraftDirty((current) => ({ ...current, questions: [...current.questions, ...validQuestions] }));
+    setExpandedQuestionId(null);
+    setPastePanelOpen(false);
+    setPasteText("");
+    setParsedQuestions(null);
+    toast.success(`${validQuestions.length} question${validQuestions.length === 1 ? "" : "s"} added.`);
   };
 
   const changeQuestionType = (question: QuizQuestion, type: QuizQuestionType) => {
@@ -204,6 +418,12 @@ export default function QuizLessonBuilder({ lessonId, courseId, quiz, disabled =
     const timeoutId = window.setTimeout(() => saveQuiz(false), 1800);
     return () => window.clearTimeout(timeoutId);
   }, [draft, disabled, isDirty]);
+
+  useEffect(() => {
+    if (disabled || saving || !isDirty || saveStatus !== "saved") return;
+    const timeoutId = window.setTimeout(() => saveQuiz(false), 400);
+    return () => window.clearTimeout(timeoutId);
+  }, [disabled, saving, isDirty, saveStatus]);
 
   const saveStatusLabel =
     saveStatus === "saving" || saving ? "Saving..." :
@@ -342,22 +562,202 @@ export default function QuizLessonBuilder({ lessonId, courseId, quiz, disabled =
               Start with one question for a simple knowledge check. Each question is weighted equally.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            rounded="[10px]"
-            disabled={disabled}
-            leftIcon={<Plus size={14} />}
-            onClick={() => {
-              const question = createQuestion();
-              setDraftDirty((current) => ({ ...current, questions: [...current.questions, question] }));
-              setExpandedQuestionId(question.id ?? null);
-            }}
-          >
-            Add question
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              rounded="[10px]"
+              disabled={disabled}
+              leftIcon={<ClipboardPaste size={14} />}
+              onClick={() => {
+                setPastePanelOpen((value) => !value);
+                setParsedQuestions(null);
+              }}
+            >
+              Paste questions
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              rounded="[10px]"
+              disabled={disabled}
+              leftIcon={<Plus size={14} />}
+              onClick={addQuestion}
+            >
+              Add question
+            </Button>
+          </div>
         </div>
+
+        {pastePanelOpen && (
+          <div className="rounded-[16px] border border-[#C8D7FF] bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-primary">
+                  <ClipboardPaste size={13} />
+                  Paste multiple questions
+                </div>
+                <h5 className="mt-3 text-[16px] font-black text-navy">Import structured quiz questions</h5>
+                <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-text-body">
+                  Paste single choice, multiple select, or true/false questions. Preview them first, then import the valid ones into this quiz.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPastePanelOpen(false);
+                  setParsedQuestions(null);
+                }}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-stroke text-text-mute transition hover:text-navy"
+                aria-label="Close paste questions panel"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+              <div>
+                <textarea
+                  value={pasteText}
+                  disabled={disabled}
+                  onChange={(event) => {
+                    setPasteText(event.target.value);
+                    setParsedQuestions(null);
+                  }}
+                  className={`${inputCls} min-h-[260px] resize-y font-mono text-[13px] leading-6`}
+                  placeholder={`Question: What is the best first step before sending DMs?\nType: single\nA. Create a random offer\nB. Optimize your profile around one clear promise\nC. Message everyone\nD. Lower your price\nCorrect: B\nExplanation: Your profile needs to make the DM feel relevant and trustworthy.`}
+                />
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Button
+                    type="button"
+                    size="sm"
+                    rounded="[10px]"
+                    disabled={disabled || !pasteText.trim()}
+                    leftIcon={<CheckCircle2 size={14} />}
+                    onClick={previewPastedQuestions}
+                  >
+                    Preview questions
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    rounded="[10px]"
+                    onClick={() => {
+                      setPasteText("");
+                      setParsedQuestions(null);
+                    }}
+                    disabled={disabled || !pasteText}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-[14px] border border-[#DCE5F5] bg-[#F8FAFF] p-4">
+                <p className="text-[12px] font-black uppercase tracking-[0.12em] text-primary">Supported format</p>
+                <div className="mt-3 space-y-3 text-[12px] font-semibold leading-5 text-text-body">
+                  <p><span className="font-black text-navy">Single:</span> use one correct letter like <span className="font-black">Correct: B</span>.</p>
+                  <p><span className="font-black text-navy">Multiple:</span> add <span className="font-black">Type: multiple</span> and use <span className="font-black">Correct: A, C</span>.</p>
+                  <p><span className="font-black text-navy">True/False:</span> use <span className="font-black">Correct: True</span> or options A/B.</p>
+                  <p className="rounded-[10px] bg-white p-3 text-text-mute">
+                    Tip: You can paste many questions at once. Start each one with <span className="font-black text-navy">Question:</span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {parsedQuestions && (
+              <div className="mt-5 rounded-[14px] border border-[#DCE5F5] bg-[#F8FAFF] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h5 className="text-sm font-black text-navy">Review parsed questions</h5>
+                    <p className="mt-1 text-xs font-semibold text-text-mute">
+                      {parsedQuestions.filter((item) => item.issues.length === 0).length} ready · {parsedQuestions.filter((item) => item.issues.length > 0).length} need attention
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    rounded="[10px]"
+                    disabled={disabled || parsedQuestions.every((item) => item.issues.length > 0)}
+                    leftIcon={<Plus size={14} />}
+                    onClick={importParsedQuestions}
+                  >
+                    Add valid questions
+                  </Button>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {parsedQuestions.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className={`rounded-[14px] border bg-white p-4 ${
+                        item.issues.length > 0 ? "border-red-200" : "border-emerald-100"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${
+                              item.issues.length > 0 ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"
+                            }`}>
+                              {item.issues.length > 0 ? "Needs attention" : "Ready"}
+                            </span>
+                            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-text-mute">
+                              {questionTypeOptions.find((option) => option.value === item.question.type)?.label}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm font-black leading-6 text-navy">
+                            {index + 1}. {item.question.prompt || "Untitled question"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setParsedQuestions((current) => current?.filter((question) => question.id !== item.id) ?? null)}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-text-mute transition hover:bg-red-50 hover:text-red-500"
+                          aria-label="Remove parsed question"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      {item.issues.length > 0 && (
+                        <div className="mt-3 rounded-[10px] bg-red-50 px-3 py-2 text-xs font-bold leading-5 text-red-600">
+                          {item.issues.join(" ")}
+                        </div>
+                      )}
+
+                      <div className="mt-3 grid gap-2">
+                        {item.question.options.map((option, optionIndex) => (
+                          <div
+                            key={option.id ?? optionIndex}
+                            className={`rounded-[10px] border px-3 py-2 text-xs font-bold ${
+                              option.isCorrect
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                : "border-[#E3E8F4] bg-[#F8FAFF] text-text-body"
+                            }`}
+                          >
+                            {String.fromCharCode(65 + optionIndex)}. {option.text || "Empty option"}
+                            {option.isCorrect ? " · Correct" : ""}
+                          </div>
+                        ))}
+                      </div>
+
+                      {item.question.explanation && (
+                        <p className="mt-3 text-xs font-semibold leading-5 text-text-mute">
+                          <span className="font-black text-navy">Explanation:</span> {item.question.explanation}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {draft.questions.map((question, questionIndex) => {
           const isOpen = expandedQuestionId === question.id;
@@ -518,6 +918,22 @@ export default function QuizLessonBuilder({ lessonId, courseId, quiz, disabled =
             </div>
           );
         })}
+
+        {!disabled && draft.questions.length > 1 && (
+          <div className="sticky bottom-3 z-10 rounded-[14px] border border-[#C8D7FF] bg-white/95 p-2 shadow-[0_16px_34px_rgba(4,11,55,0.12)] backdrop-blur">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              rounded="[10px]"
+              className="w-full"
+              leftIcon={<Plus size={14} />}
+              onClick={addQuestion}
+            >
+              Add another question
+            </Button>
+          </div>
+        )}
       </div>
 
       {!readiness.ready && (

@@ -7,7 +7,6 @@ import {
   createCourseInvite,
 } from "@/data/instructor";
 import { db } from "@/lib/db";
-import type { CourseInstructorRole } from "@prisma/client";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -80,19 +79,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { email, role } = body;
+  const { email } = body;
   if (!email || typeof email !== "string") {
     return NextResponse.json({ error: "email is required" }, { status: 400 });
   }
 
-  const validRoles: CourseInstructorRole[] = ["CO_INSTRUCTOR", "TEACHING_ASSISTANT"];
-  const inviteRole: CourseInstructorRole =
-    role && validRoles.includes(role as CourseInstructorRole)
-      ? (role as CourseInstructorRole)
-      : "CO_INSTRUCTOR";
-
   try {
-    const invite = await createCourseInvite(courseId, userId, email.trim().toLowerCase(), inviteRole);
+    const invite = await createCourseInvite(courseId, userId, email.trim().toLowerCase());
     const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/course/${invite.token}`;
     return NextResponse.json({ invite, inviteUrl }, { status: 201 });
   } catch (err: unknown) {

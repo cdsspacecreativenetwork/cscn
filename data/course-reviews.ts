@@ -2,6 +2,12 @@ import { db } from "@/lib/db";
 import type { ReviewStatus, CourseStatus } from "@prisma/client";
 import { createNotification } from "@/data/notifications";
 import type { NotificationType } from "@prisma/client";
+import {
+  getActiveCourseRevision,
+  markCourseRevisionReviewed,
+  promoteCourseRevision,
+} from "@/data/course-revisions";
+import { notifyEnrolledStudentsCourseUpdated } from "@/data/course-review-notifications";
 
 // CHANGES_REQUESTED keeps the course in PENDING_REVIEW (admin is leaving feedback, not rejecting).
 // REJECTED sends it back to DRAFT so the instructor can rework and resubmit.
@@ -55,7 +61,38 @@ export async function submitCourseReview(
   });
   if (!course) throw new Error("Course not found.");
   if (course.status !== "PENDING_REVIEW") {
-    throw new Error("Only courses pending review can be reviewed.");
+    const revision = await getActiveCourseRevision(courseId);
+    if (course.status !== "PUBLISHED" || revision?.status !== "PENDING_REVIEW") {
+      throw new Error("Only courses or course updates pending review can be reviewed.");
+    }
+
+    if (status === "APPROVED") {
+      await promoteCourseRevision(revision.id, reviewerId, comment);
+      await notifyEnrolledStudentsCourseUpdated(courseId);
+    } else {
+      await markCourseRevisionReviewed(
+        revision.id,
+        reviewerId,
+        status === "REJECTED" ? "REJECTED" : "CHANGES_REQUESTED",
+        comment
+      );
+    }
+
+    const review = await db.courseReview.create({
+      data: { courseId, reviewerId, status, comment, revisionId: revision.id },
+      select: { id: true, status: true, comment: true, createdAt: true },
+    });
+
+    const body = comment ? `Reviewer note: "${comment}"` : undefined;
+    await createNotification(
+      course.instructorId,
+      REVIEW_TO_NOTIFICATION[status],
+      `${status === "APPROVED" ? "Course update approved" : REVIEW_TITLES[status]}: ${course.title}`,
+      body,
+      { courseId, reviewId: review.id, revisionId: revision.id }
+    );
+
+    return review;
   }
 
   if (status === "APPROVED") {

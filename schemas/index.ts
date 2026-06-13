@@ -61,6 +61,7 @@ export const SettingsSchema = z.object({
   bio: z.optional(z.string()),
   headline: z.optional(z.string()),
   location: z.optional(z.string()),
+  timezone: z.optional(z.string()),
   yearsExperience: z.number().int().min(0).max(80).optional(),
   publicProfileSlug: z.optional(z.string()),
   websiteUrl: z.optional(z.string().url({ message: "Must be a valid URL" }).or(z.literal(""))),

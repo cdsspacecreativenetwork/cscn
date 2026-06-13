@@ -6,6 +6,12 @@ export interface Mentor {
   slug?: string;
   courses: number;
   students: string;
+  priceLabel?: string;
+  intro?: string | null;
+  instructions?: string | null;
+  topics?: string[];
+  availability?: import("@/lib/mentor-booking-slots").MentorAvailabilityInput[];
+  slots?: import("@/lib/mentor-booking-slots").MentorBookingSlot[];
 }
 
 export const MENTORS: Mentor[] = [

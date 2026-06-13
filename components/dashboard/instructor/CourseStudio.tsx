@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Eye, Globe, EyeOff, Send, AlertTriangle } from 'lucide-react';
@@ -32,13 +32,14 @@ interface StudioLesson {
 interface StudioModule {
   id: string; title: string; position: number;
   isPublished: boolean;
+  isDefault: boolean;
   lessons: StudioLesson[];
 }
 
 interface StudioCourse {
   id: string; title: string; slug: string;
   description: string; shortDesc: string | null;
-  thumbnail: string | null; promoVideo?: string | null; difficulty: string;
+  thumbnail: string | null; promoVideo?: string | null; difficulty: string; courseType?: string;
   status: string; previewCount: number;
   categoryId: string | null;
   requirements: unknown; includes: unknown;
@@ -60,6 +61,13 @@ interface StudioCourse {
     reviewedAt: Date | string | null;
   }[];
   finalExamId: string | null;
+  revision?: {
+    id: string;
+    version: number;
+    status: string;
+    submittedAt: Date | string | null;
+    changeSummary: unknown;
+  };
   modules: StudioModule[];
 }
 
@@ -86,6 +94,7 @@ interface Props {
   openFeedbackCount: number;
   initialRosterData?: ComponentProps<typeof InstructorRosterTab>['initialData'];
   initialFeedbackData?: ComponentProps<typeof FeedbackTab>['initialItems'];
+  adminReviewSlot?: ReactNode;
 }
 
 const STATUS_CONFIG = {
@@ -103,14 +112,18 @@ export default function CourseStudio({
   isAdmin,
   latestReview,
   currentUserId,
+  callerRole,
   openFeedbackCount,
   initialRosterData,
   initialFeedbackData,
+  adminReviewSlot,
 }: Props) {
   const router = useRouter();
   const validTabs: Tab[] = ['settings', 'curriculum', 'analytics', 'instructors', 'feedback'];
+  const isTeachingAssistant = callerRole === 'TEACHING_ASSISTANT';
+  const allowedTabs: Tab[] = isTeachingAssistant ? ['curriculum', 'feedback'] : validTabs;
   const [activeTab, setActiveTab] = useState<Tab>(
-    validTabs.includes(initialTab as Tab) ? (initialTab as Tab) : 'settings'
+    allowedTabs.includes(initialTab as Tab) ? (initialTab as Tab) : isTeachingAssistant ? 'curriculum' : 'settings'
   );
   const [status, setStatus] = useState(course.status);
   const [publishing, startPublish] = useTransition();
@@ -139,8 +152,8 @@ export default function CourseStudio({
     startPublish(async () => {
       try {
         await submitForReviewAction(course.id);
-        setStatus('PENDING_REVIEW');
-        toast.success('Course submitted for review!');
+        if (!isPublished) setStatus('PENDING_REVIEW');
+        toast.success(isPublished ? 'Course update submitted for review!' : 'Course submitted for review!');
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to submit for review.');
       }
@@ -160,6 +173,7 @@ export default function CourseStudio({
   };
 
   const handleTabChange = (tab: Tab) => {
+    if (!allowedTabs.includes(tab)) return;
     setActiveTab(tab);
     const base = isAdmin ? '/dashboard/admin/courses' : '/dashboard/instructor/courses';
     router.replace(`${base}/${course.id}?tab=${tab}`, { scroll: false });
@@ -167,20 +181,24 @@ export default function CourseStudio({
 
   const statusCfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.DRAFT;
   const isPublished = status === 'PUBLISHED';
-  const isLocked = status === 'PENDING_REVIEW' && !isAdmin;
+  const hasRevision = Boolean(course.revision);
+  const revisionPending = course.revision?.status === 'PENDING_REVIEW';
+  const isLocked = (status === 'PENDING_REVIEW' || revisionPending) && !isAdmin;
+  const submitLabel = isPublished ? 'Submit Update for Review' : 'Submit for Review';
 
-  const tabs: { id: Tab; label: string; badge?: number }[] = [
+  const baseTabs: { id: Tab; label: string; badge?: number }[] = [
     { id: 'settings', label: 'Settings' },
     { id: 'curriculum', label: 'Curriculum' },
     { id: 'analytics', label: 'Analytics' },
     { id: 'instructors', label: 'Instructors' },
     { id: 'feedback', label: 'Feedback', badge: openFeedbackCount > 0 ? openFeedbackCount : undefined },
   ];
+  const tabs = baseTabs.filter((tab) => allowedTabs.includes(tab.id));
 
   return (
     <div className="flex min-h-full flex-col bg-background font-jakarta">
       {/* Studio header */}
-      <div className="sticky top-0 z-30 flex flex-col gap-4 border-b border-stroke bg-white px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="z-30 flex flex-col gap-4 border-b border-stroke bg-white px-4 py-4 sm:px-6 lg:sticky lg:top-0 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3 sm:gap-4">
           <Link
             href={isAdmin ? '/dashboard/admin/courses' : '/dashboard/instructor/courses'}
@@ -199,7 +217,7 @@ export default function CourseStudio({
           </span>
         </div>
 
-        <div className="admin-horizontal-scrollbar -mx-4 flex max-w-[calc(100%+2rem)] items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:max-w-full sm:px-0 lg:shrink-0">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto lg:shrink-0 lg:justify-end">
           <Link
             href={
               status === 'PUBLISHED'
@@ -212,7 +230,11 @@ export default function CourseStudio({
             <Eye size={14} /> Preview
           </Link>
 
-          {isAdmin ? (
+          {isTeachingAssistant ? (
+            <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-primary">
+              Teaching assistant
+            </span>
+          ) : isAdmin ? (
             // Admin: direct publish / unpublish
             <button
               onClick={handleTogglePublish}
@@ -224,10 +246,10 @@ export default function CourseStudio({
               }`}
             >
               {isPublished ? <EyeOff size={14} /> : <Globe size={14} />}
-              {publishing ? 'Updating…' : isPublished ? 'Unpublish' : 'Publish'}
+              {publishing ? 'Updating...' : isPublished ? 'Unpublish' : 'Publish'}
             </button>
           ) : status === 'PENDING_REVIEW' ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-amber-100 text-amber-700 cursor-default">
                 <Send size={14} /> In Review
               </span>
@@ -240,14 +262,25 @@ export default function CourseStudio({
               </button>
             </div>
           ) : isPublished ? (
-            <button
-              onClick={handleTogglePublish}
-              disabled={publishing}
-              className="flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
-            >
-              <EyeOff size={14} />
-              {publishing ? 'Updating…' : 'Unpublish'}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleSubmitForReview}
+                disabled={publishing || revisionPending}
+                className="flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <Send size={14} />
+                {publishing ? 'Submitting...' : revisionPending ? 'Update In Review' : submitLabel}
+              </button>
+              {revisionPending && (
+                <button
+                  onClick={handleWithdrawFromReview}
+                  disabled={publishing}
+                  className="flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  Withdraw
+                </button>
+              )}
+            </div>
           ) : (
             <button
               onClick={handleSubmitForReview}
@@ -255,7 +288,7 @@ export default function CourseStudio({
               className="flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               <Send size={14} />
-              {publishing ? 'Submitting…' : 'Submit for Review'}
+              {publishing ? 'Submitting...' : 'Submit for Review'}
             </button>
           )}
         </div>
@@ -289,12 +322,14 @@ export default function CourseStudio({
           </div>
         </div>
       </div>
+
+      {adminReviewSlot}
       
       {isLocked && (
         <div className="mx-6 lg:mx-8 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 shrink-0">
           <AlertTriangle size={18} className="shrink-0 text-amber-600" />
           <div className="text-sm font-medium">
-            This course is currently pending admin review. All editing has been locked. Click <strong className="text-amber-950 font-bold">Withdraw</strong> above if you need to modify the course content.
+            This course update is currently pending admin review. Editing is locked until review is completed. Use <strong className="text-amber-950 font-bold">Withdraw</strong> above if you need to modify it.
           </div>
         </div>
       )}

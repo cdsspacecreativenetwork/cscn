@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Star } from 'lucide-react';
+import { Play, Star } from 'lucide-react';
 
 export interface CourseCardProps {
   id: string;
@@ -17,10 +17,12 @@ export interface CourseCardProps {
   author: string;
   authorAvatar: string;
   image: string;
+  trailerUrl?: string;
   rating?: number;
   reviews?: number;
   students?: string;
   level?: string;
+  courseType?: string;
   priceLabel?: string;
   localizedPriceLabel?: string;
   view?: 'grid' | 'list';
@@ -67,6 +69,22 @@ function ratingLabel(rating: number, reviews: number) {
   return rating.toFixed(1);
 }
 
+function extractYouTubeId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '');
+    if (host === 'youtu.be') return parsed.pathname.split('/').filter(Boolean)[0] ?? null;
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (parsed.pathname === '/watch') return parsed.searchParams.get('v');
+      const pathParts = parsed.pathname.split('/').filter(Boolean);
+      return pathParts.at(-1) ?? null;
+    }
+  } catch {
+    if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
+  }
+  return null;
+}
+
 export default function CourseCard({
   id,
   slug,
@@ -78,10 +96,12 @@ export default function CourseCard({
   author,
   authorAvatar,
   image,
+  trailerUrl,
   rating = 0,
   reviews = 0,
   students = '0',
   level = 'Beginner',
+  courseType = 'Full Course',
   priceLabel,
   localizedPriceLabel,
   view = 'grid',
@@ -94,20 +114,59 @@ export default function CourseCard({
   const isList = view === 'list';
   const [thumbErr, setThumbErr] = useState(false);
   const [avatarErr, setAvatarErr] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
   const gradient = categoryGradient(category);
   const displayPrice = priceLabel ?? 'Free';
   const displayRating = ratingLabel(rating, reviews);
+  const youtubeId = trailerUrl ? extractYouTubeId(trailerUrl) : null;
   const thumbHoverClass =
     thumbnailHover === 'out'
       ? 'scale-[1.05] group-hover:scale-100'
       : 'group-hover:scale-[1.05]';
 
+  const renderTrailerPreview = () => {
+    if (!trailerUrl || !isPreviewing) return null;
+
+    if (youtubeId) {
+      return (
+        <iframe
+          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1`}
+          title={`${title} trailer preview`}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          className="pointer-events-none absolute inset-0 z-[3] h-full w-full"
+        />
+      );
+    }
+
+    return (
+      <video
+        src={trailerUrl}
+        muted
+        autoPlay
+        loop
+        playsInline
+        className="pointer-events-none absolute inset-0 z-[3] h-full w-full object-cover"
+      />
+    );
+  };
+
   const renderThumbnail = (className: string) => (
-    <div className={`bg-[#F4F6FB] relative rounded-[10px] overflow-hidden flex-shrink-0 outline-none ${className}`}>
+    <div
+      className={`bg-[#F4F6FB] relative rounded-[10px] overflow-hidden flex-shrink-0 outline-none ${className}`}
+      onMouseEnter={() => {
+        if (window.matchMedia('(hover: hover)').matches) setIsPreviewing(true);
+      }}
+      onMouseLeave={() => setIsPreviewing(false)}
+    >
       {showLevel && (
-        <span className="absolute left-3 top-3 z-10 max-w-[calc(100%-24px)] rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#1C4ED1] shadow-sm backdrop-blur-sm">
-          {level}
+        <span className="absolute left-3 top-3 z-10 max-w-[calc(100%-24px)] rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#1C4ED1] shadow-sm backdrop-blur-sm hidden sm:block">
+          {courseType}
+        </span>
+      )}
+      {trailerUrl && (
+        <span className="absolute right-3 top-3 z-10 hidden h-8 w-8 items-center justify-center rounded-full bg-[#040B37]/70 text-white shadow-sm backdrop-blur-sm transition-opacity group-hover:flex">
+          <Play size={14} fill="currentColor" />
         </span>
       )}
       {thumbErr ? (
@@ -134,6 +193,7 @@ export default function CourseCard({
           unoptimized={shouldSkipOptimization(image)}
         />
       )}
+      {renderTrailerPreview()}
     </div>
   );
 
@@ -209,7 +269,7 @@ export default function CourseCard({
           <div className="flex flex-col gap-2">
             {showMeta && (
               <span className="block truncate whitespace-nowrap text-[10px] md:text-[12px] font-medium text-text-mute font-inter tracking-[-0.01em]">
-                {lessons} lessons{duration ? ` / ${duration}` : ''} / {category}
+                {lessons} lessons{duration ? ` / ${duration}` : ''} / {level}
               </span>
             )}
 

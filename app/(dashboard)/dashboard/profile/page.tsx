@@ -7,6 +7,7 @@ import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { getInstructorOnboardingStatusByUserId } from '@/lib/instructor-onboarding';
 import { ProfileHeaderActions } from '@/components/dashboard/profile/ProfileHeaderActions';
+import { getLocationTimezoneOptions } from '@/lib/location-timezones.server';
 
 export default async function ProfilePage() {
   const user = await currentUser();
@@ -27,6 +28,7 @@ export default async function ProfilePage() {
     publishedCourses,
     achievements,
     ratingAggregate,
+    locationTimezoneOptions,
   ] = await Promise.all([
     db.user.findUnique({
       where: { id: user.id }
@@ -69,6 +71,7 @@ export default async function ProfilePage() {
       },
       _avg: { rating: true },
     }),
+    getLocationTimezoneOptions(),
   ]);
 
   if (!dbUser) {
@@ -165,7 +168,7 @@ export default async function ProfilePage() {
           <ProfileStats items={profileStats} />
 
           {/* Detailed Form */}
-          <ProfileForm user={dbUser} />
+          <ProfileForm user={dbUser} locationTimezoneOptions={locationTimezoneOptions} />
         </div>
       </div>
     </div>

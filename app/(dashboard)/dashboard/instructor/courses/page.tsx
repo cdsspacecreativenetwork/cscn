@@ -4,13 +4,19 @@ import { getInstructorCourses } from '@/data/instructor';
 import { getCategories } from '@/data/courses';
 import InstructorCourseList from '@/components/dashboard/instructor/InstructorCourseList';
 import { shouldRedirectInstructorToOnboarding } from '@/lib/instructor-onboarding';
+import { db } from '@/lib/db';
 
 export default async function InstructorCoursesPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin');
 
   const role = session.user.role;
-  if (role !== 'INSTRUCTOR' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+  const isPrivilegedCreator = role === 'INSTRUCTOR' || role === 'ADMIN' || role === 'SUPER_ADMIN';
+  const hasCourseCollaborations = isPrivilegedCreator
+    ? true
+    : await db.courseInstructor.count({ where: { userId: session.user.id } }).then((count) => count > 0);
+
+  if (!hasCourseCollaborations) {
     redirect('/dashboard');
   }
   if (role === 'INSTRUCTOR' && await shouldRedirectInstructorToOnboarding(session.user.id)) {
@@ -42,6 +48,7 @@ export default async function InstructorCoursesPage() {
           isOwner: c.instructorId === session.user.id,
         }))}
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+        canCreateCourse={isPrivilegedCreator}
       />
     </div>
   );

@@ -4,16 +4,24 @@ import React, { useState } from 'react';
 import { SettingsSidebar } from './SettingsSidebar';
 import { AccountSettings } from './AccountSettings';
 import { InstructorPayoutSettings } from './InstructorPayoutSettings';
+import { IntegrationsSettings } from './IntegrationsSettings';
 import { NotificationSettings } from './NotificationSettings';
 import { LanguageSettings } from './LanguageSettings';
 import { AppearanceSettings } from './AppearanceSettings';
+import type { CalendarIntegrationStatus } from '@/data/integrations';
 
 interface SettingsTabsWrapperProps {
   initialUserData: any;
+  initialIntegrations: CalendarIntegrationStatus;
+  initialActiveTab?: string;
 }
 
-export const SettingsTabsWrapper: React.FC<SettingsTabsWrapperProps> = ({ initialUserData }) => {
-  const [activeTab, setActiveTab] = useState('Account');
+export const SettingsTabsWrapper: React.FC<SettingsTabsWrapperProps> = ({
+  initialUserData,
+  initialIntegrations,
+  initialActiveTab = 'Account',
+}) => {
+  const [activeTab, setActiveTab] = useState(initialActiveTab);
   const [userData, setUserData] = useState<any>(initialUserData);
 
   const fetchUserData = async () => {
@@ -55,6 +63,10 @@ export const SettingsTabsWrapper: React.FC<SettingsTabsWrapperProps> = ({ initia
             initialPreferences={userData.notifications}
             onUpdate={fetchUserData}
           />
+        )}
+
+        {activeTab === 'Integrations' && (
+          <IntegrationsSettings integrations={initialIntegrations} />
         )}
 
         {activeTab === 'Language' && <LanguageSettings />}

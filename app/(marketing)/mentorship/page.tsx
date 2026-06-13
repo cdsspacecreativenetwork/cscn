@@ -4,6 +4,7 @@ import { MENTORS, MENTORSHIP_BENEFITS } from '@/lib/mentorship';
 import MentorCard from '@/components/ui/MentorCard';
 import FAQSection, { type FAQEntry } from '@/components/marketing/FAQSection';
 import { generateTapbackAvatar } from '@/lib/avatar';
+import { buildMentorBookingSlots } from '@/lib/mentor-booking-slots';
 
 const MENTORSHIP_FAQS: FAQEntry[] = [
   {
@@ -36,12 +37,18 @@ function publicSlug(user: { id: string; name: string | null; publicProfileSlug: 
   );
 }
 
-export default async function MentorshipPage() {
+export default async function MentorshipPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ bookingError?: string }>;
+}) {
+  const query = searchParams ? await searchParams : {};
   const mentors = await db.user.findMany({
     where: {
       instructorProfileEnabled: true,
       instructorVerificationStatus: 'VERIFIED',
       publicProfileStatus: 'PUBLIC',
+      mentorshipEligible: true,
       mentorshipEnabled: true,
     },
     select: {
@@ -50,6 +57,32 @@ export default async function MentorshipPage() {
       image: true,
       headline: true,
       publicProfileSlug: true,
+      mentorshipFree: true,
+      mentorshipPrice: true,
+      mentorshipCurrency: true,
+      mentorshipBio: true,
+      mentorshipTopics: true,
+      mentorshipInstructions: true,
+      mentorAvailabilities: {
+        where: { status: 'ACTIVE' },
+        orderBy: [{ type: 'asc' }, { weekday: 'asc' }, { date: 'asc' }, { startTime: 'asc' }],
+        select: {
+          id: true,
+          type: true,
+          weekday: true,
+          date: true,
+          startTime: true,
+          endTime: true,
+          timezone: true,
+          sessionDuration: true,
+          bufferMinutes: true,
+          maxBookings: true,
+          bookings: {
+            where: { status: { in: ['PENDING', 'CONFIRMED'] } },
+            select: { startsAt: true, status: true },
+          },
+        },
+      },
       taughtCourses: {
         where: { status: 'PUBLISHED' },
         select: { _count: { select: { enrollments: true } } },
@@ -69,6 +102,18 @@ export default async function MentorshipPage() {
       image: mentor.image ?? generateTapbackAvatar(name),
       courses: mentor.taughtCourses.length,
       students: students.toLocaleString(),
+      priceLabel: mentor.mentorshipFree
+        ? 'Free'
+        : mentor.mentorshipPrice
+          ? `${mentor.mentorshipCurrency} ${mentor.mentorshipPrice.toString()}`
+          : 'Paid',
+      intro: mentor.mentorshipBio,
+      instructions: mentor.mentorshipInstructions,
+      topics: Array.isArray(mentor.mentorshipTopics)
+        ? mentor.mentorshipTopics.filter((topic): topic is string => typeof topic === 'string')
+        : [],
+      availability: mentor.mentorAvailabilities,
+      slots: buildMentorBookingSlots(mentor.mentorAvailabilities, 12),
     };
   });
 
@@ -142,6 +187,12 @@ export default async function MentorshipPage() {
           <h2 className="text-[24px] font-semibold text-[#040B37] tracking-[-0.02em] font-inter">
             Meet the Mentors
           </h2>
+
+          {query.bookingError && (
+            <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-semibold text-red-700">
+              {query.bookingError}
+            </div>
+          )}
 
           {displayMentors.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

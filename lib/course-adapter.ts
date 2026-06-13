@@ -6,7 +6,9 @@ type DbPublicCourse = {
   title: string;
   shortDesc: string | null;
   thumbnail: string | null;
+  promoVideo?: string | null;
   difficulty: string;
+  courseType?: string;
   previewCount: number;
   price: unknown;
   baseCurrency: string;
@@ -22,6 +24,22 @@ type DbPublicCourse = {
   ratingAverage?: number;
   ratingCount?: number;
 };
+
+export function formatCourseType(type?: string | null) {
+  if (type === "SHORT_COURSE") return "Short Course";
+  if (type === "PROFESSIONAL_CERTIFICATE") return "Professional Certificate";
+  return "Full Course";
+}
+
+export function formatDifficulty(difficulty?: string | null) {
+  if (difficulty === "ALL_LEVELS") return "All Levels";
+  if (!difficulty) return "Beginner";
+  return difficulty
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 export function toCardProps(
   course: DbPublicCourse,
@@ -43,10 +61,12 @@ export function toCardProps(
     author: course.instructor.name ?? "CSCN Instructor",
     authorAvatar: course.instructor.image ?? "/assets/default-avatar.svg",
     image: course.thumbnail ?? "/assets/default-course.jpg",
+    trailerUrl: course.promoVideo ?? undefined,
     students: course._count.enrollments.toLocaleString(),
     rating: course.ratingAverage && course.ratingAverage > 0 ? course.ratingAverage : 0,
     reviews: course.ratingCount ?? 0,
-    level: course.difficulty.charAt(0) + course.difficulty.slice(1).toLowerCase(),
+    level: formatDifficulty(course.difficulty),
+    courseType: formatCourseType(course.courseType),
     priceLabel: priceLabels?.baseLabel,
     localizedPriceLabel: priceLabels?.approximateLabel ?? undefined,
   };

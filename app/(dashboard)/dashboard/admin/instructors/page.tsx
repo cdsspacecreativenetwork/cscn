@@ -54,7 +54,7 @@ export default async function AdminInstructorsPage({ searchParams }: PageProps) 
     { label: "Instructor profiles", value: stats.total, icon: UserCheck },
     { label: "Pending verification", value: stats.pending, icon: BadgeCheck },
     { label: "Verified", value: stats.verified, icon: Award },
-    { label: "Mentorship enabled", value: stats.mentorship, icon: GraduationCap },
+    { label: "Mentorship eligible", value: stats.mentorship, icon: GraduationCap },
   ];
 
   const tabs = [
@@ -212,11 +212,15 @@ export default async function AdminInstructorsPage({ searchParams }: PageProps) 
                           <div className="flex items-center gap-3">
                             <InstructorMentorshipToggle
                               instructorId={instructor.id}
-                              enabled={instructor.mentorshipEnabled}
+                              enabled={instructor.mentorshipEligible}
                               disabled={!canManageInstructors || instructor.verificationStatus !== "VERIFIED"}
                             />
                             <span className="text-[12px] font-bold text-[#4B5563]">
-                              {instructor.mentorshipEnabled ? "Open" : "Closed"}
+                              {instructor.mentorshipEligible
+                                ? instructor.mentorshipEnabled
+                                  ? "Open"
+                                  : "Eligible"
+                                : "Not eligible"}
                             </span>
                           </div>
                         </td>

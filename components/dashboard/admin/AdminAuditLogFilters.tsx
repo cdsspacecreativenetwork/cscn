@@ -55,7 +55,7 @@ export function AdminAuditLogFilters({
         value={searchValue}
         onChange={(event) => setSearchValue(event.target.value)}
         placeholder="Search actor, action, entity..."
-        className="h-11 rounded-[10px] border border-[#E3E8F4] bg-white px-4 text-[14px] font-semibold text-[#040B37] outline-none transition focus:border-[#1C4ED1] focus:ring-2 focus:ring-[#1C4ED1]/10"
+        className="h-14 rounded-[10px] border border-[#E3E8F4] bg-white px-4 text-[14px] font-semibold text-[#040B37] outline-none transition focus:border-[#1C4ED1] focus:ring-2 focus:ring-[#1C4ED1]/10"
       />
       <CustomSelect
         value={actionValue}

@@ -113,7 +113,7 @@ function mapDashboardAnnouncements(
   }));
 }
 
-const difficultyRank = { BEGINNER: 1, INTERMEDIATE: 2, ADVANCED: 3 } as const;
+const difficultyRank = { ALL_LEVELS: 1, BEGINNER: 1, INTERMEDIATE: 2, ADVANCED: 3 } as const;
 
 function getSafeThumbnail(thumbnail: string | null) {
   if (!thumbnail) return null;

@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { Check, CheckCheck, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { CheckCheck, ExternalLink } from 'lucide-react';
 import type { RealNotification } from '@/hooks/useNotifications';
 
 // ── Type → icon ───────────────────────────────────────────────────────────────
@@ -22,10 +21,10 @@ const TYPE_ICON: Record<string, string> = {
 function resolveHref(n: RealNotification): string | null {
   const d = n.data;
   if (!d) return '/dashboard';
+  if (typeof d.href === 'string') return d.href;
   switch (n.type) {
     case 'COURSE_INVITE':
-      // Handled inline — no navigation on click
-      return null;
+      return typeof d.token === 'string' ? `/invite/course/${d.token}` : null;
     case 'COURSE_FEEDBACK':
     case 'COURSE_PUBLISHED':
     case 'COURSE_REJECTED':
@@ -50,50 +49,22 @@ function InviteActions({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [accepting, setAccepting] = useState(false);
   const token = notification.data?.token;
 
   if (!token) return null;
 
-  const handleAccept = async () => {
-    setAccepting(true);
-    try {
-      const res = await fetch(`/api/invite/course/${token}`, { method: 'POST' });
-      const json = await res.json();
-      if (!res.ok) {
-        toast.error(json.error ?? 'Failed to accept invite');
-        return;
-      }
-      onMarkRead(notification.id);
-      onClose();
-      toast.success('Invite accepted! Welcome to the course team.');
-      router.push(`/dashboard/instructor/courses/${json.courseId}`);
-    } finally {
-      setAccepting(false);
-    }
-  };
-
-  const handleDecline = () => {
-    onMarkRead(notification.id);
-    toast('Invite declined.');
-  };
-
   return (
-    <div className="flex items-center gap-2 mt-2">
+    <div className="mt-2 flex items-center gap-2">
       <button
-        onClick={handleAccept}
-        disabled={accepting}
-        className="flex items-center gap-1 px-3 py-1 bg-primary text-white text-[11px] font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+        onClick={(event) => {
+          event.stopPropagation();
+          onMarkRead(notification.id);
+          onClose();
+          router.push(`/invite/course/${token}`);
+        }}
+        className="inline-flex items-center gap-1.5 rounded-[10px] bg-[#1C4ED1] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_8px_18px_rgba(28,78,209,0.18)] transition hover:bg-[#123A9F]"
       >
-        {accepting ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-        Accept
-      </button>
-      <button
-        onClick={handleDecline}
-        disabled={accepting}
-        className="px-3 py-1 text-[11px] font-semibold text-text-mute border border-stroke rounded-lg hover:bg-background transition-colors disabled:opacity-50"
-      >
-        Decline
+        View invitation <ExternalLink size={11} />
       </button>
     </div>
   );
@@ -115,6 +86,7 @@ interface Props {
   isOpen: boolean;
   onMarkAllAsRead: () => void;
   onMarkRead: (id: string) => void;
+  onMarkVisibleAsSeen: (ids: string[]) => void;
   onClose: () => void;
 }
 
@@ -123,9 +95,17 @@ export const NotificationDropdown: React.FC<Props> = ({
   isOpen,
   onMarkAllAsRead,
   onMarkRead,
+  onMarkVisibleAsSeen,
   onClose,
 }) => {
   const router = useRouter();
+  const visibleNotificationKey = useMemo(() => notifications.map((n) => n.id).join(","), [notifications]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const visibleNotificationIds = visibleNotificationKey ? visibleNotificationKey.split(",") : [];
+    onMarkVisibleAsSeen(visibleNotificationIds);
+  }, [isOpen, onMarkVisibleAsSeen, visibleNotificationKey]);
 
   if (!isOpen) return null;
 
@@ -160,6 +140,7 @@ export const NotificationDropdown: React.FC<Props> = ({
             const isUnread = !n.readAt;
             const href = resolveHref(n);
             const isInvite = n.type === 'COURSE_INVITE';
+            const isActionRequired = n.actionRequired && n.actionStatus === 'PENDING';
             const icon = TYPE_ICON[n.type] ?? '🔔';
             const timeAgo = formatDistanceToNow(new Date(n.createdAt), { addSuffix: true });
 
@@ -187,6 +168,23 @@ export const NotificationDropdown: React.FC<Props> = ({
                     <p className="text-[11px] text-[#6B7280] leading-snug line-clamp-2">{n.body}</p>
                   )}
                   <p className="text-[clamp(8px,0.46vw,10px)] text-[#9CA3AF] mt-0.5">{timeAgo}</p>
+
+                  {isActionRequired && !isInvite && (
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (!n.readAt) onMarkRead(n.id);
+                        const actionHref = n.actionUrl || href;
+                        if (actionHref) {
+                          onClose();
+                          router.push(actionHref);
+                        }
+                      }}
+                      className="mt-2 w-fit rounded-[10px] bg-[#1C4ED1] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_8px_18px_rgba(28,78,209,0.18)] transition hover:bg-[#123A9F]"
+                    >
+                      {n.actionLabel || 'Take action'}
+                    </button>
+                  )}
 
                   {isInvite && isUnread && (
                     <InviteActions

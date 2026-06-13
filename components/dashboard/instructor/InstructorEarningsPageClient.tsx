@@ -184,7 +184,7 @@ export function InstructorEarningsPageClient({ data }: Props) {
                 <div className="min-w-0">
                   <p className="truncate text-[14px] font-black text-[#040B37]">{earning.courseTitle}</p>
                   <p className="mt-1 text-[12px] font-semibold text-[#9CA3AF]">
-                    {earning.learnerName} | Earned {formatDate(earning.createdAt)} | Available {formatDate(earning.availableAt)}
+                    {earning.learnerName} | Earned {formatDate(earning.createdAt)} | {earning.status === "PENDING" ? "Releases" : "Available"} {formatDate(earning.status === "PENDING" ? earning.holdUntil : earning.availableAt)}
                   </p>
                 </div>
                 <div className="flex items-center gap-4 md:justify-end">

@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { createNotification } from "@/data/notifications";
 
 export async function getCourseFeedback(courseId: string) {
-  return db.courseFeedbackItem.findMany({
+  const feedbackItems = await db.courseFeedbackItem.findMany({
     where: { courseId },
     orderBy: { createdAt: "desc" },
     select: {
@@ -14,12 +14,90 @@ export async function getCourseFeedback(courseId: string) {
       author: { select: { id: true, name: true, image: true, role: true } },
     },
   });
+  const reviewItems = await db.courseReview.findMany({
+    where: {
+      courseId,
+      comment: { not: null },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      status: true,
+      comment: true,
+      addressedAt: true,
+      addressedBy: true,
+      createdAt: true,
+      reviewer: { select: { id: true, name: true, image: true, role: true } },
+    },
+  });
+  const ratingItems = await db.courseRating.findMany({
+    where: {
+      courseId,
+      comment: { not: null },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      createdAt: true,
+      student: { select: { id: true, name: true, image: true, role: true } },
+    },
+  });
+
+  return [
+    ...feedbackItems.map((item) => ({
+      id: `feedback:${item.id}`,
+      rawId: item.id,
+      source: "COURSE_FEEDBACK" as const,
+      status: null,
+      rating: null,
+      body: item.body,
+      resolvedAt: item.resolvedAt,
+      resolvedBy: item.resolvedBy,
+      createdAt: item.createdAt,
+      author: item.author,
+    })),
+    ...reviewItems.map((item) => ({
+      id: `review:${item.id}`,
+      rawId: item.id,
+      source: "ADMIN_REVIEW" as const,
+      status: item.status,
+      rating: null,
+      body: item.comment ?? "",
+      resolvedAt: item.addressedAt,
+      resolvedBy: item.addressedBy,
+      createdAt: item.createdAt,
+      author: item.reviewer,
+    })),
+    ...ratingItems.map((item) => ({
+      id: `rating:${item.id}`,
+      rawId: item.id,
+      source: "STUDENT_REVIEW" as const,
+      status: null,
+      rating: item.rating,
+      body: item.comment ?? "",
+      resolvedAt: item.createdAt,
+      resolvedBy: null,
+      createdAt: item.createdAt,
+      author: item.student,
+    })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function getUnresolvedFeedbackCount(courseId: string) {
-  return db.courseFeedbackItem.count({
+  const feedbackCount = await db.courseFeedbackItem.count({
     where: { courseId, resolvedAt: null },
   });
+  const reviewCount = await db.courseReview.count({
+    where: {
+      courseId,
+      comment: { not: null },
+      addressedAt: null,
+      status: { in: ["CHANGES_REQUESTED", "REJECTED"] },
+    },
+  });
+  return feedbackCount + reviewCount;
 }
 
 export async function postFeedback(courseId: string, authorId: string, body: string) {

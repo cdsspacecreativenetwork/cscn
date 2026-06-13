@@ -58,6 +58,13 @@ export default async function AdminCoursesPage() {
           submittedBy: c.pricingProposals[0].submittedBy,
         }
       : null,
+    revisions: c.revisions.map((revision) => ({
+      id: revision.id,
+      version: revision.version,
+      status: revision.status,
+      changeSummary: revision.changeSummary,
+      submittedAt: revision.submittedAt ? revision.submittedAt.toISOString() : null,
+    })),
     category: c.category?.name ?? null,
     enrollments: c._count.enrollments,
     lessons: totalLessons(c),
