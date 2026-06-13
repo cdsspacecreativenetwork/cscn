@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
 import { PROJECTS_DETAILS } from '@/lib/projects';
 import { useParams } from 'next/navigation';
+import Button from '@/components/ui/Button';
 
 export default function ProjectSidebarModal() {
   const router = useRouter();
@@ -95,9 +96,6 @@ export default function ProjectSidebarModal() {
               style={{ scale: titleScale, y: titleY }}
               className="absolute bottom-6 left-8 right-8 origin-bottom-left"
             >
-              <span className="bg-primary text-white text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mb-2 inline-block">
-                CSCN Project
-              </span>
               <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight">
                 {project.title}
               </h1>
@@ -166,12 +164,23 @@ export default function ProjectSidebarModal() {
             </div>
 
             {/* CTA */}
-            <button className="w-full bg-navy text-white py-5 rounded-2xl font-bold text-lg hover:bg-primary transition-colors flex items-center justify-center gap-3 group">
+            {/* <button className="w-full bg-navy text-white py-5 rounded-2xl font-bold text-lg hover:bg-primary transition-colors flex items-center justify-center gap-3 group">
               Start Learning Like {project.student.split(' ')[0]}
               <svg className="group-hover:translate-x-1 transition-transform" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
               </svg>
-            </button>
+            </button> */}
+
+            <Button
+              variant="gradient"
+              className="w-full"
+              onClick={() => router.push('/courses')}
+            >
+              Start Learning Like {project.student.split(' ')[0]}
+              <svg className="group-hover:translate-x-1 transition-transform" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </Button>
           </div>
         </motion.div>
       </div>

@@ -119,7 +119,7 @@ export const NotificationDropdown: React.FC<Props> = ({
   };
 
   return (
-    <div className="absolute top-[calc(100%+12px)] right-0 w-[clamp(300px,19.33vw,380px)] bg-white border border-[#E3E8F4] rounded-[12px] shadow-[6px_4px_4px_2px_rgba(195,196,246,0.15)] overflow-hidden z-[100] animate-in fade-in zoom-in duration-200">
+    <div className="fixed right-4 top-[76px] z-[100] w-[calc(100vw-2rem)] max-w-[420px] overflow-hidden rounded-[18px] border border-[#E3E8F4] bg-white shadow-[0_24px_70px_rgba(4,11,55,0.18)] animate-in fade-in zoom-in duration-200 sm:absolute sm:right-0 sm:top-[calc(100%+12px)] sm:w-[clamp(320px,24vw,420px)]">
       {/* Header */}
       <div className="h-[clamp(56px,3.7vw,64px)] px-[clamp(18px,1.33vw,24px)] flex items-center justify-between border-b border-[#E3E8F4]">
         <h3 className="text-[clamp(14px,0.92vw,16px)] font-semibold text-[#040B37]">Notifications</h3>
@@ -134,7 +134,7 @@ export const NotificationDropdown: React.FC<Props> = ({
       </div>
 
       {/* List */}
-      <div className="max-h-[clamp(320px,23vw,420px)] overflow-y-auto">
+      <div className="custom-scrollbar max-h-[min(70vh,460px)] overflow-y-auto">
         {notifications.length > 0 ? (
           notifications.map((n) => {
             const isUnread = !n.readAt;
@@ -202,7 +202,7 @@ export const NotificationDropdown: React.FC<Props> = ({
             );
           })
         ) : (
-          <div className="p-8 text-center text-[#9CA3AF] text-[14px]">
+          <div className="px-6 py-12 text-center text-[15px] font-semibold text-[#9CA3AF]">
             No notifications yet
           </div>
         )}

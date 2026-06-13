@@ -11,7 +11,6 @@ import {
   LogIn,
   LogOut,
   Settings,
-  User,
 } from 'lucide-react';
 import { generateTapbackAvatar } from '@/lib/avatar';
 import Button from '@/components/ui/Button';
@@ -60,7 +59,6 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
 
   const menuItems = isAuthenticated
     ? [
-        { href: '/dashboard/profile', label: 'View Profile', Icon: User, strong: true },
         { href: '/dashboard/courses', label: 'My Learning', Icon: BookOpen },
         { href: '/courses', label: 'Explore Courses', Icon: Compass },
         { href: '/dashboard/settings', label: 'Settings', Icon: Settings },
@@ -98,61 +96,62 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
           </div>
         )}
         <ChevronDown
-          size={18}
-          className={`hidden text-[#9CA3AF] transition sm:block ${isOpen ? 'rotate-180 text-[#040B37]' : 'group-hover:text-[#040B37]'}`}
+          size={16}
+          strokeWidth={1.8}
+          className={`text-[#9CA3AF] transition ${isOpen ? 'rotate-180 text-[#040B37]' : 'group-hover:text-[#040B37]'}`}
         />
       </button>
 
       {isOpen && (
         <div
-          className={`absolute top-[calc(100%+10px)] z-[90] w-[min(88vw,360px)] rounded-[22px] border border-[#E3E8F4] bg-white p-4 shadow-[0_24px_70px_rgba(4,11,55,0.18)] ${
-            align === 'right' ? 'right-0' : 'left-0'
+          className={`fixed right-4 top-[76px] z-[90] w-[calc(100vw-2rem)] max-w-[330px] rounded-[20px] border border-[#E3E8F4] bg-white p-3 shadow-[0_24px_70px_rgba(4,11,55,0.18)] sm:absolute sm:top-[calc(100%+10px)] sm:w-[min(84vw,320px)] ${
+            align === 'right' ? 'sm:right-0' : 'sm:left-0'
           }`}
         >
-          <div className="flex flex-col items-center rounded-[18px] bg-[#F4F6FB] px-4 py-5 text-center">
-            <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-white bg-[#E3E8F4] shadow-sm">
+          <div className="flex flex-col items-center rounded-[18px] bg-[#F4F6FB] px-4 py-4 text-center">
+            <div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white bg-[#E3E8F4] shadow-sm">
               <Image
                 src={imgSrc}
                 alt={displayName}
-                width={64}
-                height={64}
+                width={48}
+                height={48}
                 className="h-full w-full object-cover"
                 onError={() => setImgSrc(fallbackAvatar)}
               />
             </div>
-            <p className="mt-3 max-w-full truncate text-lg font-black text-[#040B37]">{displayName}</p>
-            <p className="mt-1 max-w-full truncate text-sm font-semibold text-[#64748B]">{email}</p>
-            <Link href={isAuthenticated ? '/dashboard/profile' : '/signin'} className="mt-4 w-full" onClick={() => setIsOpen(false)}>
-              <Button variant="outline" rounded="[12px]" className="w-full border-[#1C4ED1]! text-[#1C4ED1]! hover:bg-[#1C4ED1]/5!">
+            <p className="mt-2 max-w-full truncate text-base font-black text-[#040B37]">{displayName}</p>
+            <p className="custom-scrollbar mt-0.5 max-w-full overflow-x-auto whitespace-nowrap text-xs font-semibold text-[#64748B]">{email}</p>
+            <Link href={isAuthenticated ? '/dashboard/profile' : '/signin'} className="mt-3 w-full" onClick={() => setIsOpen(false)}>
+              <Button variant="outline" rounded="[12px]" className="w-full px-4! py-2.5! text-sm! border-[#1C4ED1]! text-[#1C4ED1]! hover:bg-[#1C4ED1]/5!">
                 {isAuthenticated ? 'View Profile' : 'Sign in'}
               </Button>
             </Link>
           </div>
 
-          <div className="mt-3 space-y-1 border-t border-[#E3E8F4] pt-3">
+          <div className="mt-2 space-y-1 border-t border-[#E3E8F4] pt-2">
             {menuItems.map(({ href, label, Icon, strong }) => (
               <Link
                 key={label}
                 href={href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 rounded-[14px] px-3 py-3 text-sm transition hover:bg-[#F4F6FB] ${
+                className={`flex items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-[13px] transition hover:bg-[#F4F6FB] ${
                   strong ? 'font-black text-[#040B37]' : 'font-semibold text-[#334155]'
                 }`}
               >
-                <Icon size={18} className="text-[#1C4ED1]" />
+                <Icon size={15} strokeWidth={1.65} className="text-[#1C4ED1]" />
                 {label}
               </Link>
             ))}
           </div>
 
           {isAuthenticated && (
-            <div className="mt-3 border-t border-[#E3E8F4] pt-3">
+            <div className="mt-2 border-t border-[#E3E8F4] pt-2">
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: '/signin' })}
-                className="flex w-full items-center gap-3 rounded-[14px] px-3 py-3 text-left text-sm font-bold text-red-600 transition hover:bg-red-50"
+                className="flex w-full items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-left text-[13px] font-bold text-red-600 transition hover:bg-red-50"
               >
-                <LogOut size={18} />
+                <LogOut size={15} strokeWidth={1.65} />
                 Sign Out
               </button>
             </div>

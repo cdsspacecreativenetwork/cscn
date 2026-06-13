@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, BookOpen, Menu, PanelRightClose, X } from 'lucide-react';
+import { Menu, PanelRightClose, X } from 'lucide-react';
 import { CourseHeader } from './CourseHeader';
 import { VideoPlayer } from './VideoPlayer';
 import { TranscriptSidebar } from './TranscriptSidebar';
@@ -16,7 +16,6 @@ import { LessonNotesPanel } from './LessonNotesPanel';
 import { QuizPlayer } from './QuizPlayer';
 import type { SidebarModule, PlayerLesson } from '@/types/player';
 import { UserAvatarMenu } from '@/components/dashboard/UserAvatarMenu';
-import Button from '@/components/ui/Button';
 
 function ArticleReader({ title, body }: { title: string; body: string | null }) {
   return (
@@ -83,7 +82,7 @@ export const CoursePlayerView = ({
   const [countdown, setCountdown] = useState(5);
   const [autoplayNext, setAutoplayNext] = useState(true);
   const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
-  const [activeMobilePanel, setActiveMobilePanel] = useState<'overview' | 'content' | 'notes' | 'transcript' | 'resources'>('overview');
+  const [activeMobilePanel, setActiveMobilePanel] = useState<'overview' | 'notes' | 'transcript' | 'resources'>('overview');
   const canWriteNotes = canWatch && isEnrolled && !isPreviewMode;
   const isQuizLesson = lesson.contentType === 'QUIZ';
   const nextLesson = useMemo(
@@ -170,18 +169,6 @@ export const CoursePlayerView = ({
       ),
     },
     {
-      id: 'content',
-      label: 'Content',
-      show: true,
-      content: (
-        <CourseContentSidebar
-          modules={modules}
-          courseSlug={courseSlug}
-          currentLessonId={lesson.id}
-        />
-      ),
-    },
-    {
       id: 'notes',
       label: 'Notes',
       show: true,
@@ -246,26 +233,6 @@ export const CoursePlayerView = ({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              rounded="[12px]"
-              onClick={() => setIsSyllabusOpen(true)}
-              leftIcon={<BookOpen size={16} />}
-              className="hidden px-4! py-2.5! text-sm! sm:inline-flex"
-            >
-              Syllabus
-            </Button>
-            {nextLessonId && (
-              <button
-                type="button"
-                onClick={() => router.push(`/courses/${courseSlug}/watch/${nextLessonId}`)}
-                className="flex h-11 w-11 items-center justify-center rounded-[12px] border border-[#E3E8F4] text-[#040B37] transition hover:border-[#1C4ED1] hover:text-[#1C4ED1]"
-                aria-label="Go to next lesson"
-              >
-                <ArrowRight size={19} />
-              </button>
-            )}
             <Link href="/courses" className="hidden rounded-[12px] px-3 py-2 text-sm font-bold text-[#040B37] transition hover:bg-[#F4F6FB] lg:block">
               All Courses
             </Link>
@@ -332,7 +299,6 @@ export const CoursePlayerView = ({
         isCompleted={isCurrentLessonCompleted}
         allowManualComplete={!isQuizLesson}
         isPreviewMode={isPreviewMode}
-        onRequestNext={openNextLessonPrompt}
       />
 
       <div className={`grid w-full grid-cols-1 gap-6 lg:items-start ${

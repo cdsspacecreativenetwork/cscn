@@ -378,7 +378,7 @@ function ReviewTabs({
 
   return (
     <div className="admin-horizontal-scrollbar overflow-x-auto pb-1">
-      <div className="flex min-w-max rounded-[14px] bg-[#E9EEF8] p-1">
+      <div className="flex min-w-max rounded-[16px] bg-[#E9EEF8] p-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = active === tab.id;
@@ -387,10 +387,11 @@ function ReviewTabs({
               key={tab.id}
               type="button"
               onClick={() => onChange(tab.id)}
-              className={`flex items-center gap-2 rounded-[10px] px-4 py-2 text-[13px] font-black transition ${
+              className={`flex items-center gap-2 rounded-[12px] px-3 py-2 text-[12px] font-black transition sm:px-4 sm:text-[13px] ${
                 isActive ? "bg-white text-[#040B37] shadow-sm" : "text-[#8C96A8] hover:text-[#040B37]"
               }`}
             >
+              <Icon size={14} className={isActive ? "text-[#1C4ED1]" : "text-[#9CA3AF]"} />
               {tab.label}
               {counts[tab.id] > 0 && (
                 <span className={`rounded-full px-2 py-0.5 text-[10px] ${isActive ? "bg-[#EEF3FF] text-[#1C4ED1]" : "bg-white/70 text-[#8C96A8]"}`}>
@@ -745,14 +746,15 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
           <button
             type="button"
             aria-label="Close review drawer"
-            className="absolute inset-0 bg-[#040B37]/35 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-[#040B37]/45 backdrop-blur-[3px]"
             onClick={() => setOpen(false)}
           />
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-1/2 flex-col overflow-hidden bg-[#F4F6FB] shadow-[-24px_0_60px_rgba(4,11,55,0.18)]">
-            <header className="border-b border-[#D8E0EE] bg-white px-5 py-4 sm:px-6">
-              <div className="flex items-start justify-between gap-4">
+          <aside className="absolute inset-0 flex h-dvh w-full flex-col overflow-hidden bg-[#F4F6FB] shadow-[-24px_0_60px_rgba(4,11,55,0.18)] md:inset-y-4 md:left-auto md:right-4 md:h-[calc(100dvh-2rem)] md:w-[min(940px,calc(100vw-2rem))] md:rounded-[24px] md:border md:border-white/70">
+            <header className="shrink-0 border-b border-[#D8E0EE] bg-white px-4 py-4 sm:px-6">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="mt-1 text-[22px] font-black leading-tight tracking-[-0.04em] text-[#040B37] sm:text-[26px]">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#1C4ED1]">Course review room</p>
+                  <h2 className="mt-1 line-clamp-2 text-[20px] font-black leading-tight tracking-[-0.04em] text-[#040B37] sm:text-[24px] md:text-[28px]">
                     {course.title}
                   </h2>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -766,14 +768,14 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D8E0EE] bg-white text-[#040B37] transition hover:border-[#1C4ED1]"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D8E0EE] bg-white text-[#040B37] transition hover:border-[#1C4ED1] hover:text-[#1C4ED1]"
                 >
                   <X size={18} />
                 </button>
               </div>
             </header>
 
-            <div className="border-b border-[#D8E0EE] bg-white px-5 py-3 sm:px-6">
+            <div className="shrink-0 border-b border-[#D8E0EE] bg-white px-4 py-3 sm:px-6">
               <ReviewTabs
                 active={activeTab}
                 onChange={setActiveTab}
@@ -785,7 +787,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
               />
             </div>
 
-            <div className="admin-scrollbar flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            <div className="admin-scrollbar flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
               {activeTab === "summary" && (
                 <div className="space-y-5">
                   <section className="grid gap-3 sm:grid-cols-3">
@@ -794,14 +796,14 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
                       { label: "Edited", value: editedCount, tone: "bg-[#EEF3FF] text-[#1C4ED1]" },
                       { label: "Removed", value: removedCount, tone: "bg-red-50 text-red-600" },
                     ].map((item) => (
-                      <div key={item.label} className="rounded-[18px] border border-[#D8E0EE] bg-white p-4">
+                      <div key={item.label} className="rounded-[18px] border border-[#D8E0EE] bg-white p-4 shadow-[0_10px_24px_rgba(4,11,55,0.04)]">
                         <p className="text-[11px] font-black uppercase tracking-[0.1em] text-[#9CA3AF]">{item.label}</p>
                         <p className={`mt-2 inline-flex rounded-full px-3 py-1 text-[22px] font-black text-black`}>{item.value}</p>
                       </div>
                     ))}
                   </section>
 
-                  <section className="rounded-[18px] border border-[#D8E0EE] bg-white p-4">
+                  <section className="rounded-[20px] border border-[#D8E0EE] bg-white p-4 shadow-[0_12px_30px_rgba(4,11,55,0.04)]">
                     <div className="flex items-center gap-2">
                       <h3 className="text-[16px] font-black text-[#040B37]">Change summary</h3>
                     </div>
@@ -828,7 +830,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
                     </div>
                   </section>
 
-                  <section className="rounded-[18px] border border-[#D8E0EE] bg-white p-4">
+                  <section className="rounded-[20px] border border-[#D8E0EE] bg-white p-4 shadow-[0_12px_30px_rgba(4,11,55,0.04)]">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={16} className="text-[#1C4ED1]" />
                       <h3 className="text-[16px] font-black text-[#040B37]">Readiness</h3>
@@ -856,7 +858,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
               )}
 
               {activeTab === "curriculum" && (
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.85fr)]">
+                <div className="grid gap-4 lg:grid-cols-[minmax(280px,0.9fr)_minmax(360px,1.1fr)]">
                   <section className="space-y-3">
                     {(draftSnapshot?.modules ?? []).map((module) => {
                       const moduleItem = changeItems.find((item) => item.area === "Modules" && item.targetId === module.id);
@@ -916,7 +918,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
                     )}
                   </section>
 
-                  <div className="lg:sticky lg:top-5 lg:self-start">
+                  <div className="lg:sticky lg:top-4 lg:self-start">
                     {selectedLessonId ? (
                       <LessonPreview live={selectedLiveLesson} draft={selectedDraftLesson} courseSlug={course.slug} />
                     ) : (
@@ -983,7 +985,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
               )}
             </div>
 
-            <footer className="border-t border-[#D8E0EE] bg-white px-5 py-4 sm:px-6">
+            <footer className="shrink-0 border-t border-[#D8E0EE] bg-white px-4 py-3 sm:px-6 sm:py-4">
               {(reviewStatus || pricingRejectOpen) && (
                 <div className="mb-4 rounded-[16px] border border-[#D8E0EE] bg-[#F8FAFF] p-4">
                   {reviewStatus && (
@@ -998,7 +1000,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
                         placeholder={reviewStatus === "APPROVED" ? "Optional note after approval." : "Tell the instructor exactly what to fix and why."}
                         className="w-full resize-none rounded-[12px] border border-[#E3E8F4] bg-white px-4 py-3 text-[14px] font-semibold text-[#040B37] outline-none transition focus:border-[#1C4ED1] focus:ring-2 focus:ring-[#1C4ED1]/10"
                       />
-                      <div className="flex justify-end gap-2">
+                      <div className="grid gap-2 sm:flex sm:justify-end">
                         <Button type="button" variant="outline" size="sm" rounded="[10px]" disabled={pending} onClick={() => setReviewStatus(null)}>
                           Cancel
                         </Button>
@@ -1019,7 +1021,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
                         placeholder="Explain what price or justification you need before approval."
                         className="w-full resize-none rounded-[12px] border border-[#E3E8F4] bg-white px-4 py-3 text-[14px] font-semibold text-[#040B37] outline-none transition focus:border-[#1C4ED1] focus:ring-2 focus:ring-[#1C4ED1]/10"
                       />
-                      <div className="flex justify-end gap-2">
+                      <div className="grid gap-2 sm:flex sm:justify-end">
                         <Button type="button" variant="outline" size="sm" rounded="[10px]" disabled={pending} onClick={() => setPricingRejectOpen(false)}>
                           Cancel
                         </Button>
@@ -1033,7 +1035,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
               )}
 
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap gap-2">
+                <div className="grid gap-2 sm:flex sm:flex-wrap">
                   <Button
                     type="button"
                     size="sm"
@@ -1043,6 +1045,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
                     loading={pending && reviewStatus === "APPROVED"}
                     leftIcon={<CheckCircle2 size={15} />}
                     onClick={() => setReviewStatus("APPROVED")}
+                    className="w-full sm:w-auto"
                   >
                     {pendingRevision ? "Approve update" : "Approve & publish"}
                   </Button>
@@ -1054,6 +1057,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
                     disabled={!permissions.canReviewCourses || !isReviewable || pending}
                     leftIcon={<MessageSquareWarning size={15} />}
                     onClick={() => setReviewStatus("CHANGES_REQUESTED")}
+                    className="w-full sm:w-auto"
                   >
                     Request changes
                   </Button>
@@ -1065,7 +1069,7 @@ export function AdminCourseApprovalWorkspace({ course, permissions }: Props) {
                     disabled={!permissions.canReviewCourses || !isReviewable || pending}
                     leftIcon={<XCircle size={15} />}
                     onClick={() => setReviewStatus("REJECTED")}
-                    className="text-red-600 hover:border-red-300 hover:text-red-600"
+                    className="w-full text-red-600 hover:border-red-300 hover:text-red-600 sm:w-auto"
                   >
                     Reject
                   </Button>

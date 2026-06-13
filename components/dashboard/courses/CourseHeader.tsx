@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
-import Button from '@/components/ui/Button';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface CourseHeaderProps {
   title: string;
@@ -33,11 +31,16 @@ export const CourseHeader = ({
   const [pending, startTransition] = useTransition();
   const [done, setDone] = useState(isCompleted);
 
-  const handleMarkComplete = () => {
+  const markComplete = async () => {
+    if (!isEnrolled || !allowManualComplete || isPreviewMode || done) return;
+    await fetch(`/api/lessons/${lessonId}/progress`, { method: 'POST' });
+    setDone(true);
+  };
+
+  const handleNext = () => {
     startTransition(async () => {
       try {
-        await fetch(`/api/lessons/${lessonId}/progress`, { method: 'POST' });
-        setDone(true);
+        await markComplete();
         if (nextLessonId) {
           if (onRequestNext) {
             onRequestNext();
@@ -54,51 +57,33 @@ export const CourseHeader = ({
   };
 
   return (
-    <div className="flex w-full flex-col gap-4 rounded-[18px] border border-[#E3E8F4] bg-white px-4 py-4 font-jakarta shadow-sm md:flex-row md:items-center md:justify-between lg:px-5">
-      <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-center">
-        <Button
-          variant="ghost"
+    <div className="flex w-full items-center gap-2 border-b border-[#E3E8F4] px-1 pb-3 pt-1 font-jakarta sm:gap-3 lg:px-0 lg:pb-4">
+      <button
+          type="button"
           onClick={() => router.back()}
-          leftIcon={
-            <div className="relative h-6 w-6">
-              <Image src="/assets/dashboard/arrow-left-02.svg" alt="Back" fill className="object-contain" />
-            </div>
-          }
-          className="h-auto px-0 text-primary! hover:bg-primary/5!"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-[#E3E8F4] bg-white text-[#1C4ED1] transition hover:border-[#1C4ED1] hover:bg-[#1C4ED1]/5 sm:w-auto sm:px-3"
+          aria-label="Back"
         >
-          Back
-        </Button>
+        <ArrowLeft size={18} />
+        <span className="ml-2 hidden text-sm font-bold sm:inline">Back</span>
+      </button>
 
-        <h1 className="min-w-0 flex-1 text-lg font-black leading-tight text-[#040B37] lg:text-xl">
+      <h1 className="min-w-0 flex-1 truncate text-[clamp(16px,2.8vw,24px)] font-black leading-tight text-[#040B37]" title={title}>
           {title}
         </h1>
-      </div>
 
-      <div className="flex w-full items-center gap-2 sm:w-auto">
         {nextLessonId && (
-          <Button
+        <button
             type="button"
-            variant="outline"
-            rounded="[12px]"
-            onClick={() => router.push(`/courses/${courseSlug}/watch/${nextLessonId}`)}
-            rightIcon={<ArrowRight size={16} />}
-            className="flex-1 px-4! py-2.5! text-sm! sm:flex-none"
+          onClick={handleNext}
+          disabled={pending}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-[#E3E8F4] bg-white text-[#040B37] transition hover:border-[#1C4ED1] hover:text-[#1C4ED1] disabled:cursor-wait disabled:opacity-60 sm:w-auto sm:px-4"
+          aria-label="Next lesson"
           >
-            Next
-          </Button>
+          <span className="hidden text-sm font-bold sm:inline">{pending ? 'Saving...' : 'Next'}</span>
+          <ArrowRight size={18} className="sm:ml-2" />
+        </button>
         )}
-        {isEnrolled && allowManualComplete && !isPreviewMode && (
-          <Button
-            variant={done ? 'ghost' : 'primary'}
-            rounded="[12px]"
-            disabled={pending || done}
-            onClick={handleMarkComplete}
-            className="flex-1 px-3! py-2.5! text-sm! disabled:opacity-60 sm:flex-none lg:px-6!"
-          >
-            {done ? 'Completed' : pending ? 'Saving...' : 'Mark Complete'}
-          </Button>
-        )}
-      </div>
     </div>
   );
 };
