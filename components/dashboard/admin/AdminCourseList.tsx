@@ -1239,13 +1239,14 @@ export default function AdminCourseList({ courses: initialCourses, adminId, perm
               <p className="text-sm text-text-mute">Go to All Courses and click the star on a published course.</p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-stroke bg-white overflow-hidden">
+            <div className="overflow-hidden rounded-2xl border border-stroke bg-white">
               {featuredCourses.map((course, index) => (
-                <div key={course.id} className="flex items-center gap-4 border-b border-stroke last:border-0 p-4">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-black text-primary">
+                <div key={course.id} className="border-b border-stroke p-4 last:border-0">
+                  <div className="flex gap-3 sm:items-center sm:gap-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-black text-primary">
                     {index + 1}
                   </div>
-                  <div className="relative h-16 w-24 overflow-hidden rounded-[8px] bg-background shrink-0">
+                  <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-[10px] bg-background sm:h-16 sm:w-24">
                     {course.thumbnail ? (
                       <Image src={course.thumbnail ?? ''} alt={course.title} fill className="object-cover" unoptimized />
                     ) : (
@@ -1255,36 +1256,39 @@ export default function AdminCourseList({ courses: initialCourses, adminId, perm
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-navy">{course.title}</p>
-                    <p className="mt-0.5 text-xs font-medium text-text-mute">
+                    <p className="line-clamp-2 text-sm font-black leading-tight text-navy sm:truncate">{course.title}</p>
+                    <p className="mt-1 text-xs font-semibold text-text-mute">
                       {course.category ?? 'Uncategorized'} · {course.status}
                     </p>
                   </div>
+                  </div>
                   {permissions.canManageCourses && (
-                    <div className="flex items-center gap-2">
+                    <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2 sm:ml-[calc(2.25rem+1rem)] sm:flex sm:items-center">
                       <button
                         type="button"
                         disabled={index === 0 || featurePending}
                         onClick={() => handleFeaturedMove(course.id, -1)}
-                        className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-stroke text-navy transition-colors hover:bg-background disabled:opacity-40"
+                        className="flex h-10 items-center justify-center gap-2 rounded-[10px] border border-stroke px-3 text-sm font-bold text-navy transition-colors hover:bg-background disabled:opacity-40 sm:h-9 sm:w-9 sm:px-0"
                         title="Move up"
                       >
                         <ArrowUp size={15} />
+                        <span className="sm:hidden">Up</span>
                       </button>
                       <button
                         type="button"
                         disabled={index === featuredCourses.length - 1 || featurePending}
                         onClick={() => handleFeaturedMove(course.id, 1)}
-                        className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-stroke text-navy transition-colors hover:bg-background disabled:opacity-40"
+                        className="flex h-10 items-center justify-center gap-2 rounded-[10px] border border-stroke px-3 text-sm font-bold text-navy transition-colors hover:bg-background disabled:opacity-40 sm:h-9 sm:w-9 sm:px-0"
                         title="Move down"
                       >
                         <ArrowDown size={15} />
+                        <span className="sm:hidden">Down</span>
                       </button>
                       <button
                         type="button"
                         disabled={featurePending}
                         onClick={() => handleFeatureToggle(course.id, course.featuredOrder)}
-                        className="flex h-9 items-center gap-2 rounded-[8px] border border-red-200 px-3 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
+                        className="flex h-10 items-center justify-center gap-2 rounded-[10px] border border-red-200 px-4 text-sm font-black text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40 sm:h-9 sm:text-xs"
                       >
                         <XCircle size={14} />
                         Remove

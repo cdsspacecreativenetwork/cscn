@@ -19,6 +19,7 @@
 
 # production
 /build
+/dev
 
 # misc
 .DS_Store
@@ -39,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Ignore npm cache
+.npm-cache/
+
+# Ignore large media files
+public/assets/*.mp4

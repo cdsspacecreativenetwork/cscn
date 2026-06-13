@@ -1,7 +1,10 @@
 'use client';
 
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ArrowRight, BookOpen, Menu, PanelRightClose, X } from 'lucide-react';
 import { CourseHeader } from './CourseHeader';
 import { VideoPlayer } from './VideoPlayer';
 import { TranscriptSidebar } from './TranscriptSidebar';
@@ -12,6 +15,8 @@ import { ArticleContent } from './ArticleContent';
 import { LessonNotesPanel } from './LessonNotesPanel';
 import { QuizPlayer } from './QuizPlayer';
 import type { SidebarModule, PlayerLesson } from '@/types/player';
+import { UserAvatarMenu } from '@/components/dashboard/UserAvatarMenu';
+import Button from '@/components/ui/Button';
 
 function ArticleReader({ title, body }: { title: string; body: string | null }) {
   return (
@@ -45,11 +50,18 @@ export interface CoursePlayerViewProps {
   isCourseCompleted: boolean;
   ratingSummary: { average: number; count: number };
   userRating: { rating: number; comment: string | null } | null;
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+    role?: string | null;
+  } | null;
 }
 
 export const CoursePlayerView = ({
   courseSlug,
   courseId,
+  courseTitle,
   lesson,
   modules,
   canWatch,
@@ -62,6 +74,7 @@ export const CoursePlayerView = ({
   isCourseCompleted,
   ratingSummary,
   userRating,
+  user,
 }: CoursePlayerViewProps) => {
   const router = useRouter();
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(lesson.progress?.lastSeekTime ?? 0);
@@ -69,12 +82,17 @@ export const CoursePlayerView = ({
   const [showNextPrompt, setShowNextPrompt] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [autoplayNext, setAutoplayNext] = useState(true);
+  const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
   const [activeMobilePanel, setActiveMobilePanel] = useState<'overview' | 'content' | 'notes' | 'transcript' | 'resources'>('overview');
   const canWriteNotes = canWatch && isEnrolled && !isPreviewMode;
   const isQuizLesson = lesson.contentType === 'QUIZ';
   const nextLesson = useMemo(
     () => modules.flatMap((module) => module.lessons).find((item) => item.id === nextLessonId) ?? null,
     [modules, nextLessonId]
+  );
+  const currentModule = useMemo(
+    () => modules.find((module) => module.lessons.some((item) => item.id === lesson.id)) ?? null,
+    [lesson.id, modules]
   );
 
   useEffect(() => {
@@ -198,7 +216,99 @@ export const CoursePlayerView = ({
   };
 
   return (
-    <div className="p-3 lg:p-10 flex flex-col gap-8 max-w-[1728px] mx-auto w-full overflow-x-hidden font-jakarta">
+    <div className="min-h-screen bg-[#F4F6FB] font-jakarta">
+      <header className="sticky top-0 z-50 border-b border-[#E3E8F4] bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex h-[72px] w-full max-w-[1728px] items-center justify-between gap-3 px-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3 lg:gap-5">
+            <button
+              type="button"
+              onClick={() => setIsSyllabusOpen(true)}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border border-[#E3E8F4] text-[#040B37] transition hover:border-[#1C4ED1] hover:text-[#1C4ED1]"
+              aria-label="Open course content"
+            >
+              <Menu size={20} />
+            </button>
+            <Link href="/" className="flex shrink-0 items-center gap-2">
+              <Image src="/assets/Group 162.svg" alt="CSCN" width={36} height={36} className="h-9 w-auto" unoptimized />
+            </Link>
+            <span className="hidden h-5 w-px bg-[#E3E8F4] sm:block" />
+            <div className="hidden min-w-0 items-center gap-3 md:flex">
+              <Link href={`/courses/${courseSlug}`} className="max-w-[240px] truncate text-sm font-bold text-[#040B37] transition hover:text-[#1C4ED1]">
+                {courseTitle}
+              </Link>
+              {currentModule && (
+                <>
+                  <span className="text-[#CBD5E1]">/</span>
+                  <span className="max-w-[180px] truncate text-sm font-semibold text-[#475569]">{currentModule.title}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              rounded="[12px]"
+              onClick={() => setIsSyllabusOpen(true)}
+              leftIcon={<BookOpen size={16} />}
+              className="hidden px-4! py-2.5! text-sm! sm:inline-flex"
+            >
+              Syllabus
+            </Button>
+            {nextLessonId && (
+              <button
+                type="button"
+                onClick={() => router.push(`/courses/${courseSlug}/watch/${nextLessonId}`)}
+                className="flex h-11 w-11 items-center justify-center rounded-[12px] border border-[#E3E8F4] text-[#040B37] transition hover:border-[#1C4ED1] hover:text-[#1C4ED1]"
+                aria-label="Go to next lesson"
+              >
+                <ArrowRight size={19} />
+              </button>
+            )}
+            <Link href="/courses" className="hidden rounded-[12px] px-3 py-2 text-sm font-bold text-[#040B37] transition hover:bg-[#F4F6FB] lg:block">
+              All Courses
+            </Link>
+            <UserAvatarMenu user={user ?? null} showUserText={false} />
+          </div>
+        </div>
+      </header>
+
+      {isSyllabusOpen && (
+        <div className="fixed inset-0 z-[80]">
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#040B37]/35 backdrop-blur-sm"
+            onClick={() => setIsSyllabusOpen(false)}
+            aria-label="Close course content"
+          />
+          <aside className="absolute left-0 top-0 flex h-full w-[min(92vw,420px)] flex-col bg-white shadow-[24px_0_70px_rgba(4,11,55,0.18)]">
+            <div className="flex items-center justify-between border-b border-[#E3E8F4] px-5 py-4">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#1C4ED1]">Course Content</p>
+                <h2 className="mt-1 line-clamp-1 text-lg font-black text-[#040B37]">{courseTitle}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSyllabusOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E3E8F4] text-[#040B37] transition hover:bg-[#F4F6FB]"
+                aria-label="Close course content"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="custom-scrollbar flex-1 overflow-y-auto bg-[#F4F6FB] p-4">
+              <CourseContentSidebar
+                modules={modules}
+                courseSlug={courseSlug}
+                currentLessonId={lesson.id}
+              />
+            </div>
+          </aside>
+        </div>
+      )}
+
+      <main className="mx-auto flex w-full max-w-[1728px] flex-col gap-6 overflow-x-hidden p-3 lg:p-8">
       {isPreviewMode && (
         <div className="flex w-fit max-w-full items-center gap-2 rounded-full border border-[#1C4ED1]/20 bg-[#1C4ED1]/5 px-3 py-2 text-[#1C4ED1]">
           <span className="h-2 w-2 shrink-0 rounded-full bg-[#1C4ED1]" />
@@ -222,6 +332,7 @@ export const CoursePlayerView = ({
         isCompleted={isCurrentLessonCompleted}
         allowManualComplete={!isQuizLesson}
         isPreviewMode={isPreviewMode}
+        onRequestNext={openNextLessonPrompt}
       />
 
       <div className={`grid w-full grid-cols-1 gap-6 lg:items-start ${
@@ -246,26 +357,65 @@ export const CoursePlayerView = ({
                 </div>
               )
             ) : (
-              <VideoPlayer
-                lessonId={lesson.id}
-                videoUrl={lesson.videoUrl}
-                muxPlaybackId={lesson.muxPlaybackId}
-                muxToken={lesson.muxToken}
-                timestamps={lesson.timestamps}
-                initialProgress={lesson.progress}
-                seekRequest={seekRequest}
-                onPlaybackTimeChange={setCurrentPlaybackTime}
-                canWatch={canWatch}
-                isAuthenticated={isAuthenticated}
-                isEnrolled={isEnrolled}
-                courseSlug={courseSlug}
-                lessonTitle={lesson.title}
-                onEnded={openNextLessonPrompt}
-              />
+              <div className="relative overflow-hidden rounded-[24px]">
+                <VideoPlayer
+                  lessonId={lesson.id}
+                  videoUrl={lesson.videoUrl}
+                  muxPlaybackId={lesson.muxPlaybackId}
+                  muxToken={lesson.muxToken}
+                  timestamps={lesson.timestamps}
+                  initialProgress={lesson.progress}
+                  seekRequest={seekRequest}
+                  onPlaybackTimeChange={setCurrentPlaybackTime}
+                  canWatch={canWatch}
+                  isAuthenticated={isAuthenticated}
+                  isEnrolled={isEnrolled}
+                  courseSlug={courseSlug}
+                  lessonTitle={lesson.title}
+                  onEnded={openNextLessonPrompt}
+                />
+                {showNextPrompt && nextLesson && nextLessonId && (
+                  <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#151515]/94 px-5 py-8 text-white">
+                    <div className="w-full max-w-[720px]">
+                      <p className="text-[clamp(18px,2vw,28px)] font-semibold text-white">
+                        Next lesson will start {autoplayNext ? `in ${countdown} second${countdown === 1 ? '' : 's'}` : 'when you are ready'}
+                      </p>
+                      <div className="mt-7 flex gap-5">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[18px] border border-white/15">
+                          <PanelRightClose size={34} />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-[clamp(22px,2.6vw,36px)] font-black leading-tight text-white">{nextLesson.title}</h3>
+                          <p className="mt-2 text-[clamp(15px,1.4vw,20px)] font-semibold text-white/80">
+                            {nextLesson.contentType === 'ARTICLE' ? 'Reading' : nextLesson.contentType === 'QUIZ' ? 'Quiz' : 'Video'}
+                            {nextLesson.duration !== '—' ? ` • ${nextLesson.duration}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowNextPrompt(false)}
+                          className="rounded-[12px] bg-white px-5 py-4 text-[16px] font-bold text-[#151515] transition hover:bg-white/90"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/courses/${courseSlug}/watch/${nextLessonId}`)}
+                          className="rounded-[12px] bg-white px-5 py-4 text-[16px] font-bold text-[#151515] transition hover:bg-white/90"
+                        >
+                          Start Now
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
-          {showNextPrompt && nextLesson && nextLessonId && (
+          {lesson.contentType !== 'VIDEO' && showNextPrompt && nextLesson && nextLessonId && (
             <div className="rounded-[12px] border border-[#101828] bg-[#151515] p-5 text-white shadow-[0_18px_60px_rgba(4,11,55,0.22)]">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 gap-4">
@@ -374,6 +524,7 @@ export const CoursePlayerView = ({
           </div>
         )}
       </div>
+      </main>
     </div>
   );
 };

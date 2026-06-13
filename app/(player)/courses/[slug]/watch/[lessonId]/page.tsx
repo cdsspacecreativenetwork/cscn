@@ -374,6 +374,12 @@ export default async function WatchPage({ params, searchParams }: Props) {
         isCourseCompleted={isCourseCompleted}
         ratingSummary={ratingSummary}
         userRating={userRating}
+        user={session?.user ? {
+          name: session.user.name,
+          email: session.user.email,
+          image: session.user.image,
+          role: session.user.role,
+        } : null}
       />
     </div>
   );

@@ -1,12 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Search, Bell, ChevronDown, X } from 'lucide-react';
+import { Search, Bell, X } from 'lucide-react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { NotificationDropdown } from './NotificationDropdown';
 import { useNotifications } from '@/hooks/useNotifications';
-import { generateTapbackAvatar } from '@/lib/avatar';
+import { UserAvatarMenu } from './UserAvatarMenu';
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -21,28 +21,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   React.useEffect(() => { update(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isLoading = status === 'loading' || (status === 'authenticated' && !session?.user?.name);
-
-  const user = session?.user;
-  const displayName = user?.name ?? 'User';
-
-  const ROLE_LABELS: Record<string, string> = {
-    SUPER_ADMIN: 'Super Admin',
-    ADMIN: 'Admin',
-    INSTRUCTOR: 'Instructor',
-    USER: 'Student',
-  };
-  const roleLabel = ROLE_LABELS[(user?.role as string) ?? ''] ?? 'Student';
-  const [imgSrc, setImgSrc] = React.useState(user?.image);
-  
-  // Re-sync if session user image changes
-  React.useEffect(() => {
-    setImgSrc(user?.image);
-  }, [user?.image]);
-
-  const userEmail = user?.email ?? 'user@cscn.edu';
-  const userName = session?.user?.name || userEmail.split('@')[0];
-  const fallbackAvatar = generateTapbackAvatar(userName);
-  const avatarSrc = imgSrc || fallbackAvatar;
 
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
@@ -148,37 +126,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         {/* Divider */}
         <div className="hidden h-[clamp(32px,2.78vw,48px)] w-[1px] bg-[#E3E8F4] sm:block"></div>
 
-        {/* Profile */}
-        <div className="flex items-center gap-1.5 cursor-pointer group sm:gap-[clamp(8px,0.69vw,12px)] sm:pl-[clamp(8px,0.46vw,12px)]">
-          <div className="w-[clamp(36px,2.55vw,44px)] h-[clamp(36px,2.55vw,44px)] rounded-full overflow-hidden border-2 border-[#1C4ED1] shrink-0">
-            {isLoading ? (
-              <Skeleton variant="circle" className="w-full h-full" />
-            ) : (
-              <Image
-                src={avatarSrc}
-                alt={displayName}
-                width={44}
-                height={44}
-                className="w-full h-full object-cover"
-                onError={() => setImgSrc(fallbackAvatar)}
-              />
-            )}
+        {isLoading ? (
+          <div className="flex items-center gap-3">
+            <Skeleton variant="circle" className="h-11 w-11" />
+            <div className="hidden space-y-1 sm:block">
+              <Skeleton className="h-4 w-[80px]" />
+              <Skeleton className="h-3 w-[50px]" />
+            </div>
           </div>
-          <div className="hidden sm:flex flex-col">
-            {isLoading ? (
-              <div className="space-y-1">
-                <Skeleton className="h-4 w-[80px]" />
-                <Skeleton className="h-3 w-[50px]" />
-              </div>
-            ) : (
-              <>
-                <span className="text-[clamp(14px,1.04vw,18px)] font-semibold text-[#040B37] whitespace-nowrap">{displayName}</span>
-                <span className="text-[clamp(11px,0.81vw,14px)] text-[#4B5563]">{roleLabel}</span>
-              </>
-            )}
-          </div>
-          <ChevronDown size={20} className="hidden text-[#9CA3AF] transition-all group-hover:text-[#040B37] sm:block" style={{ width: 'clamp(16px, 1.15vw, 20px)', height: 'clamp(16px, 1.15vw, 20px)' }} />
-        </div>
+        ) : (
+          <UserAvatarMenu user={session?.user ?? null} showUserText />
+        )}
       </div>
     </header>
   );
