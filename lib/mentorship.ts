@@ -19,7 +19,7 @@ export const MENTORS: Mentor[] = [
     id: 'chris-john',
     name: 'Chris John',
     role: 'Full-Stack Designer',
-    image: '/assets/instructors/Frame 2147238910-5.svg',
+    image: '/assets/instructors/Frame 2147238910-5.png',
     courses: 25,
     students: '770K'
   },

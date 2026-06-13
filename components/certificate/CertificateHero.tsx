@@ -49,7 +49,7 @@ export const CertificateHero = () => {
               2. Exactly 45% of the envelope (369px of 819px) is nested inside the Navy container */}
           <div className="absolute bottom-20 left-0 w-[var(--cert-envelope-size)] h-[var(--cert-envelope-size)] z-20 pointer-events-none select-none overflow-visible">
             <Image
-              src="/assets/certificate/envelope.svg"
+              src="/assets/certificate/envelope.png"
               alt="Certificate Preview"
               fill
               className="object-cover object-left drop-shadow-[0_35px_50px_rgba(0,0,0,0.3)]"
@@ -100,7 +100,7 @@ export const CertificateHero = () => {
           {/* Placed at z-30 so it sits on top of the envelope card edge, overextending slightly */}
           <div className="absolute -right-20 top-0 w-[clamp(220px,20vw,340px)] h-[clamp(220px,20vw,340px)] z-[60] animate-float">
             <Image
-              src="/assets/certificate/stamp.svg"
+              src="/assets/certificate/stamp.png"
               alt="CDS Official Stamp"
               fill
               className="object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.55)]"
@@ -117,7 +117,7 @@ export const CertificateHero = () => {
           {/* Scaled-down Envelope overlapping the white section and nested into Navy */}
           <div className="relative w-[320px] md:w-[500px] h-[320px] md:h-[500px] -mt-[170px] md:-mt-[280px] pointer-events-none select-none z-20 overflow-visible">
             <Image
-              src="/assets/certificate/envelope.svg"
+              src="/assets/certificate/envelope.png"
               alt="Certificate Preview"
               fill
               className="object-cover drop-shadow-[0_20px_35px_rgba(0,0,0,0.25)]"
@@ -128,7 +128,7 @@ export const CertificateHero = () => {
           {/* Mobile CDS Wax Stamp */}
           <div className="absolute right-0 top-0 w-[140px] md:w-[280px] h-[180px] md:h-[240px] shrink-0 z-[60] animate-float">
             <Image
-              src="/assets/certificate/stamp.svg"
+              src="/assets/certificate/stamp.png"
               alt="CDS Official Stamp"
               fill
               className="object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.5)]"

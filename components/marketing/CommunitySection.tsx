@@ -17,15 +17,15 @@ interface CommunitySectionProps {
 }
 
 const DEFAULT_AVATARS = [
-  '/assets/projects/cartoon-man-wearing-glasses.svg',
-  '/assets/projects/2d800191-fe2a-4f40-9f32-d6aeb7bde3df.svg',
+  '/assets/projects/cartoon-man-wearing-glasses.png',
+  '/assets/projects/2d800191-fe2a-4f40-9f32-d6aeb7bde3df.png',
   '/assets/projects/9439678.svg',
-  '/assets/projects/3d-rendering-zoom-call-avatar.svg',
+  '/assets/projects/3d-rendering-zoom-call-avatar.png',
   '/assets/projects/46944d8a-fe90-442a-a288-75f50fa34ca3.svg',
   '/assets/projects/9434619.svg',
-  '/assets/projects/memoji-african-american-man-white-background-emoji (1).svg',
+  '/assets/projects/memoji-african-american-man-white-background-emoji (1).png',
   '/assets/projects/10496273.svg',
-  '/assets/projects/dugb_o5sj_230522.svg',
+  '/assets/projects/dugb_o5sj_230522.png',
   '/assets/projects/9334392.svg'
 ];
 

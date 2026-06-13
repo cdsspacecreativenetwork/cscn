@@ -19,13 +19,13 @@ const DEFAULT_INSTRUCTORS: Instructor[] = [
   {
     name: 'Chris\nJohn',
     role: 'Full-Stack Designer',
-    image: '/assets/instructors/Frame 2147238910-5.svg',
+    image: '/assets/instructors/Frame 2147238910-5.png',
     slug: 'chris-john',
   },
   {
     name: 'Ayomide\nAjayi',
     role: 'Digital Designer',
-    image: '/assets/instructors/img.svg',
+    image: '/assets/instructors/img-2.png',
     slug: 'ayomide-ajayi',
   },
   {

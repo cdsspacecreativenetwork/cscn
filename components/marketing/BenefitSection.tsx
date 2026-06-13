@@ -11,9 +11,9 @@ export default function BenefitSection() {
   };
 
   const images = {
-    left: '/assets/one/left.svg',
-    middle: '/assets/one/learn from experts.svg',
-    right: '/assets/one/right.svg'
+    left: '/assets/one/left.png',
+    middle: '/assets/one/learn from experts.png',
+    right: '/assets/one/right.png'
   };
 
   return (

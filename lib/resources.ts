@@ -40,7 +40,7 @@ export const RESOURCES: Resource[] = [
     title: 'Fragrance mockup',
     price: 'Free',
     label: 'Free',
-    image: '/assets/resources/Frame 2147239560-3.svg',
+    image: '/assets/resources/Frame 2147239560-3.png',
   }
 ];
 
