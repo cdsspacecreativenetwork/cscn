@@ -31,6 +31,7 @@ export default auth((req) => {
 
   // Webhooks from third-party services are unauthenticated by design (they carry their own signatures)
   if (nextUrl.pathname.startsWith("/api/webhooks/")) return;
+  if (nextUrl.pathname.startsWith("/api/cron/")) return;
 
   // Invite links are public — anyone can view them
   if (isInviteRoute) return;
