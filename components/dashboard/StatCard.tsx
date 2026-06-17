@@ -12,9 +12,9 @@ interface StatCardProps {
 
 export const StatCard: React.FC<StatCardProps> = ({ title, value, iconSrc, icon }) => {
   return (
-    <div className="bg-white border border-[#E3E8F4] p-[clamp(12px,1.39vw,24px)] rounded-[12px] shadow-[0px_0px_1px_rgba(23,26,31,0.08),0px_0px_0.5px_rgba(23,26,31,0.05)] flex flex-col gap-[clamp(16px,1.62vw,28px)] items-start flex-1">
+    <div className="bg-white border border-[#E3E8F4] p-[clamp(12px,1.39vw,24px)] rounded-[12px] shadow-sm flex flex-col gap-[clamp(16px,1.62vw,28px)] items-start flex-1">
       <div className="flex items-start justify-between w-full gap-2">
-        <p className="text-[clamp(13px,1vw,17px)] font-medium text-[#9CA3AF] leading-tight flex-1">{title}</p>
+        <p className="text-[clamp(13px,1vw,17px)] font-medium text-[#4B5563] leading-tight flex-1">{title}</p>
         <div className="w-[clamp(32px,2.31vw,40px)] h-[clamp(32px,2.31vw,40px)] bg-[#F4F6FB] rounded-[10px] flex items-center justify-center shrink-0">
           {icon ? (
             icon
@@ -34,7 +34,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, iconSrc, icon 
         </div>
       </div>
       <div className="flex flex-col items-start mt-auto">
-        <p className="max-w-full text-[clamp(20px,1.65vw,30px)] font-bold text-[#040B37] leading-tight break-words">{value}</p>
+        <p className="max-w-full text-[clamp(20px,1.65vw,30px)] font-semibold text-[#040B37] leading-tight break-words">{value}</p>
       </div>
     </div>
   );

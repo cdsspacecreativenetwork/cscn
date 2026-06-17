@@ -68,7 +68,7 @@ export function AdminAuditLogsConsole({ data, query, action = "all", entityType 
 
       <section className="grid gap-4 md:grid-cols-3">
         {statCards.map((card) => (
-          <div key={card.label} className="flex min-h-[132px] flex-col gap-6 rounded-[12px] border border-[#E3E8F4] bg-white p-6 shadow-sm">
+          <div key={card.label} className="flex min-h-[132px] flex-col gap-6 rounded-[12px] border border-[#E3E8F4] bg-white p-6">
             <div className="flex items-start justify-between">
               <p className="text-[16px] font-semibold text-[#9CA3AF]">{card.label}</p>
               <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#F4F6FB] text-[#1C4ED1]">

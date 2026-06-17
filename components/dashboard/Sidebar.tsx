@@ -38,6 +38,7 @@ type IconComponent = React.ComponentType<{
   size?: number;
   className?: string;
   style?: React.CSSProperties;
+  strokeWidth?: number;
 }>;
 
 type NavItem = {
@@ -101,17 +102,17 @@ const instructorAccountItems: NavItem[] = [
 ];
 
 const learnerItems: NavItem[] = [
-  { name: 'Overview', href: '/dashboard', icon: '/assets/dashboard/user/dashboard-square-03.svg' },
-  { name: 'My Learning', href: '/dashboard/courses', icon: '/assets/dashboard/user/book-open-text.svg' },
-  { name: 'Schedule', href: '/dashboard/schedule', icon: '/assets/dashboard/user/calendar-02.svg' },
-  { name: 'My Progress', href: '/dashboard/progress', icon: '/assets/dashboard/user/progress.svg' },
-  { name: 'Resources', href: '/dashboard/resources', icon: '/assets/dashboard/user/library.svg' },
+  { name: 'Overview', href: '/dashboard', Icon: LayoutDashboard },
+  { name: 'My Learning', href: '/dashboard/courses', Icon: BookOpen },
+  { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
+  { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },
+  { name: 'Resources', href: '/dashboard/resources', Icon: Library },
 ];
 
 const learnerAccountItems: NavItem[] = [
-  { name: 'Purchases', href: '/dashboard/purchases', icon: '/assets/dashboard/user/payment-02.svg' },
-  { name: 'Profile', href: '/dashboard/profile', icon: '/assets/dashboard/user/user.svg' },
-  { name: 'Settings', href: '/dashboard/settings', icon: '/assets/dashboard/user/setting-07.svg' },
+  { name: 'Purchases', href: '/dashboard/purchases', Icon: CreditCard },
+  { name: 'Profile', href: '/dashboard/profile', Icon: User },
+  { name: 'Settings', href: '/dashboard/settings', Icon: Settings },
 ];
 
 interface SidebarProps {
@@ -141,13 +142,13 @@ function SidebarLink({
     <Link
       href={item.href}
       onClick={onClick}
-      className={`flex items-center rounded-sm transition-all ${
+      className={`flex items-center rounded-[8px] transition-all ${
         collapsed
           ? 'justify-center p-3'
           : 'gap-[clamp(8px,0.69vw,12px)] px-[clamp(12px,0.92vw,16px)] py-[clamp(8px,0.69vw,12px)]'
       } ${
         active
-          ? 'bg-[#1C4ED1]/5 border-l-2 border-[#1C4ED1] text-[#1C4ED1]'
+          ? 'bg-[#1C4ED1]/5 text-[#1C4ED1]'
           : 'text-[#4B5563] hover:bg-[#F4F6FB]'
       }`}
       title={collapsed ? item.name : ''}
@@ -155,7 +156,8 @@ function SidebarLink({
       {item.Icon ? (
         <item.Icon
           style={{ width: 'clamp(16px, 1.15vw, 20px)', height: 'clamp(16px, 1.15vw, 20px)' }}
-          className="shrink-0"
+          strokeWidth={1.85}
+          className="shrink-0 text-current"
         />
       ) : (
         <div
@@ -166,7 +168,7 @@ function SidebarLink({
             src={item.icon ?? '/assets/dashboard/user/dashboard-square-03.svg'}
             alt=""
             fill
-            className={`object-contain transition-all ${active ? 'brightness-100' : 'brightness-0 opacity-40'}`}
+            className={`object-contain transition-all ${active ? 'brightness-0 opacity-100' : 'brightness-0 opacity-60'}`}
           />
         </div>
       )}
@@ -195,7 +197,7 @@ function SidebarSection({
       {!collapsed && (
         <div className="px-[clamp(12px,0.92vw,16px)] py-[clamp(6px,0.46vw,8px)] flex items-center gap-2">
           <p
-            className={`text-[clamp(14px,0.92vw,16px)] font-bold uppercase tracking-wider ${
+            className={`text-[clamp(13px,0.81vw,14px)] font-normal uppercase tracking-wider ${
               accent ? 'text-[#1C4ED1]' : 'text-[#9CA3AF]'
             }`}
           >
@@ -241,7 +243,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
 
   React.useEffect(() => {
     if (!session?.user?.id || isAdmin || isInstructor) {
-      setHasCourseCollaborations(false);
+      queueMicrotask(() => setHasCourseCollaborations(false));
       return;
     }
 
@@ -277,7 +279,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
 
       <div
         className={`
-          h-[96px] lg:h-[clamp(72px,5.56vw,96px)] flex items-center px-[clamp(24px,1.85vw,32px)] border-b border-[#E3E8F4] shrink-0 transition-all
+          h-[72px] lg:h-[72px] flex items-center px-[clamp(20px,1.62vw,28px)] border-b border-[#E3E8F4] shrink-0 transition-all
           ${effectivelyCollapsed ? 'lg:justify-center lg:px-0' : 'justify-between'}
         `}
       >
@@ -299,7 +301,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
 
       <div
         className={`
-          flex-1 overflow-y-auto py-[clamp(16px,1.85vw,32px)] space-y-[clamp(24px,2.5vw,40px)] custom-scrollbar transition-all
+          flex-1 overflow-y-auto py-[clamp(16px,1.62vw,28px)] space-y-[clamp(22px,2.08vw,36px)] custom-scrollbar transition-all
           ${effectivelyCollapsed ? 'px-4' : 'px-[clamp(16px,1.85vw,32px)]'}
         `}
       >

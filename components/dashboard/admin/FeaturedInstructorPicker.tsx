@@ -48,7 +48,7 @@ export function FeaturedInstructorPicker({ slots, suggestions }: FeaturedInstruc
         {slots.map((instructor, index) => {
           const slot = index + 1;
           return (
-            <div key={slot} className="rounded-[16px] border border-[#E3E8F4] bg-white p-5 shadow-sm">
+            <div key={slot} className="rounded-[16px] border border-[#E3E8F4] bg-white p-5">
               <div className="mb-4 flex items-center justify-between">
                 <span className="rounded-full bg-[#1C4ED1]/10 px-3 py-1 text-[12px] font-bold text-[#1C4ED1]">
                   Slot {slot}

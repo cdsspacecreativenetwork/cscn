@@ -66,7 +66,7 @@ export async function getInstructorOnboardingStatusByUserId(userId: string) {
     user.publicProfileSlug ||
     user.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
     user.id;
-  const mustCompleteProfile = hasInstructorProfile && !readiness.isProfileComplete;
+  const mustCompleteProfile = false;
   const canRequestVerification =
     hasInstructorProfile &&
     readiness.canSubmitForReview &&
@@ -78,10 +78,9 @@ export async function getInstructorOnboardingStatusByUserId(userId: string) {
     mustCompleteProfile,
     canRequestVerification,
     verificationStatus: user.instructorVerificationStatus,
-    publicProfileStatus:
-      hasInstructorProfile && readiness.isProfileComplete ? "PUBLIC" : user.publicProfileStatus,
+    publicProfileStatus: user.publicProfileStatus,
     publicProfileUrl:
-      hasInstructorProfile && readiness.isProfileComplete
+      hasInstructorProfile && user.publicProfileStatus === "PUBLIC"
         ? `/instructor/${publicSlug}`
         : null,
     readiness,

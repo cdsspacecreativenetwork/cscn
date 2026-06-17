@@ -9,7 +9,6 @@ import { revalidatePath } from "next/cache";
 import { deleteAvatar } from "@/actions/upload";
 import { sendPasswordChangeOTPEmail } from "@/lib/mail";
 import { verifyTOTP, generateBase32Secret } from "@/lib/totp";
-import { getInstructorPublicProfileEligibility } from "@/lib/profile-eligibility";
 import { createPaystackTransferRecipient } from "@/lib/payments/paystack";
 import { normalizeScheduleTimeZone } from "@/lib/schedule-time";
 
@@ -35,7 +34,7 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
   }
 
   // Update user in database
-  const updatedUser = await db.user.update({
+  await db.user.update({
     where: { id: dbUser.id },
     data: {
       ...values,
@@ -44,16 +43,6 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
         : dbUser.timezone ?? "Africa/Lagos",
     },
   });
-
-  if (updatedUser.instructorProfileEnabled) {
-    const eligibility = getInstructorPublicProfileEligibility(updatedUser);
-    await db.user.update({
-      where: { id: updatedUser.id },
-      data: {
-        publicProfileStatus: eligibility.eligible ? "PUBLIC" : "DRAFT",
-      },
-    });
-  }
 
   revalidatePath("/dashboard/profile");
   revalidatePath("/dashboard");

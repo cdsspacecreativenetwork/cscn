@@ -73,7 +73,7 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto max-w-[1728px] space-y-6 p-[clamp(16px,2.78vw,48px)] pb-28 font-jakarta">
-      <section className="flex flex-col gap-4 rounded-[18px] border border-[#E3E8F4] bg-white p-5 shadow-sm sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+      <section className="flex flex-col gap-4 rounded-[18px] border border-[#E3E8F4] bg-white p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#1C4ED1] text-white shadow-sm">
             <ShieldCheck size={22} />
@@ -116,7 +116,7 @@ export default async function AdminPage() {
       {statCards.length > 0 && (
         <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {statCards.map((card) => (
-            <div key={card.label} className="rounded-[16px] border border-[#E3E8F4] bg-white p-5 shadow-sm">
+            <div key={card.label} className="rounded-[16px] border border-[#E3E8F4] bg-white p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[13px] font-bold text-[#9CA3AF]">{card.label}</p>
@@ -135,7 +135,7 @@ export default async function AdminPage() {
       )}
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-5 shadow-sm sm:p-6">
+        <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-5 sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-[20px] font-black tracking-[-0.03em] text-[#040B37]">Today&apos;s Control Queue</h2>
@@ -172,7 +172,7 @@ export default async function AdminPage() {
           )}
         </div>
 
-        <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-5 shadow-sm sm:p-6">
+        <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-5 sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-[20px] font-black tracking-[-0.03em] text-[#040B37]">Platform Signals</h2>
@@ -201,7 +201,7 @@ export default async function AdminPage() {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {canSeeCourseQuality && (
-          <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-5 shadow-sm sm:p-6">
+          <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-5 sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-[20px] font-black tracking-[-0.03em] text-[#040B37]">Course Quality Watchlist</h2>
@@ -243,7 +243,7 @@ export default async function AdminPage() {
           </div>
         )}
 
-        <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-5 shadow-sm sm:p-6">
+        <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-5 sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-[20px] font-black tracking-[-0.03em] text-[#040B37]">Recent Platform Activity</h2>

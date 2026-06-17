@@ -15,8 +15,8 @@ import {
 
 import { generateTapbackAvatar } from "@/lib/avatar";
 import { db } from "@/lib/db";
+import { MENTORS } from "@/lib/mentorship";
 import { buildMentorBookingSlots } from "@/lib/mentor-booking-slots";
-import { getInstructorPublicProfileEligibility } from "@/lib/profile-eligibility";
 import { MentorProfileBookingCard } from "@/components/marketing/MentorProfileBookingCard";
 
 interface Socials {
@@ -49,6 +49,50 @@ function formatCourseMeta(lessons: number, minutes: number) {
   return `${lessons} lessons / ${minutes || 0} minutes`;
 }
 
+function slugify(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function firstStringFromJson(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.find((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+
+  return null;
+}
+
+function profileMatchScore(
+  user: {
+    id: string;
+    name: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    role: string;
+    publicProfileSlug: string | null;
+    headline: string | null;
+    bio: string | null;
+    image: string | null;
+    taughtCourses: unknown[];
+    courseInstructors: unknown[];
+  },
+  slug: string
+) {
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+  const names = [user.name, fullName, user.email.split("@")[0]].filter((value): value is string => Boolean(value));
+
+  return (
+    (user.publicProfileSlug === slug ? 1000 : 0) +
+    (user.id === slug ? 900 : 0) +
+    (names.some((value) => slugify(value) === slug) ? 500 : 0) +
+    (user.role === "INSTRUCTOR" ? 120 : 0) +
+    (user.headline ? 40 : 0) +
+    (user.bio ? 40 : 0) +
+    (user.image && !user.image.includes("tapback.co/api/avatar") && !user.image.includes("dicebear.com") ? 25 : 0) +
+    ((user.taughtCourses.length + user.courseInstructors.length) * 10)
+  );
+}
+
 export default async function InstructorPage({
   params,
   searchParams,
@@ -60,9 +104,9 @@ export default async function InstructorPage({
   const query = searchParams ? await searchParams : {};
   const formattedName = slug.replace(/-/g, " ");
 
-  const instructor = await db.user.findFirst({
+  const instructorMatches = await db.user.findMany({
     where: {
-      instructorProfileEnabled: true,
+      publicProfileStatus: "PUBLIC",
       OR: [
         { id: slug },
         { publicProfileSlug: slug },
@@ -89,6 +133,27 @@ export default async function InstructorPage({
           },
         },
       },
+      courseInstructors: {
+        where: { course: { status: "PUBLISHED" } },
+        select: {
+          course: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              thumbnail: true,
+              price: true,
+              baseCurrency: true,
+              modules: {
+                select: {
+                  _count: { select: { lessons: true } },
+                  lessons: { select: { duration: true } },
+                },
+              },
+            },
+          },
+        },
+      },
       mentorAvailabilities: {
         where: { status: "ACTIVE" },
         orderBy: [{ type: "asc" }, { weekday: "asc" }, { date: "asc" }, { startTime: "asc" }],
@@ -111,19 +176,175 @@ export default async function InstructorPage({
       },
     },
   });
+  let instructor =
+    instructorMatches
+      .sort((a, b) => profileMatchScore(b, slug) - profileMatchScore(a, slug))[0] ?? null;
+
+  if (!instructor) {
+    const candidates = await db.user.findMany({
+      where: { publicProfileStatus: "PUBLIC" },
+      include: {
+        taughtCourses: {
+          where: { status: "PUBLISHED" },
+          orderBy: { updatedAt: "desc" },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            thumbnail: true,
+            price: true,
+            baseCurrency: true,
+            modules: {
+              select: {
+                _count: { select: { lessons: true } },
+                lessons: { select: { duration: true } },
+              },
+            },
+          },
+        },
+        courseInstructors: {
+          where: { course: { status: "PUBLISHED" } },
+          select: {
+            course: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                thumbnail: true,
+                price: true,
+                baseCurrency: true,
+                modules: {
+                  select: {
+                    _count: { select: { lessons: true } },
+                    lessons: { select: { duration: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        mentorAvailabilities: {
+          where: { status: "ACTIVE" },
+          orderBy: [{ type: "asc" }, { weekday: "asc" }, { date: "asc" }, { startTime: "asc" }],
+          select: {
+            id: true,
+            type: true,
+            weekday: true,
+            date: true,
+            startTime: true,
+            endTime: true,
+            timezone: true,
+            sessionDuration: true,
+            bufferMinutes: true,
+            maxBookings: true,
+            bookings: {
+              where: { status: { in: ["PENDING", "CONFIRMED"] } },
+              select: { startsAt: true, status: true },
+            },
+          },
+        },
+      },
+    });
+
+    instructor =
+      candidates
+        .filter((candidate) => {
+        const names = [
+          candidate.name,
+          [candidate.firstName, candidate.lastName].filter(Boolean).join(" "),
+          candidate.email.split("@")[0],
+        ].filter((value): value is string => Boolean(value));
+
+        return names.some((value) => slugify(value) === slug);
+      })
+        .sort((a, b) => profileMatchScore(b, slug) - profileMatchScore(a, slug))[0] ?? null;
+  }
+
+  const mockMentor = !instructor
+    ? MENTORS.find((mentor) => (mentor.slug ?? mentor.id) === slug || slugify(mentor.name) === slug)
+    : null;
+
+  if (!instructor && !mockMentor) notFound();
+
+  if (mockMentor) {
+    return (
+      <div className="min-h-screen bg-background pt-[112px]">
+        <div className="mx-auto w-full max-w-[88rem] px-4 lg:px-6 pb-24">
+          <Link
+            href="/mentorship"
+            className="inline-flex p-5 px-6 items-center gap-2 rounded-full border border-stroke-ii bg-transparent text-[16px] font-medium text-text-body transition-all duration-200 hover:border-primary hover:text-primary active:scale-95 shadow-[0px_1px_2px_rgba(16,24,40,0.05)]"
+          >
+            <ArrowLeft size={20} strokeWidth={1.75} />
+            Back
+          </Link>
+
+          <section className="mt-8 grid gap-6 lg:grid-cols-[290px_1fr] lg:gap-[24px]">
+            <aside className="h-fit overflow-hidden rounded-[16px] border border-stroke bg-white p-2 shadow-[0px_1px_3px_rgba(16,24,40,0.05)]">
+              <div className="relative h-[420px] w-full overflow-hidden rounded-[10px] bg-[#EAF2FF] sm:h-[520px] lg:h-[280px]">
+                <Image
+                  src={mockMentor.image}
+                  alt={mockMentor.name}
+                  fill
+                  priority
+                  className="object-cover object-[center_20%]"
+                  sizes="280px"
+                  unoptimized={mockMentor.image.endsWith(".svg")}
+                />
+              </div>
+              <div className="px-3 pt-5 pb-[18px] text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <h1 className="text-[24px] font-semibold tracking-tight text-text-title leading-snug">{mockMentor.name}</h1>
+                  <BadgeCheck size={20} className="text-primary shrink-0" />
+                </div>
+                <p className="mt-2 text-[14px] font-medium text-text-body leading-normal">{mockMentor.role}</p>
+              </div>
+              <hr className="border-t border-dashed border-stroke mx-2" />
+              <div className="grid grid-cols-2 py-[18px] text-center">
+                <div className="flex flex-col items-center justify-center">
+                  <p className="text-[18px] font-semibold text-text-title leading-none">{mockMentor.courses}</p>
+                  <p className="mt-2 text-[14px] font-medium text-text-body leading-none">Courses</p>
+                </div>
+                <div className="flex flex-col items-center justify-center border-l border-stroke border-dashed">
+                  <p className="text-[18px] font-semibold text-text-title leading-none">{mockMentor.students}</p>
+                  <p className="mt-2 text-[14px] font-medium text-text-body leading-none">Students</p>
+                </div>
+              </div>
+            </aside>
+
+            <section className="flex flex-col gap-5 pt-1 lg:pl-6">
+              <div className="border-b border-stroke pb-4">
+                <h2 className="text-[20px] font-semibold tracking-tight text-text-title">About Me</h2>
+              </div>
+              <div className="max-w-[965px] whitespace-pre-line text-[16px] font-medium leading-[1.65] text-text-body">
+                This mentor profile is being prepared. You can still explore their mentorship card and check back soon for a full biography, links, courses, and availability.
+              </div>
+              <div className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-primary/5 px-3.5 py-1.5 text-[13px] font-semibold text-primary">
+                <BadgeCheck size={16} />
+                Mentor profile
+              </div>
+            </section>
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   if (!instructor) notFound();
-  const eligibility = getInstructorPublicProfileEligibility(instructor);
-  if (!eligibility.eligible && instructor.publicProfileStatus !== "PUBLIC") notFound();
 
   const instructorName =
     instructor.name ||
     [instructor.firstName, instructor.lastName].filter(Boolean).join(" ").trim() ||
     "CSCN Instructor";
   const instructorImage = instructor.image ?? generateTapbackAvatar(instructorName);
-  const totalStudents = await db.enrollment.count({
-    where: { course: { instructorId: instructor.id } },
-  });
+  const instructorRole =
+    instructor.headline ||
+    instructor.learningFocus ||
+    firstStringFromJson(instructor.expertise) ||
+    "CSCN Instructor";
+  const instructorBio =
+    instructor.bio ||
+    instructor.mentorshipBio ||
+    "This instructor is preparing their public biography. Their courses, expertise, and teaching style will appear here once they update their profile.";
   const legacySocials = (instructor.socials as Socials | null) ?? {};
   const isVerified = instructor.instructorVerificationStatus === "VERIFIED";
   const mentorshipTopics = Array.isArray(instructor.mentorshipTopics)
@@ -155,7 +376,23 @@ export default async function InstructorPage({
     { href: instructor.websiteUrl ?? instructor.portfolioUrl ?? legacySocials.website, label: "Website", icon: Globe },
   ].filter((item) => !!item.href);
 
-  const courseCards = instructor.taughtCourses.map((course) => {
+  const profileCourses = [
+    ...instructor.taughtCourses,
+    ...instructor.courseInstructors.map(({ course }) => course),
+  ].filter((course, index, courses) => courses.findIndex((item) => item.id === course.id) === index);
+
+  const totalStudents = await db.enrollment.count({
+    where: {
+      course: {
+        OR: [
+          { instructorId: instructor.id },
+          { instructors: { some: { userId: instructor.id } } },
+        ],
+      },
+    },
+  });
+
+  const courseCards = profileCourses.map((course) => {
     const lessons = course.modules.reduce((sum, module) => sum + module._count.lessons, 0);
     const minutes = course.modules
       .flatMap((module) => module.lessons)
@@ -213,7 +450,7 @@ export default async function InstructorPage({
                 {isVerified && <BadgeCheck size={20} className="text-primary shrink-0" />}
               </div>
               <p className="mt-2 text-[14px] font-medium text-text-body leading-normal">
-                {instructor.headline ?? "CSCN Instructor"}
+                {instructorRole}
               </p>
             </div>
 
@@ -263,8 +500,7 @@ export default async function InstructorPage({
 
             {/* Biography Text: Legible Inter Medium 16px */}
             <div className="max-w-[965px] whitespace-pre-line text-[16px] font-medium leading-[1.65] text-text-body">
-              {instructor.bio ||
-                "This instructor is preparing their public biography. Their courses, expertise, and teaching style will appear here once they update their profile."}
+              {instructorBio}
             </div>
 
             {/* Verification Badge */}
@@ -292,7 +528,7 @@ export default async function InstructorPage({
                 mentor={{
                   id: instructor.id,
                   name: instructorName,
-                  role: instructor.headline ?? "CSCN Instructor",
+                  role: instructorRole,
                   image: instructorImage,
                   profileUrl: `/instructor/${slug}`,
                   priceLabel: mentorshipPriceLabel,

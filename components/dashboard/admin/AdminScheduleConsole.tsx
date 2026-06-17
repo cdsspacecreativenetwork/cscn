@@ -264,7 +264,7 @@ export function AdminScheduleConsole({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {overview.stats.map((stat) => (
-          <div key={stat.label} className="rounded-[16px] border border-[#E3E8F4] bg-white p-5 shadow-sm">
+          <div key={stat.label} className="rounded-[16px] border border-[#E3E8F4] bg-white p-5">
             <div className="flex items-start justify-between gap-4">
               <p className="text-[13px] font-semibold text-[#9CA3AF]">{stat.label}</p>
               <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#1C4ED1]/5 text-[#1C4ED1]">

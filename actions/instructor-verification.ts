@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getCreatorReadinessByUserId } from "@/lib/trust-gates";
-import { getInstructorPublicProfileEligibility } from "@/lib/profile-eligibility";
 import { hasAdminPermission } from "@/lib/admin-permissions";
 import { createAuditLog } from "@/data/audit-logs";
 
@@ -34,13 +33,11 @@ export async function activateInstructorProfileAction() {
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user) return { error: "User not found." };
 
-  const eligibility = getInstructorPublicProfileEligibility(user);
-
   await db.user.update({
     where: { id: userId },
     data: {
       instructorProfileEnabled: true,
-      publicProfileStatus: eligibility.eligible ? "PUBLIC" : "DRAFT",
+      publicProfileStatus: "PUBLIC",
       instructorVerificationStatus: "VERIFIED",
       instructorVerifiedAt: new Date(),
     },

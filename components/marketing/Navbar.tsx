@@ -18,7 +18,7 @@ const navLinks = [
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const pathname = usePathname();
   const isLoggedIn = status === "authenticated";
 
@@ -46,8 +46,8 @@ export default function Navbar() {
                   <Link 
                     key={link.name} 
                     href={link.path}
-                    className={`rounded-full px-3 py-1.5 text-[14px] transition-colors hover:text-primary tracking-tight xl:px-3.5 ${
-                      isActive ? 'bg-primary/5 font-bold text-primary' : 'font-medium text-text-body'
+                    className={`rounded-full px-3 py-1.5 text-[14px] font-medium transition-colors hover:text-primary tracking-tight xl:px-3.5 ${
+                      isActive ? 'text-primary' : 'text-text-body'
                     }`}
                   >
                     {link.name}

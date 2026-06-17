@@ -8,6 +8,7 @@ import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { MentorBookingPanel } from '@/components/marketing/MentorBookingPanel';
 import type { Mentor } from '@/lib/mentorship';
+import Button from './Button';
 
 export default function MentorCard(mentor: Mentor) {
   const { id, slug, name, role, image, courses, students, priceLabel, slots } = mentor;
@@ -61,13 +62,17 @@ export default function MentorCard(mentor: Mentor) {
           </div>
 
           <div className="flex w-full flex-nowrap items-center justify-center gap-1.5 sm:gap-2">
-            <button
+            <Button
+              variant="gradient"
               type="button"
+              rounded="full"
+              size="sm"
+              hasBorder={false}
               onClick={() => setBookingOpen(true)}
-              className="inline-flex h-[36px] min-w-0 flex-1 cursor-pointer items-center justify-center whitespace-nowrap rounded-full bg-[#1C4ED1] px-2 font-inter text-[11px] font-semibold text-white transition hover:bg-[#163fa3] active:scale-[0.98] sm:h-[40px] sm:px-3 sm:text-[12px] lg:px-4"
+              className="min-w-0 flex-1 cursor-pointer items-center justify-center whitespace-nowrap transition hover:bg-[#163fa3] active:scale-[0.98]"
             >
               Book session
-            </button>
+            </Button>
             <Link
               href={profileUrl}
               className="group/btn inline-flex h-[36px] min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-full border border-[#E3E8F4] px-2 font-inter text-[11px] font-medium text-[#4B5563] transition-all hover:bg-slate-50 sm:h-[40px] sm:px-3 sm:text-[12px] lg:px-4"

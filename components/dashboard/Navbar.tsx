@@ -27,7 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const { notifications, unreadCount, markRead, markAllRead, markVisibleAsSeen } = useNotifications();
 
   return (
-    <header className="h-[clamp(72px,5.56vw,96px)] bg-white border-b border-[#E3E8F4] flex items-center justify-between gap-3 px-[clamp(16px,1.85vw,32px)] sticky top-0 z-40 shrink-0">
+    <header className="h-[clamp(60px,4.17vw,72px)] bg-white border-b border-[#E3E8F4] flex items-center justify-between gap-3 px-[clamp(16px,1.85vw,32px)] sticky top-0 z-40 shrink-0">
       {/* Click-outside backdrop for notifications */}
       {isNotificationsOpen && (
         <div 
@@ -45,13 +45,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 autoFocus
                 type="text"
                 placeholder="Search courses, lessons, people..."
-                className="h-12 w-full rounded-xl bg-[#F4F6FB] pl-11 pr-4 text-[15px] font-semibold text-[#040B37] outline-none placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-[#1C4ED1]/15"
+                className="h-11 w-full rounded-xl bg-[#F4F6FB] pl-11 pr-4 text-[15px] font-semibold text-[#040B37] outline-none placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-[#1C4ED1]/15"
               />
             </div>
             <button
               type="button"
               onClick={() => setIsSearchOpen(false)}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#E3E8F4] text-[#4B5563]"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E3E8F4] text-[#4B5563]"
               aria-label="Close search"
             >
               <X size={18} />
@@ -79,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         <button
           type="button"
           onClick={() => setIsSearchOpen(true)}
-          className="flex h-[clamp(44px,3.24vw,56px)] w-[clamp(44px,3.24vw,56px)] items-center justify-center rounded-[14px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#4B5563] transition hover:border-[#1C4ED1] hover:text-[#1C4ED1] md:hidden"
+          className="flex h-[clamp(40px,2.55vw,44px)] w-[clamp(40px,2.55vw,44px)] items-center justify-center rounded-[12px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#4B5563] transition hover:border-[#1C4ED1] hover:text-[#1C4ED1] md:hidden"
           aria-label="Open search"
         >
           <Search size={20} />
@@ -92,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           <input
             type="text"
             placeholder="Search..."
-            className="w-full h-[clamp(44px,3.24vw,56px)] pl-[clamp(40px,2.78vw,48px)] pr-[clamp(12px,0.92vw,16px)] bg-[#F4F6FB] border border-[#E3E8F4] rounded-full text-[clamp(14px,0.92vw,16px)] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] transition-all"
+            className="w-full h-[clamp(40px,2.55vw,44px)] pl-[clamp(38px,2.55vw,44px)] pr-[clamp(12px,0.92vw,16px)] bg-[#F4F6FB] border border-[#E3E8F4] rounded-full text-[clamp(14px,0.92vw,15px)] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] transition-all"
           />
         </div>
       </div>
@@ -103,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         <div className="relative">
           <button 
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            className={`w-[clamp(44px,3.24vw,56px)] h-[clamp(44px,3.24vw,56px)] flex items-center justify-center border border-[#E3E8F4] rounded-[12px] text-[#4B5563] transition-all relative ${isNotificationsOpen ? 'bg-[#F4F6FB]' : 'hover:bg-[#F4F6FB]'}`}
+            className={`w-[clamp(40px,2.55vw,44px)] h-[clamp(40px,2.55vw,44px)] flex items-center justify-center border border-[#E3E8F4] rounded-[12px] text-[#4B5563] transition-all relative ${isNotificationsOpen ? 'bg-[#F4F6FB]' : 'hover:bg-[#F4F6FB]'}`}
           >
             <Bell size={24} style={{ width: 'clamp(20px, 1.39vw, 24px)', height: 'clamp(20px, 1.39vw, 24px)' }} />
             {unreadCount > 0 && (
@@ -124,7 +124,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         </div>
 
         {/* Divider */}
-        <div className="hidden h-[clamp(32px,2.78vw,48px)] w-[1px] bg-[#E3E8F4] sm:block"></div>
+        <div className="hidden h-[clamp(28px,2.08vw,36px)] w-[1px] bg-[#E3E8F4] sm:block"></div>
 
         {isLoading ? (
           <div className="flex items-center gap-3">

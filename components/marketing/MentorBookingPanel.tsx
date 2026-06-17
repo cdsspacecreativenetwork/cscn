@@ -43,8 +43,7 @@ function BookingSubmitButton({
     <Button
       type="submit"
       variant="gradient"
-      rounded="md"
-      hasBorder
+      rounded="full"
       loading={pending}
       disabled={disabled || pending}
       rightIcon={!pending ? <ArrowRight size={16} /> : undefined}

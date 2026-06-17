@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -14,6 +13,12 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { FormError } from "@/components/auth/FormError";
 import { FormSuccess } from "@/components/auth/FormSuccess";
 import { Social } from "@/components/auth/Social";
+
+const fieldGroupClass = "space-y-2";
+const labelClass = "block text-[16px] xl:text-[18px] font-medium text-[#4B5563] tracking-[-0.18px]";
+const inputClass = "w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#4B5563] placeholder:text-[#4B5563] text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:bg-[#1C4ED1]/40 disabled:text-white disabled:placeholder:text-white/80 disabled:cursor-not-allowed";
+const inputWithIconClass = `${inputClass} pr-14`;
+const subtextClass = "text-[#4B5563] font-medium";
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,7 +39,7 @@ export default function SignupPage() {
 
   const [agreed, setAgreed] = useState(false);
 
-  const passwordValue = form.watch("password") || "";
+  const passwordValue = useWatch({ control: form.control, name: "password" }) || "";
   const criteria = [
     { label: "Uppercase letter", met: /[A-Z]/.test(passwordValue) },
     { label: "Lowercase letter", met: /[a-z]/.test(passwordValue) },
@@ -74,14 +79,14 @@ export default function SignupPage() {
       >
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xl:gap-6">
-            <div className="space-y-2">
-              <label className="text-[16px] xl:text-[18px] font-medium text-[#4B5563] tracking-[-0.18px]">First name</label>
+            <div className={fieldGroupClass}>
+              <label className={labelClass}>First name</label>
               <input
                 {...form.register("firstName")}
                 disabled={isPending}
                 type="text"
                 placeholder="First name"
-                className="w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#040B37] placeholder:text-[#9CA3AF] text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:opacity-70"
+                className={inputClass}
               />
               {form.formState.errors.firstName && (
                 <p className="text-[12px] text-[#FF383C] font-medium ml-1">
@@ -89,14 +94,14 @@ export default function SignupPage() {
                 </p>
               )}
             </div>
-            <div className="space-y-2">
-              <label className="text-[16px] xl:text-[18px] font-medium text-[#4B5563] tracking-[-0.18px]">Last name</label>
+            <div className={fieldGroupClass}>
+              <label className={labelClass}>Last name</label>
               <input
                 {...form.register("lastName")}
                 disabled={isPending}
                 type="text"
                 placeholder="Last name"
-                className="w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#040B37] placeholder:text-[#9CA3AF] text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:opacity-70"
+                className={inputClass}
               />
               {form.formState.errors.lastName && (
                 <p className="text-[12px] text-[#FF383C] font-medium ml-1">
@@ -106,14 +111,14 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[16px] xl:text-[18px] font-medium text-[#4B5563] tracking-[-0.18px]">Email address</label>
+          <div className={fieldGroupClass}>
+            <label className={labelClass}>Email address</label>
             <input
               {...form.register("email")}
               disabled={isPending}
               type="email"
               placeholder="Enter your email"
-              className="w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#040B37] placeholder:text-[#9CA3AF] text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:opacity-70"
+              className={inputClass}
             />
             {form.formState.errors.email && (
               <p className="text-[12px] text-[#FF383C] font-medium ml-1">
@@ -123,8 +128,8 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[16px] xl:text-[18px] font-medium text-[#4B5563] tracking-[-0.18px]">Password</label>
+            <div className={fieldGroupClass}>
+              <label className={labelClass}>Password</label>
               <div className="relative">
                 <input
                   {...form.register("password")}
@@ -133,7 +138,7 @@ export default function SignupPage() {
                   disabled={isPending}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Min. 8 characters"
-                  className="w-full h-[56px] xl:h-[64px] px-4 pr-14 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#040B37] placeholder:text-[#9CA3AF] text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:opacity-70"
+                  className={inputWithIconClass}
                 />
                 <button
                   type="button"
@@ -181,16 +186,16 @@ export default function SignupPage() {
         <FormError message={error} />
         <FormSuccess message={success} />
 
-        <div className="flex items-start gap-[8px]">
+        <div className="flex items-start gap-2">
           <input
             type="checkbox"
             id="terms"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-1 w-5 h-5 rounded border-[#E3E8F4] text-[#1C4ED1] focus:ring-[#1C4ED1] cursor-pointer shrink-0"
+            className="mt-[2px] w-5 h-5 rounded border-[#E3E8F4] text-[#1C4ED1] focus:ring-[#1C4ED1] cursor-pointer shrink-0"
           />
-          <label htmlFor="terms" className="text-[14px] xl:text-[16px] leading-normal text-[#9CA3AF] font-medium tracking-[-0.16px] cursor-pointer">
-            I agree to CSCN's <Link href="/terms" className="text-[#1C4ED1] underline underline-offset-4">Terms of Service</Link> and <Link href="/privacy" className="text-[#1C4ED1] underline underline-offset-4">Privacy Policy</Link>.
+          <label htmlFor="terms" className="text-[14px] xl:text-[16px] leading-[1.5] text-[#4B5563] font-medium tracking-[-0.16px] cursor-pointer">
+            I agree to CSCN&apos;s <Link href="/terms" target="_blank" className="text-[#1C4ED1] underline underline-offset-4">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="text-[#1C4ED1] underline underline-offset-4">Privacy Policy</Link>.
           </label>
         </div>
 
@@ -198,10 +203,10 @@ export default function SignupPage() {
           <button 
             type="submit"
             disabled={isPending || !agreed}
-            className="w-full h-[56px] p-[2px] bg-[#F4F6FB] border border-[#648EFC] rounded-full shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-[56px] p-[2px] bg-[#F4F6FB] border border-[#648EFC] rounded-full shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] overflow-hidden group disabled:cursor-not-allowed"
           >
-            <div className="w-full h-full flex items-center justify-center rounded-full transition-all duration-300" style={{ backgroundImage: !agreed ? "none" : "linear-gradient(146deg, #0035C1 8.83%, #0575FF 86.3%)" }}>
-              <span className={`text-[16px] xl:text-[18px] font-medium tracking-[-0.18px] flex items-center gap-2 ${!agreed ? "text-[#9CA3AF]" : "text-white"}`}>
+            <div className="w-full h-full flex items-center justify-center rounded-full bg-[#1C4ED1] transition-all duration-300" style={{ opacity: !agreed || isPending ? 0.4 : 1 }}>
+              <span className="text-[16px] xl:text-[18px] font-medium tracking-[-0.18px] flex items-center gap-2 text-white">
                 {isPending && <Loader2 className="h-5 w-5 animate-spin" />}
                 Create account
               </span>
@@ -217,7 +222,7 @@ export default function SignupPage() {
           <Social />
 
           <div className="flex items-center gap-2 text-[16px] xl:text-[18px] tracking-[-0.18px]">
-            <span className="text-[#4B5563] font-medium">Already have an account?</span>
+            <span className={subtextClass}>Already have an account?</span>
             <Link href="/signin" className="text-[#1C4ED1] font-semibold">
               Sign In
             </Link>

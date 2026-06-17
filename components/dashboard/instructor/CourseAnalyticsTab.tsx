@@ -32,7 +32,7 @@ function StatCard({ icon: Icon, label, value, sub }: {
   icon: React.ElementType; label: string; value: string | number; sub?: string;
 }) {
   return (
-    <div className="min-h-[140px] rounded-[16px] border border-[#E3E8F4] bg-white p-5 shadow-sm transition-all hover:border-[#1C4ED1]/30 hover:shadow-md">
+    <div className="min-h-[140px] rounded-[16px] border border-[#E3E8F4] bg-white p-5 transition-all hover:border-[#1C4ED1]/30 ">
       <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-[12px] bg-[#1C4ED1]/5 text-[#1C4ED1]">
         <Icon size={22} strokeWidth={2.2} />
       </div>

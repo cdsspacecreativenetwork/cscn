@@ -125,7 +125,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
                 <h2 className="text-[28px] xl:text-[32px] font-semibold text-[#040B37] leading-normal mb-2 font-outfit">
                   {title}
                 </h2>
-                <p className="text-[#9CA3AF] text-[15px] xl:text-[16px] font-light tracking-[-0.64px]">
+                <p className="text-[#4B5563] text-[15px] xl:text-[16px] font-medium tracking-[-0.16px]">
                   {subtitle}
                 </p>
               </div>

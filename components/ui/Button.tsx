@@ -96,7 +96,7 @@ export default function Button({
         <div className={`inline-flex border border-[#648efc] p-[2px] ${roundedClass} ${className} shrink-0 items-center justify-center`}>
           <button
             disabled={isDisabled}
-            className={`flex items-center justify-center w-full bg-gradient-to-r from-[#0035C1] to-[#0575FF] ${roundedClass} ${gradientSizeMap[size]} font-jakarta font-medium tracking-[-0.16px] whitespace-nowrap leading-normal text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer`}
+            className={`flex items-center justify-center w-full bg-gradient-to-r from-[#0035C1] to-[#0575FF] ${roundedClass} ${gradientSizeMap[size]} font-jakarta font-medium tracking-[-0.16px] whitespace-nowrap leading-normal text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer`}
             {...props}
           >
             {loading && <Spinner />}
@@ -110,7 +110,7 @@ export default function Button({
       return (
         <button
           disabled={isDisabled}
-          className={`inline-flex items-center justify-center bg-gradient-to-r from-[#0035C1] to-[#0575FF] ${roundedClass} ${gradientSizeMap[size]} font-jakarta font-medium tracking-[-0.16px] whitespace-nowrap leading-normal text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${className}`}
+          className={`inline-flex items-center justify-center bg-gradient-to-r from-[#0035C1] to-[#0575FF] ${roundedClass} ${gradientSizeMap[size]} font-jakarta font-medium tracking-[-0.16px] whitespace-nowrap leading-normal text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${className}`}
           {...props}
         >
           {loading && <Spinner />}
@@ -134,7 +134,7 @@ export default function Button({
   return (
     <button
       disabled={isDisabled}
-      className={`inline-flex items-center justify-center font-jakarta font-semibold tracking-[-0.01em] whitespace-nowrap cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeMap[size]} ${roundedClass} ${className}`}
+      className={`inline-flex items-center justify-center font-jakarta font-semibold tracking-[-0.01em] whitespace-nowrap cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeMap[size]} ${roundedClass} ${className}`}
       {...props}
     >
       {loading && <Spinner />}

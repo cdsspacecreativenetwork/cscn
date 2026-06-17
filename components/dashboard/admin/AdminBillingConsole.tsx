@@ -88,7 +88,7 @@ export function AdminBillingConsole({ data }: Props) {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-3">
-        <div className="rounded-[16px] border border-[#E3E8F4] bg-white p-5 shadow-sm">
+        <div className="rounded-[16px] border border-[#E3E8F4] bg-white p-5">
           <div className="flex items-center gap-3">
             <AlertTriangle className="text-amber-600" size={22} />
             <div>
@@ -112,7 +112,7 @@ export function AdminBillingConsole({ data }: Props) {
           </div>
         </div>
 
-        <div className="rounded-[16px] border border-[#E3E8F4] bg-white p-5 shadow-sm">
+        <div className="rounded-[16px] border border-[#E3E8F4] bg-white p-5">
           <div className="flex items-center gap-3">
             <RefreshCcw className="text-[#1C4ED1]" size={22} />
             <div>
@@ -130,7 +130,7 @@ export function AdminBillingConsole({ data }: Props) {
           </div>
         </div>
 
-        <div className="rounded-[16px] border border-[#E3E8F4] bg-white p-5 shadow-sm">
+        <div className="rounded-[16px] border border-[#E3E8F4] bg-white p-5">
           <h2 className="text-[16px] font-black text-[#040B37]">Provider readiness</h2>
           <p className="mt-1 text-[12px] font-semibold text-[#9CA3AF]">Ledger is ready before payment rails are connected.</p>
           <div className="mt-5 space-y-2">

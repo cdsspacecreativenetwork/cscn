@@ -46,7 +46,7 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
   const [imgSrc, setImgSrc] = React.useState(sessionUser?.image || fallbackAvatar);
 
   React.useEffect(() => {
-    setImgSrc(sessionUser?.image || fallbackAvatar);
+    queueMicrotask(() => setImgSrc(sessionUser?.image || fallbackAvatar));
   }, [fallbackAvatar, sessionUser?.image]);
 
   React.useEffect(() => {
@@ -73,7 +73,7 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
       <button
         type="button"
         onClick={() => setIsOpen((value) => !value)}
-        className="group flex items-center gap-1.5 rounded-full p-1 transition hover:bg-[#F4F6FB] sm:gap-3"
+        className="group flex items-center gap-3 rounded-[8px] px-2 py-1.5 transition hover:bg-[#F4F6FB] sm:gap-4 sm:pr-4"
         aria-expanded={isOpen}
         aria-label="Open profile menu"
       >
@@ -98,7 +98,7 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
         <ChevronDown
           size={16}
           strokeWidth={1.8}
-          className={`text-[#9CA3AF] transition ${isOpen ? 'rotate-180 text-[#040B37]' : 'group-hover:text-[#040B37]'}`}
+          className={`ml-0 shrink-0 text-[#9CA3AF] transition ${isOpen ? 'rotate-180 text-[#040B37]' : 'group-hover:text-[#040B37]'}`}
         />
       </button>
 
@@ -119,7 +119,7 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
                 onError={() => setImgSrc(fallbackAvatar)}
               />
             </div>
-            <p className="mt-2 max-w-full truncate text-base font-black text-[#040B37]">{displayName}</p>
+            <p className="mt-2 max-w-full truncate text-base font-semibold text-[#040B37]">{displayName}</p>
             <p className="custom-scrollbar mt-0.5 max-w-full overflow-x-auto whitespace-nowrap text-xs font-semibold text-[#64748B]">{email}</p>
             <Link href={isAuthenticated ? '/dashboard/profile' : '/signin'} className="mt-3 w-full" onClick={() => setIsOpen(false)}>
               <Button variant="outline" rounded="[12px]" className="w-full px-4! py-2.5! text-sm! border-[#1C4ED1]! text-[#1C4ED1]! hover:bg-[#1C4ED1]/5!">
@@ -134,8 +134,8 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
                 key={label}
                 href={href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-[13px] transition hover:bg-[#F4F6FB] ${
-                  strong ? 'font-black text-[#040B37]' : 'font-semibold text-[#334155]'
+                className={`flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition hover:bg-[#F4F6FB] ${
+                  strong ? 'font-semibold text-[#040B37]' : 'font-medium text-[#334155]'
                 }`}
               >
                 <Icon size={15} strokeWidth={1.65} className="text-[#1C4ED1]" />
@@ -149,7 +149,7 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: '/signin' })}
-                className="flex w-full items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-left text-[13px] font-bold text-red-600 transition hover:bg-red-50"
+                className="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-left text-[13px] font-semibold text-red-600 transition hover:bg-red-50"
               >
                 <LogOut size={15} strokeWidth={1.65} />
                 Sign Out

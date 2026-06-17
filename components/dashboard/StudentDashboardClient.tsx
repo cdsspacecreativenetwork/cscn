@@ -11,9 +11,13 @@ import { StudentDashboardData } from '@/lib/services/dashboard.service';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
 
+interface DashboardUser {
+  name?: string | null;
+}
+
 interface Props {
   data: StudentDashboardData;
-  user: any;
+  user: DashboardUser | null;
 }
 
 export default function StudentDashboardClient({ data, user }: Props) {
@@ -61,11 +65,11 @@ export default function StudentDashboardClient({ data, user }: Props) {
   };
 
   return (
-    <div className="p-[clamp(16px,2.78vw,48px)] space-y-[clamp(32px,4.6vw,80px)] max-w-[1728px] mx-auto font-jakarta">
+    <div className="p-[clamp(16px,2.78vw,48px)] space-y-[clamp(28px,3.24vw,56px)] max-w-[1728px] mx-auto font-jakarta">
       {/* Header section - Fluid Scaling */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
         <div className="space-y-1 w-full">
-          <h1 className="text-[clamp(18px,1.25vw,22px)] font-bold text-[#040B37] leading-tight">
+          <h1 className="text-[clamp(18px,1.25vw,22px)] font-semibold text-[#040B37] leading-tight">
             {greeting}, {userName} 👋
           </h1>
           <p className="text-[clamp(12px,0.81vw,14px)] font-medium text-[#9CA3AF]">
@@ -86,7 +90,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
       </div>
 
       {/* Stats section - 4 Columns with curated premium Lucide icons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[clamp(16px,1.39vw,24px)]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Courses Enrolled"
           value={data.coursesEnrolled}
@@ -110,11 +114,11 @@ export default function StudentDashboardClient({ data, user }: Props) {
       </div>
 
       {/* Row 1: Continue Learning & Announcements */}
-      <div className="grid grid-cols-1 mlg:grid-cols-4 gap-8 items-start">
+      <div className="grid grid-cols-1 mlg:grid-cols-4 gap-6 items-start">
         {/* Continue Learning */}
         <div className="mlg:col-span-3 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-[18px] xl:text-[20px] font-semibold text-[#040B37]">
+            <h2 className="text-[18px] xl:text-[20px] font-medium text-[#040B37]">
               {hasLearningActivity ? 'Continue Learning' : 'Start Your Learning Journey'}
             </h2>
             {hasLearningActivity ? (
@@ -138,7 +142,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
                         <Sparkles size={14} />
                         New learner
                       </div>
-                      <h3 className="text-[24px] font-black leading-tight text-[#040B37] sm:text-[30px]">
+                      <h3 className="text-[24px] font-semibold leading-tight text-[#040B37] sm:text-[30px]">
                         Choose your first course and we will personalize your dashboard as you learn.
                       </h3>
                       <p className="mt-3 text-[14px] font-medium leading-relaxed text-[#6B7280] sm:text-[15px]">
@@ -193,7 +197,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
                       className="object-cover"
                     />
                   </div>
-                  <h3 className="text-[16px] sm:text-[18px] font-semibold text-[#040B37] leading-snug line-clamp-2">
+                  <h3 className="text-[16px] sm:text-[18px] font-medium text-[#040B37] leading-snug line-clamp-2">
                     {enrollment.title}
                   </h3>
                 </div>
@@ -262,7 +266,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
         <div className="mlg:col-span-1 space-y-6 mlg:pt-[44px]">
           <div className="bg-white border border-[#E3E8F4] rounded-[12px] overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-[#E3E8F4] bg-[#F4F6FB]/30">
-              <h2 className="text-[16px] font-semibold text-[#040B37]">Announcements</h2>
+              <h2 className="text-[16px] font-medium text-[#040B37]">Announcements</h2>
             </div>
             <div className="divide-y divide-[#E3E8F4]">
               {data.announcements.length > 0 ? (
@@ -296,11 +300,11 @@ export default function StudentDashboardClient({ data, user }: Props) {
       </div>
 
       {/* Row 2: Recommended For You & Today's Schedule */}
-      <div className="grid grid-cols-1 mlg:grid-cols-4 gap-8 items-start">
+      <div className="grid grid-cols-1 mlg:grid-cols-4 gap-6 items-start">
         {/* Recommended */}
         <div className="mlg:col-span-3 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-[18px] xl:text-[20px] font-semibold text-[#040B37]">
+            <h2 className="text-[18px] xl:text-[20px] font-medium text-[#040B37]">
               {hasLearningActivity ? 'Recommended For You' : 'Popular Courses To Start'}
             </h2>
             <button
@@ -347,7 +351,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
                     <div className="absolute top-3 right-3 z-10">
                       <button
                         onClick={() => setActiveDropdown(activeDropdown === course.id ? null : course.id)}
-                        className="w-8 h-8 rounded-full bg-white/90 hover:bg-white text-[#4B5563] flex items-center justify-center shadow-md transition-all cursor-pointer hover:scale-105"
+                        className="w-8 h-8 rounded-[8px] bg-white/90 hover:bg-white text-[#4B5563] flex items-center justify-center shadow-md transition-all cursor-pointer hover:scale-105"
                       >
                         <MoreHorizontal size={18} />
                       </button>
@@ -397,7 +401,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
                         {course.category || "UI/UX DESIGN"} • {course.difficulty || "BEGINNER"}
                       </span> */}
                       <h3
-                        className="text-[17px] font-bold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors line-clamp-2 cursor-pointer animate-duration-300"
+                        className="text-[17px] font-semibold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors line-clamp-2 cursor-pointer animate-duration-300"
                         onClick={() => router.push(`/courses/${course.slug}`)}
                       >
                         {course.title}
@@ -457,17 +461,17 @@ export default function StudentDashboardClient({ data, user }: Props) {
             <div className="bg-white border border-[#E3E8F4] rounded-[12px] p-8 text-center flex flex-col items-center justify-center gap-2 shadow-sm min-h-[200px]">
               <p className="text-[16px] font-semibold text-[#040B37]">All caught up!</p>
               <p className="text-[14px] font-medium text-[#9CA3AF] max-w-[320px]">
-                You have reviewed all course recommendations. Click "Explore Courses" above to find more.
+                You have reviewed all course recommendations. Click Explore Courses above to find more.
               </p>
             </div>
           )}
         </div>
 
-        {/* Today's Schedule */}
-        <div className="mlg:col-span-1 space-y-6 mlg:pt-[52px]">
+        {/* Schedule */}
+        <div className="mlg:col-span-1 space-y-6 mlg:pt-[44px]">
           <div className="bg-white border border-[#E3E8F4] rounded-[12px] overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-[#E3E8F4] flex justify-between items-center bg-[#F4F6FB]/30">
-              <h2 className="text-[16px] font-semibold text-[#040B37]">Today's Schedule</h2>
+              <h2 className="text-[16px] font-medium text-[#040B37]">Today&apos;s Schedule</h2>
               <button className="text-[#1C4ED1] text-[14px] font-semibold flex items-center gap-1 hover:underline">
                 Full calendar <ArrowUpRight size={14} />
               </button>
