@@ -104,7 +104,7 @@ export default function Hero() {
         />
       </div>
 
-      <div className="container relative z-10 flex flex-col items-center w-full">
+      <div className="container relative z-10 flex w-full flex-col items-center min-[1728px]:max-w-[100rem] min-[1728px]:px-12">
         {/* Badge */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -172,7 +172,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 100, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="relative w-full max-w-[68.875rem] aspect-[1102/640] bg-navy rounded-3xl border-[8px] border-white shadow-2xl overflow-hidden"
+          className="relative w-full max-w-[68.875rem] aspect-[1102/640] bg-navy rounded-3xl border-[8px] border-white shadow-2xl overflow-hidden min-[1728px]:max-w-[69rem]"
           onMouseMove={revealControls}
           onTouchStart={revealControls}
         >

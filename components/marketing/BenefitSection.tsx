@@ -17,7 +17,7 @@ export default function BenefitSection() {
   };
 
   return (
-    <section className="py-24 bg-white overflow-hidden no-select" onContextMenu={handleContextMenu}>
+    <section className="py-24 bg-background overflow-hidden no-select" onContextMenu={handleContextMenu}>
       <div className="mx-auto w-full max-w-[83rem] px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl lg:text-[3rem] font-semibold text-navy leading-[1.2] tracking-tight font-inter">

@@ -51,7 +51,7 @@ const REVIEWS: Review[] = [
 ];
 
 const ReviewCard = ({ review }: { review: Review }) => (
-  <div className="bg-[#EAEEF7] p-6 rounded-[24px] mb-5 flex flex-col gap-6 w-full cursor-pointer">
+  <div className="bg-[#E9EEF8] p-6 rounded-[18px] mb-5 flex flex-col gap-6 w-full cursor-pointer">
     <div className="flex items-center gap-3">
       <div className="relative w-11 h-11 rounded-[16px] overflow-hidden bg-white">
         <Image src={review.avatar} alt={review.name} fill className="object-cover" sizes="44px" />
@@ -95,7 +95,7 @@ const InfiniteColumn = ({ reviews, duration = 20, reverse = false }: { reviews: 
 
 export default function ReviewsSection() {
   return (
-    <section className="py-24 bg-white overflow-hidden">
+    <section className="py-24 bg-background overflow-hidden">
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes scrollUp {
           0% { transform: translateY(0); }
@@ -116,10 +116,10 @@ export default function ReviewsSection() {
           </p>
         </div>
 
-        <div className="relative">
+        <div className="relative bg-background">
           {/* Gradient Masks */}
-          <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white to-transparent z-10 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent z-10 pointer-events-none" />
+          <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background via-background/90 to-transparent z-10 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/90 to-transparent z-10 pointer-events-none" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 h-[600px]">
             {/* Column 1 */}

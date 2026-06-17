@@ -60,20 +60,20 @@ export default function MentorCard(mentor: Mentor) {
             </div>
           </div>
 
-          <div className="flex items-stretch gap-2 sm:flex-row flex-wrap sm:items-center sm:justify-center">
+          <div className="flex w-full flex-nowrap items-center justify-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => setBookingOpen(true)}
-              className="inline-flex h-[36px] w-full items-center justify-center rounded-full bg-[#1C4ED1] px-4 font-inter text-[12px] font-semibold text-white transition hover:bg-[#163fa3] active:scale-[0.98] sm:h-[40px] sm:w-auto sm:text-[14px] cursor-pointer"
+              className="inline-flex h-[36px] min-w-0 flex-1 cursor-pointer items-center justify-center whitespace-nowrap rounded-full bg-[#1C4ED1] px-2 font-inter text-[11px] font-semibold text-white transition hover:bg-[#163fa3] active:scale-[0.98] sm:h-[40px] sm:px-3 sm:text-[12px] lg:px-4"
             >
               Book session
             </button>
             <Link
               href={profileUrl}
-              className="group/btn inline-flex h-[36px] w-full items-center justify-center gap-2 rounded-full border border-[#E3E8F4] px-4 font-inter text-[12px] font-medium text-[#4B5563] transition-all hover:bg-slate-50 sm:h-[40px] sm:w-auto sm:text-[14px]"
+              className="group/btn inline-flex h-[36px] min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-full border border-[#E3E8F4] px-2 font-inter text-[11px] font-medium text-[#4B5563] transition-all hover:bg-slate-50 sm:h-[40px] sm:px-3 sm:text-[12px] lg:px-4"
             >
               View profile
-              <ArrowRight size={16} className="transition-transform group-hover/btn:translate-x-1 sm:h-5 sm:w-5" />
+              <ArrowRight size={14} className="shrink-0 transition-transform group-hover/btn:translate-x-1 sm:h-4 sm:w-4" />
             </Link>
           </div>
         </div>

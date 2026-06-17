@@ -34,7 +34,7 @@ export default async function CoursesPage() {
     <main className="min-h-screen bg-background">
       <section className="pt-32 pb-12 md:pb-20">
         <div className="mx-auto max-w-[83rem] px-4">
-          <div className="flex flex-col gap-10">
+          <div className="flex flex-col gap-6">
             <h1 className="text-[32px] font-semibold text-navy tracking-[-0.02em] leading-[1.24] font-inter">
               Courses
             </h1>

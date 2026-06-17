@@ -53,7 +53,7 @@ export default function CommunitySection({
       whileInView={{ opacity: 1 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.8 }}
-      className="py-24 bg-white overflow-hidden"
+      className="py-24 bg-background overflow-hidden"
     >
       <div className="mx-auto w-full max-w-[83rem] px-4">
         {/* Header Section */}

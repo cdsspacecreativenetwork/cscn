@@ -27,7 +27,7 @@ export const MENTORS: Mentor[] = [
     id: 'ayomide-ajayi',
     name: 'Ayomide Ajayi',
     role: 'Digital Designer',
-    image: '/assets/instructors/img-2.svg',
+    image: '/assets/instructors/img-2.png',
     courses: 3,
     students: '50K'
   },

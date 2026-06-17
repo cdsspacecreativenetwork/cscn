@@ -202,7 +202,7 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
   };
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-6">
       {/* Search Input Bar */}
       <div className="relative w-full">
         <input
@@ -213,10 +213,10 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
             setSearchQuery(e.target.value);
             setVisibleCount(INITIAL_VISIBLE_COUNT);
           }}
-          className="w-full bg-white border border-stroke-ii rounded-2xl px-6 py-5 text-lg font-inter text-navy placeholder:text-text-mute focus:outline-none focus:ring-2 focus:ring-primary/5 focus:border-primary transition-all pr-16"
+          className="w-full bg-background border border-stroke-ii rounded-2xl px-4 py-3 text-lg font-inter text-navy placeholder:text-text-mute focus:outline-none focus:ring-2 focus:ring-primary/5 focus:border-primary transition-all pr-16"
         />
         <div className="absolute right-7 top-1/2 -translate-y-1/2">
-          <Image src="/assets/courses/search-01.svg" alt="Search" width={24} height={24} className="opacity-40" />
+          <Image src="/assets/courses/search-01.svg" alt="Search" width={16} height={16} className="opacity-40" />
         </div>
       </div>
 

@@ -59,7 +59,7 @@ export default function Navbar() {
 
           {/* Actions Group */}
           <div className="flex items-center gap-2.5 lg:gap-3">
-            <button className="rounded-full p-2 transition-colors hover:bg-black/5" aria-label="Search">
+            {/* <button className="rounded-full p-2 transition-colors hover:bg-black/5" aria-label="Search">
               <Image 
                 src="/assets/search-01.svg" 
                 alt="Search" 
@@ -68,7 +68,7 @@ export default function Navbar() {
                 className="h-5 w-5"
                 unoptimized
               />
-            </button>
+            </button> */}
             
             <div className="hidden lg:block">
               <Link href={isLoggedIn ? "/dashboard" : "/signin"}>

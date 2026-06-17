@@ -21,7 +21,7 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
       whileInView={{ opacity: 1 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.8 }}
-      className="py-25 bg-white overflow-hidden"
+      className="py-25 bg-background overflow-hidden"
     >
       <div className="mx-auto w-full max-w-[83rem] px-4">
         <motion.div
@@ -46,11 +46,12 @@ export default function CoursesSection({ initialCourses }: CoursesSectionProps) 
             >
               <CourseCard
                 {...course}
-                showMeta={false}
+                showMeta
                 showRating={false}
                 showPrice={false}
                 thumbnailHover="out"
                 showLevel={false}
+                presentation="homepage"
               />
             </motion.div>
           ))}

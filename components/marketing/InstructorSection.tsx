@@ -51,7 +51,7 @@ export default function InstructorSection({ instructors = [] }: InstructorSectio
       whileInView={{ opacity: 1 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.8 }}
-      className="py-24 bg-white overflow-hidden"
+      className="py-24 bg-background overflow-hidden"
     >
       <div className="mx-auto w-full max-w-[83rem] px-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">

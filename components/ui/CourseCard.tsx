@@ -31,6 +31,7 @@ export interface CourseCardProps {
   showRating?: boolean;
   showPrice?: boolean;
   thumbnailHover?: 'in' | 'out';
+  presentation?: 'default' | 'homepage';
 }
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -110,8 +111,10 @@ export default function CourseCard({
   showRating = true,
   showPrice = true,
   thumbnailHover = 'in',
+  presentation = 'default',
 }: CourseCardProps) {
   const isList = view === 'list';
+  const isHomepage = presentation === 'homepage' && !isList;
   const [thumbErr, setThumbErr] = useState(false);
   const [avatarErr, setAvatarErr] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -246,14 +249,16 @@ export default function CourseCard({
       <motion.div
         whileHover={{ y: -5 }}
         transition={{ duration: 0.3 }}
-        className={`bg-white rounded-2xl border border-stroke-ii shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-500 group cursor-pointer overflow-hidden ${
+        className={`bg-white rounded-2xl border border-stroke-ii shadow-sm ${isHomepage ? 'hover:shadow-sm' : 'hover:shadow-xl'} hover:border-primary/20 transition-all duration-500 group cursor-pointer overflow-hidden ${
           isList
             ? 'flex flex-row p-3 md:p-4 gap-4 md:gap-6 items-center'
-            : 'flex flex-col p-[8px] pb-[16px] gap-[16px] h-full'
+            : isHomepage
+              ? 'flex flex-col p-2 pb-3 gap-2.5 h-full rounded-[12px]'
+              : 'flex flex-col p-[8px] pb-[16px] gap-[16px] h-full'
         }`}
       >
         <div className={`flex flex-col gap-3 flex-shrink-0 ${isList ? 'max-w-[120px] md:max-w-none' : 'w-full'}`}>
-          {renderThumbnail(isList ? 'h-[76px] w-[76px] md:h-[140px] md:w-[240px]' : 'h-[216px] w-full')}
+          {renderThumbnail(isList ? 'h-[76px] w-[76px] md:h-[140px] md:w-[240px]' : isHomepage ? 'aspect-[136/96] w-full' : 'h-[216px] w-full')}
 
           {isList && (
             <div className="flex md:hidden flex-row items-center gap-2">
@@ -265,17 +270,17 @@ export default function CourseCard({
           )}
         </div>
 
-        <div className={`flex flex-col justify-between flex-grow min-w-0 ${isList ? 'py-0.5' : 'px-[8px] min-h-[132px]'}`}>
-          <div className="flex flex-col gap-2">
+        <div className={`flex flex-col justify-between flex-grow min-w-0 ${isList ? 'py-0.5' : isHomepage ? 'px-1 min-h-[92px]' : 'px-[8px] min-h-[132px]'}`}>
+          <div className={`flex flex-col ${isHomepage ? 'gap-1.5' : 'gap-2'}`}>
             {showMeta && (
-              <span className="block truncate whitespace-nowrap text-[10px] md:text-[12px] font-medium text-text-mute font-inter tracking-[-0.01em]">
-                {lessons} lessons{duration ? ` / ${duration}` : ''} / {level}
+              <span className={`block truncate whitespace-nowrap font-medium text-text-mute font-inter tracking-[-0.01em] ${isHomepage ? 'text-[10px] md:text-[11px]' : 'text-[10px] md:text-[12px]'}`}>
+                {lessons} lessons{duration ? ` / ${duration}` : ''}{showLevel ? ` / ${level}` : ''}
               </span>
             )}
 
-            <div className="flex flex-col gap-1.5">
+            <div className={`flex flex-col ${isHomepage ? 'gap-1' : 'gap-1.5'}`}>
               <h3
-                className={`${isList ? 'text-[15px] md:text-xl' : 'text-[16px]'} font-semibold text-navy leading-[1.3] tracking-[-0.01em] font-jakarta group-hover:text-primary transition-colors`}
+                className={`${isList ? 'text-[15px] md:text-xl' : isHomepage ? 'text-[13px] md:text-[14px]' : 'text-[16px]'} font-semibold text-navy leading-[1.3] tracking-[-0.01em] font-jakarta group-hover:text-primary transition-colors`}
               >
                 {title}
               </h3>
@@ -288,31 +293,33 @@ export default function CourseCard({
             </div>
           </div>
 
-          <div className={`flex items-end justify-between gap-3 ${isList ? 'mt-3' : 'mt-auto pt-3'}`}>
+          <div className={`flex items-end justify-between gap-3 ${isList ? 'mt-3' : isHomepage ? 'mt-auto pt-2' : 'mt-auto pt-3'}`}>
             <div className={`items-center gap-2 min-w-0 ${isList ? 'hidden md:flex' : 'flex'}`}>
-              {renderAvatar('w-[18px] h-[18px] md:w-[20px] md:h-[20px]')}
-              <span className="text-[11px] md:text-[12px] font-medium text-text-body font-inter tracking-[-0.01em] truncate">
+              {renderAvatar(isHomepage ? 'w-[16px] h-[16px] md:w-[18px] md:h-[18px]' : 'w-[18px] h-[18px] md:w-[20px] md:h-[20px]')}
+              <span className={`${isHomepage ? 'text-[10px] md:text-[11px]' : 'text-[11px] md:text-[12px]'} font-medium text-text-body font-inter tracking-[-0.01em] truncate`}>
                 {author}
               </span>
             </div>
 
-            <div className="flex flex-col items-end gap-0.5 text-right leading-tight shrink-0">
-              {showPrice && (
-                <>
-                  <p className="text-[13px] font-bold text-navy font-jakarta">{displayPrice}</p>
-                  {localizedPriceLabel && (
-                    <p className="max-w-[140px] truncate text-[10px] font-semibold text-text-mute font-inter">
-                      {localizedPriceLabel}
-                    </p>
-                  )}
-                </>
-              )}
-              {isList && students && (
-                <p className="hidden xl:block text-[10px] font-semibold text-text-mute font-inter">
-                  {students} learners
-                </p>
-              )}
-            </div>
+            {(showPrice || (isList && students)) && (
+              <div className="flex flex-col items-end gap-0.5 text-right leading-tight shrink-0">
+                {showPrice && (
+                  <>
+                    <p className="text-[13px] font-bold text-navy font-jakarta">{displayPrice}</p>
+                    {localizedPriceLabel && (
+                      <p className="max-w-[140px] truncate text-[10px] font-semibold text-text-mute font-inter">
+                        {localizedPriceLabel}
+                      </p>
+                    )}
+                  </>
+                )}
+                {isList && students && (
+                  <p className="hidden xl:block text-[10px] font-semibold text-text-mute font-inter">
+                    {students} learners
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

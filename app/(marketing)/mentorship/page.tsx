@@ -175,7 +175,7 @@ export default async function MentorshipPage({
             {MENTORSHIP_BENEFITS.map((benefit) => (
               <div
                 key={benefit}
-                className="px-[12px] h-[40px] flex items-center bg-white border border-[#C8D1E0] rounded-full text-[16px] font-medium text-[#4B5563] tracking-[-0.01em]"
+                className="px-[12px] h-[40px] flex items-center bg-background border border-[#C8D1E0] rounded-full text-[16px] font-medium text-[#4B5563] tracking-[-0.01em]"
               >
                 {benefit}
               </div>

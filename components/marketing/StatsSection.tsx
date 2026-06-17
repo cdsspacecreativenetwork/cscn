@@ -21,7 +21,7 @@ export default function StatsSection({ initialData }: StatsSectionProps) {
 
   return (
     <section className="py-10 bg-background overflow-hidden">
-      <div className="container flex flex-col items-center gap-12">
+      <div className="mx-auto flex w-full max-w-[83rem] flex-col items-center gap-12 px-4">
         
         {/* Main Stats Cards */}
         <div className="flex flex-wrap justify-center items-center gap-4 flex-col md:flex-row w-full px-4">
