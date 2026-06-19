@@ -42,6 +42,7 @@ import {
   Lock,
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import Button from "@/components/ui/Button";
 
 // Custom inline SVG icons for compile-safe execution
 const LinkedinIcon = ({ size = 15 }: { size?: number }) => (
@@ -752,7 +753,7 @@ export function ProgressHubClient({
             </div>
 
             {/* 3. Dynamic slide-out Quest Board Trigger Banner */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm hover:shadow-md transition-all hover:border-[#1C4ED1]/20">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm transition-all hover:border-[#1C4ED1]/20">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-[#1C4ED1]/10 border border-[#1C4ED1]/20 flex items-center justify-center text-[#1C4ED1] shrink-0 relative">
                   <div className="absolute inset-0 rounded-xl bg-[#1C4ED1]/10 animate-ping opacity-75" />
@@ -774,12 +775,16 @@ export function ProgressHubClient({
                   </p>
                 </div>
               </div>
-              <button
+              <Button
                 onClick={() => setIsQuestsOpen(true)}
-                className="px-5 py-3 bg-[#1C4ED1] hover:bg-blue-700 text-white font-extrabold text-[13px] rounded-xl flex items-center gap-2 group transition-all cursor-pointer shadow-md shadow-blue-500/10 shrink-0 select-none"
+                variant="gradient"
+                size="sm"
+                rightIcon={<ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />}
+                hasBorder={false}
+                // className="px-5 py-3 bg-[#1C4ED1] hover:bg-blue-700 text-white font-extrabold text-[13px] rounded-xl flex items-center gap-2 group transition-all cursor-pointer shadow-md shadow-blue-500/10 shrink-0 select-none"
               >
-                Open Quest Board <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
+                Open Quest Board
+              </Button>
             </div>
 
             {/* 4. Recharts Area Chart & Completion Donut */}

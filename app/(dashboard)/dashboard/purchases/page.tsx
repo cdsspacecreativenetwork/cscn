@@ -161,6 +161,7 @@ export default async function PurchasesPage() {
             </p>
             <Link
               href="/courses"
+              
               className="mt-2 inline-flex items-center rounded-[10px] bg-[#1C4ED1] px-5 py-2.5 text-[14px] font-bold text-white shadow-[0px_4px_12px_rgba(28,78,209,0.15)]"
             >
               Browse courses
@@ -251,7 +252,7 @@ export default async function PurchasesPage() {
           </div>
           <div className="space-y-4 text-[14px] font-medium leading-relaxed text-[#4B5563]">
             <p>
-              When Paystack confirms payment, CSCN creates your course access automatically and keeps the purchase record for support and receipts.
+              When payment is confirmed, CSCN creates your course access automatically and keeps the purchase record for support and receipts.
             </p>
             <p>
               Receipts are issued per course purchase, so you can track exactly what you bought, how much you paid, and when access was granted.

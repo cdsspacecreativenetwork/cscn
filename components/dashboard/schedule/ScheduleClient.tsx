@@ -311,10 +311,10 @@ export function ScheduleClient({
     <div className="mx-auto flex w-full max-w-[1728px] flex-col gap-8 p-[clamp(16px,2.78vw,48px)] pb-24 font-jakarta">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex max-w-[720px] flex-col gap-2">
-          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#1C4ED1]">
+          {/* <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#1C4ED1]">
             <CalendarClock size={14} strokeWidth={1.9} />
             Learning calendar
-          </span>
+          </span> */}
           <h1 className="text-[24px] font-bold tracking-tight text-[#040B37] lg:text-[28px]">
             Schedule
           </h1>
@@ -369,15 +369,15 @@ export function ScheduleClient({
               </p>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto rounded-[12px] bg-[#E3E8F4] p-1">
+            <div className="flex gap-2 overflow-x-auto rounded-[12px] bg-stroke p-1">
               {FILTERS.map((filter) => (
                 <button
                   key={filter.value}
                   onClick={() => setActiveFilter(filter.value)}
                   className={`shrink-0 rounded-[9px] px-4 py-2 text-[13px] font-semibold transition-all ${
                     activeFilter === filter.value
-                      ? 'bg-white text-[#1C4ED1] shadow-[0px_3px_8px_rgba(159,173,205,0.35)]'
-                      : 'text-[#9CA3AF] hover:text-[#4B5563]'
+                      ? 'bg-white text-[#040B37] shadow-[0px_3px_8px_rgba(159,173,205,0.35)]'
+                      : 'text-text-mute hover:text-[#4B5563]'
                   }`}
                 >
                   {filter.label}
@@ -513,7 +513,7 @@ export function ScheduleClient({
                   </div>
                 )}
                 <Button
-                  variant="primary"
+                  variant="variant"
                   rounded="md"
                   className="gap-2"
                   onClick={() => handleGoogleCalendarSave(selectedEvent)}

@@ -222,10 +222,10 @@ export function AdminScheduleConsole({
   return (
     <div className="mx-auto flex w-full max-w-[1728px] flex-col gap-8 p-[clamp(16px,2.78vw,48px)] pb-24 font-jakarta">
       <div className="flex flex-col gap-3">
-        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#1C4ED1]">
+        {/* <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#1C4ED1]">
           <ShieldCheck size={14} strokeWidth={1.9} />
           Platform operations
-        </span>
+        </span> */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-[26px] font-bold tracking-tight text-[#040B37] lg:text-[32px]">Platform Events</h1>

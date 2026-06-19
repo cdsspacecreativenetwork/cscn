@@ -49,7 +49,7 @@ export default function ResourcesPage() {
       />
 
       {/* Resources Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8 bg-white rounded-[14px] p-6 md:p-8">
         {isLoading ? (
           // Shimmer Skeletons
           Array.from({ length: 6 }).map((_, i) => (

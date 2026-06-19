@@ -309,7 +309,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                   {currentLearning.map((enrollment) => (
                     <div 
                       key={enrollment.id}
-                      className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[12px] p-6 flex flex-col gap-6 shadow-sm hover:shadow-[0px_4px_12px_rgba(23,26,31,0.06)] transition-all duration-300"
+                      className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[12px] p-6 flex flex-col gap-6 shadow-sm transition-all duration-300"
                     >
                       {/* Top Row: Thumbnail (16:9), Course Title */}
                       <div className="flex items-center gap-4">

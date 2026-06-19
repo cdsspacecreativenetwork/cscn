@@ -382,10 +382,10 @@ export function MentorshipDashboard({
     <div className="mx-auto flex w-full max-w-[1728px] flex-col gap-6 p-[clamp(16px,2.78vw,48px)] pb-28 font-jakarta">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#1C4ED1]">
+          {/* <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#1C4ED1]">
             <GraduationCap size={14} strokeWidth={1.9} />
             Mentor workspace
-          </span>
+          </span> */}
           <h1 className="mt-3 text-[26px] font-black tracking-[-0.04em] text-[#040B37] lg:text-[32px]">
             Mentorship
           </h1>

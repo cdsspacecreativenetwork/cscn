@@ -43,7 +43,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
   const theme = getTheme();
 
   return (
-    <div className="bg-white rounded-[14px] border border-[#E3E8F4] p-6 md:p-8 flex flex-col gap-6 transition-all hover:shadow-lg hover:border-[#1C4ED1]/30 group h-full shadow-sm">
+    <div className="bg-white rounded-[14px] border border-[#E3E8F4] p-6 md:p-8 flex flex-col gap-6 transition-all hover:border-[#1C4ED1]/30 group h-full shadow-sm">
       {/* Top: Icon Container - Using exact rgba(28, 78, 209, 0.04) */}
       <div 
         className="w-12 h-12 rounded-[8px] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform relative"

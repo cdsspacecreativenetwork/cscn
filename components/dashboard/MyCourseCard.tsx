@@ -55,7 +55,7 @@ export default function MyCourseCard({
       >
         <div className="relative h-[216px] w-full overflow-hidden rounded-[4px] shrink-0">
           <Image src={image} alt={title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-          <div className={`absolute top-2 right-2 px-[8px] py-[6px] rounded-[2px] text-[12px] font-semibold text-white capitalize tracking-[-0.24px] ${statusConfig[status].bg}`}>
+          <div className={`absolute top-2 right-2 px-[8px] py-[6px] rounded-[10px] text-[12px] font-semibold text-white capitalize tracking-[-0.24px] ${statusConfig[status].bg}`}>
             {statusConfig[status].label}
           </div>
         </div>

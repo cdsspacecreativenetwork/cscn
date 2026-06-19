@@ -101,7 +101,7 @@ export const ResumeCourseModal = ({ isOpen, onClose, course, onAction }: CourseM
             Cancel
           </Button>
           <Button
-            variant="primary"
+            variant="gradient"
             rounded="[10px]"
             hasBorder={false}
             onClick={onAction}
@@ -200,7 +200,7 @@ export const GetStartedModal = ({ isOpen, onClose, course, onAction }: CourseMod
             Cancel
           </Button>
           <Button
-            variant="primary"
+            variant="gradient"
             rounded="[10px]"
             onClick={onAction}
             disabled={!hasPlayableLesson}

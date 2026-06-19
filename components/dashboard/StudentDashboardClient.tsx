@@ -185,7 +185,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
             ) : currentLearning.map((enrollment) => (
               <div
                 key={enrollment.id}
-                className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[12px] p-6 flex flex-col gap-6 shadow-sm hover:shadow-[0px_4px_12px_rgba(23,26,31,0.06)] transition-all duration-300"
+                className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[12px] p-6 flex flex-col gap-6 shadow-sm transition-all duration-300"
               >
                 {/* Top Row: Thumbnail (16:9), Course Title */}
                 <div className="flex items-center gap-4">
@@ -263,7 +263,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
         </div>
 
         {/* Announcements */}
-        <div className="mlg:col-span-1 space-y-6 mlg:pt-[44px]">
+        <div className="mlg:col-span-1 space-y-6 mlg:pt-[52px]">
           <div className="bg-white border border-[#E3E8F4] rounded-[12px] overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-[#E3E8F4] bg-[#F4F6FB]/30">
               <h2 className="text-[16px] font-medium text-[#040B37]">Announcements</h2>

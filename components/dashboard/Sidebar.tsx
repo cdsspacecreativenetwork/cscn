@@ -279,7 +279,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
 
       <div
         className={`
-          h-[72px] lg:h-[72px] flex items-center px-[clamp(20px,1.62vw,28px)] border-b border-[#E3E8F4] shrink-0 transition-all
+          h-[clamp(60px,4.17vw,72px)] flex items-center px-[clamp(20px,1.62vw,28px)] border-b border-[#E3E8F4] shrink-0 transition-all
           ${effectivelyCollapsed ? 'lg:justify-center lg:px-0' : 'justify-between'}
         `}
       >
