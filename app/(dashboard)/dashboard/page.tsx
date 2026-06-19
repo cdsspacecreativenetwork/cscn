@@ -16,10 +16,10 @@ export default async function DashboardPage() {
   const user = await currentUser();
 
   if (!user) {
-    redirect('/auth/login');
+    redirect('/signin');
   }
   if (!user.id) {
-    redirect('/auth/login');
+    redirect('/signin');
   }
 
   const role = user.role || 'USER';

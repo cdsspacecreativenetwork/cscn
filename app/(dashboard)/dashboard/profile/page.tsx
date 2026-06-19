@@ -13,10 +13,10 @@ export default async function ProfilePage() {
   const user = await currentUser();
 
   if (!user) {
-    return redirect("/auth/login");
+    return redirect("/signin");
   }
   if (!user.id) {
-    return redirect("/auth/login");
+    return redirect("/signin");
   }
 
   const [
@@ -75,7 +75,7 @@ export default async function ProfilePage() {
   ]);
 
   if (!dbUser) {
-    return redirect("/auth/login");
+    return redirect("/signin");
   }
 
   const roleLabel = 
