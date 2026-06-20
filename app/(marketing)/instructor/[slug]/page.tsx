@@ -404,7 +404,7 @@ export default async function InstructorPage({
       minutes,
       meta: formatCourseMeta(lessons, minutes),
       priceLabel: formatPrice(course.price, course.baseCurrency),
-      image: course.thumbnail || "/assets/default-course.jpg",
+      image: course.thumbnail || "/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg",
     };
   });
 

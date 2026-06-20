@@ -444,7 +444,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
                           hasBorder={false}
                           onClick={() => openStartModal({
                             ...course,
-                            image: course.thumbnail || '/assets/default-course.jpg',
+                            image: course.thumbnail || '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
                             description: course.shortDesc || undefined,
                           })}
                           className="shrink-0 px-3 py-2 text-[10px]"

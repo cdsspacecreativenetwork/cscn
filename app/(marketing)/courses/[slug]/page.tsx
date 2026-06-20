@@ -198,7 +198,7 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
         instructorName={course.instructor.name ?? 'CSCN Instructor'}
         instructorImage={instructorImage}
         publishDate="Available now"
-        videoThumbnail={course.thumbnail ?? '/assets/default-course.jpg'}
+        videoThumbnail={course.thumbnail ?? '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg'}
         videoUrl={course.promoVideo ?? undefined}
       />
 

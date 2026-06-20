@@ -71,7 +71,7 @@ function toCourseCard(course: PublicCourse) {
     duration: formatCourseDuration(totalMinutes),
     author: course.instructor.name ?? 'Instructor',
     authorAvatar: course.instructor.image ?? generateTapbackAvatar(course.instructor.name ?? 'Instructor'),
-    image: course.thumbnail ?? '/assets/default-course.jpg',
+    image: course.thumbnail ?? '/assets/dashboard/4ac765d60f4a6d8d460e05d02a14694fb071397e.jpg',
     rating: 4.8,
     reviews: course._count.enrollments,
     students: course._count.enrollments.toLocaleString(),

@@ -513,7 +513,7 @@ export function ScheduleClient({
                   </div>
                 )}
                 <Button
-                  variant="variant"
+                  variant="gradient"
                   rounded="md"
                   className="gap-2"
                   onClick={() => handleGoogleCalendarSave(selectedEvent)}
