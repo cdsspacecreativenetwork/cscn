@@ -5,6 +5,7 @@ import LinkedIn from "next-auth/providers/linkedin";
 // Edge-safe config — no bcrypt, no Prisma, no Node.js-only imports.
 // This file is imported by middleware.ts which runs on the Edge Runtime.
 export default {
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
