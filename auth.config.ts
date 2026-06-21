@@ -2,9 +2,10 @@ import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import LinkedIn from "next-auth/providers/linkedin";
 
-// Edge-safe config — no bcrypt, no Prisma, no Node.js-only imports.
-// This file is imported by middleware.ts which runs on the Edge Runtime.
+const authSecret = process.env.AUTH_SECRET
+
 export default {
+  secret: authSecret,
   trustHost: true,
   providers: [
     Google({

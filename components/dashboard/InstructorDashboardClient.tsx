@@ -224,7 +224,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                 <div
                   key={course.id}
                   onClick={() => router.push(`/dashboard/instructor/courses/${course.id}`)}
-                  className="bg-white border border-[#E3E8F4] rounded-[12px] p-[clamp(16px,1.1vw,20px)] flex flex-col min-w-[320px] max-w-[360px] shrink-0 snap-start cursor-pointer group hover:shadow-[0px_4px_12px_rgba(23,26,31,0.08)] transition-all duration-300 relative"
+                  className="bg-white border border-[#E3E8F4] rounded-[12px] p-[clamp(16px,1.1vw,20px)] flex flex-col min-w-[320px] max-w-[360px] shrink-0 snap-start cursor-pointer shadow-sm group hover:shadow-[0px_4px_12px_rgba(23,26,31,0.08)] transition-all duration-300 relative"
                 >
                   {/* Thumbnail */}
                   <div className="relative aspect-[16/9] w-full rounded-[8px] overflow-hidden mb-4 bg-[#F4F6FB]">

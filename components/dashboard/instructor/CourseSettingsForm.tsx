@@ -697,7 +697,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
         </div>
 
         {!isLocked && (
-          <Button variant="primary" size="md" rounded="xl" className="w-fit" onClick={handleSave} loading={saving}>
+          <Button variant="gradient" size="md" rounded="[10px]" hasBorder={false} className="w-fit" onClick={handleSave} loading={saving}>
             Save Settings
           </Button>
         )}
