@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,7 +21,9 @@ const inputClass = "w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border borde
 const inputWithIconClass = `${inputClass} pr-14`;
 const subtextClass = "text-[#4B5563] font-medium";
 
-export default function SignupPage() {
+function SignupPageContent() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || undefined;
   const [showPassword, setShowPassword] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState<string | undefined>("");
@@ -34,6 +37,7 @@ export default function SignupPage() {
       password: "",
       firstName: "",
       lastName: "",
+      callbackUrl,
     },
   });
 
@@ -59,7 +63,7 @@ export default function SignupPage() {
     setSuccess("");
 
     startTransition(() => {
-      register(values).then((data) => {
+      register({ ...values, callbackUrl }).then((data) => {
         setError(data.error);
         setSuccess(data.success);
       });
@@ -223,12 +227,20 @@ export default function SignupPage() {
 
           <div className="flex items-center gap-2 text-[16px] xl:text-[18px] tracking-[-0.18px]">
             <span className={subtextClass}>Already have an account?</span>
-            <Link href="/signin" className="text-[#1C4ED1] font-semibold">
+            <Link href={callbackUrl ? `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signin"} className="text-[#1C4ED1] font-semibold">
               Sign In
             </Link>
           </div>
         </div>
       </form>
     </AuthLayout>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <SignupPageContent />
+    </React.Suspense>
   );
 }

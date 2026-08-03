@@ -8,6 +8,7 @@ export const LoginSchema = z.object({
     message: "Password is required",
   }),
   code: z.string().optional(),
+  callbackUrl: z.string().optional(),
 });
 
 export const RegisterSchema = z.object({
@@ -23,6 +24,7 @@ export const RegisterSchema = z.object({
   lastName: z.string().min(1, {
     message: "Last name is required",
   }),
+  callbackUrl: z.string().optional(),
 });
 
 export const ResetSchema = z.object({

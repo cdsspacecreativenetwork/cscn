@@ -19,6 +19,23 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get('q')?.trim();
   const type = searchParams.get('type');
   const courseTitle = searchParams.get('course')?.trim();
+  const role = session.user.role as string | undefined;
+
+  const teachingCourseCount = await db.course.count({
+    where: {
+      OR: [
+        { instructorId: userId },
+        { instructors: { some: { userId } } },
+      ],
+    },
+  });
+  const canViewTeachingResources =
+    teachingCourseCount > 0 ||
+    role === 'INSTRUCTOR';
+
+  if (scope === 'instructor' && !canViewTeachingResources) {
+    return NextResponse.json({ error: 'Teaching resources are not available for this account.' }, { status: 403 });
+  }
 
   const courseAccess: Prisma.CourseWhereInput =
     scope === 'instructor'
@@ -126,5 +143,5 @@ export async function GET(request: NextRequest) {
 
   const courses = Array.from(new Set(resources.map((resource) => resource.courseTitle))).sort();
 
-  return NextResponse.json({ resources, courses });
+  return NextResponse.json({ resources, courses, canViewTeachingResources });
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -19,7 +20,9 @@ const inputClass = "w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border borde
 const inputWithIconClass = `${inputClass} pr-14`;
 const subtextClass = "text-[#4B5563] font-medium";
 
-export default function LoginPage() {
+function LoginPageContent() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || undefined;
   const [showPassword, setShowPassword] = useState(false);
   const [showTwoFactor, setShowTwoFactor] = useState(false);
   const [error, setError] = useState<string | undefined>("");
@@ -31,6 +34,7 @@ export default function LoginPage() {
       email: "",
       password: "",
       code: "",
+      callbackUrl,
     },
   });
 
@@ -38,7 +42,7 @@ export default function LoginPage() {
     setError("");
 
     startTransition(() => {
-      login(values).then((data) => {
+      login({ ...values, callbackUrl }).then((data) => {
         if (data?.error) {
           setError(data.error);
         }
@@ -179,7 +183,7 @@ export default function LoginPage() {
 
               <div className="flex items-center gap-2 text-[16px] xl:text-[18px] tracking-[-0.18px]">
                 <span className={subtextClass}>New to CSCN?</span>
-                <Link href="/signup" className="text-[#1C4ED1] font-semibold">
+                <Link href={callbackUrl ? `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signup"} className="text-[#1C4ED1] font-semibold">
                   Create a free account
                 </Link>
               </div>
@@ -188,5 +192,13 @@ export default function LoginPage() {
         </div>
       </form>
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <LoginPageContent />
+    </React.Suspense>
   );
 }

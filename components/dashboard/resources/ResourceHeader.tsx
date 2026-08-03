@@ -12,6 +12,7 @@ interface ResourceHeaderProps {
   onScopeChange: (scope: 'student' | 'instructor') => void;
   courses: string[];
   scope: 'student' | 'instructor';
+  canViewTeachingResources: boolean;
 }
 
 const TYPE_OPTIONS = [
@@ -28,6 +29,7 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
   onScopeChange,
   courses,
   scope,
+  canViewTeachingResources,
 }) => {
   const [type, setType] = React.useState("All Types");
   const [course, setCourse] = React.useState("All Courses");
@@ -61,32 +63,36 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
           Resources
         </h1>
         <p className="text-[#9CA3AF] text-[16px] font-medium tracking-tight">
-          Learning downloads and teaching materials in one place
+          {canViewTeachingResources
+            ? 'Learning downloads and teaching materials in one place'
+            : 'Downloads and links from your enrolled courses'}
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {([
-          { value: 'student', label: 'Learning Resources', icon: BookOpen },
-          { value: 'instructor', label: 'Teaching Resources', icon: UserRound },
-        ] as const).map((item) => {
-          const Icon = item.icon;
-          const active = scope === item.value;
-          return (
-            <button
-              key={item.value}
-              type="button"
-              onClick={() => onScopeChange(item.value)}
-              className={`inline-flex items-center gap-2 rounded-[8px] px-4 py-2.5 text-sm font-bold transition-colors ${
-                active ? 'bg-[#1C4ED1] text-white' : 'bg-white border border-[#E3E8F4] text-[#4B5563] hover:text-[#1C4ED1]'
-              }`}
-            >
-              <Icon size={16} />
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
+      {canViewTeachingResources && (
+        <div className="flex flex-wrap gap-2">
+          {([
+            { value: 'student', label: 'Learning Resources', icon: BookOpen },
+            { value: 'instructor', label: 'Teaching Resources', icon: UserRound },
+          ] as const).map((item) => {
+            const Icon = item.icon;
+            const active = scope === item.value;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => onScopeChange(item.value)}
+                className={`inline-flex items-center gap-2 rounded-[8px] px-4 py-2.5 text-base font-bold transition-colors ${
+                  active ? 'bg-[#1C4ED1] text-white' : 'bg-white border border-[#E3E8F4] text-[#4B5563] hover:text-[#1C4ED1]'
+                }`}
+              >
+                <Icon size={16} />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="flex flex-col lg:flex-row gap-5 items-stretch lg:items-center">

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BadgeCheck, Globe } from "lucide-react";
+import { ArrowLeft, Globe } from "lucide-react";
 import {
   FaXTwitter,
   FaLinkedin,
@@ -28,6 +28,18 @@ interface Socials {
 
 const socialButtonClass =
   "flex h-10 w-10 items-center justify-center rounded-[10px] border border-stroke-ii bg-white text-text-title transition-all duration-200 hover:border-primary hover:text-primary active:scale-95 hover:shadow-sm";
+
+function VerifiedCheck({ size = 20 }: { size?: number }) {
+  return (
+    <Image
+      src="/assets/certificate/checkmark-badge-01.svg"
+      alt="Verified"
+      width={size}
+      height={size}
+      className="shrink-0"
+    />
+  );
+}
 
 function formatPrice(price: unknown, currency?: string | null) {
   const numericPrice = Number(price ?? 0);
@@ -294,7 +306,7 @@ export default async function InstructorPage({
               <div className="px-3 pt-5 pb-[18px] text-center">
                 <div className="flex items-center justify-center gap-2">
                   <h1 className="text-[24px] font-semibold tracking-tight text-text-title leading-snug">{mockMentor.name}</h1>
-                  <BadgeCheck size={20} className="text-primary shrink-0" />
+                  <VerifiedCheck size={22} />
                 </div>
                 <p className="mt-2 text-[14px] font-medium text-text-body leading-normal">{mockMentor.role}</p>
               </div>
@@ -319,7 +331,7 @@ export default async function InstructorPage({
                 This mentor profile is being prepared. You can still explore their mentorship card and check back soon for a full biography, links, courses, and availability.
               </div>
               <div className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-primary/5 px-3.5 py-1.5 text-[13px] font-semibold text-primary">
-                <BadgeCheck size={16} />
+                <VerifiedCheck size={18} />
                 Mentor profile
               </div>
             </section>
@@ -447,7 +459,7 @@ export default async function InstructorPage({
             <div className="px-3 pt-5 pb-[18px] text-center">
               <div className="flex items-center justify-center gap-2">
                 <h1 className="text-[24px] font-semibold tracking-tight text-text-title leading-snug">{instructorName}</h1>
-                {isVerified && <BadgeCheck size={20} className="text-primary shrink-0" />}
+                {isVerified && <VerifiedCheck size={22} />}
               </div>
               <p className="mt-2 text-[14px] font-medium text-text-body leading-normal">
                 {instructorRole}
@@ -507,7 +519,7 @@ export default async function InstructorPage({
             <div className="mt-2">
               {isVerified ? (
                 <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3.5 py-1.5 text-[13px] font-semibold text-emerald-700">
-                  <BadgeCheck size={16} />
+                  <VerifiedCheck size={18} />
                   Verified instructor
                 </div>
               ) : (

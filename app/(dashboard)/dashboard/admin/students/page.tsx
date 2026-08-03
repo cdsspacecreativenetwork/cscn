@@ -103,8 +103,8 @@ export default async function AdminStudentsPage({ searchParams }: PageProps) {
                   href={buildQuery({ status: item.value === "all" ? undefined : item.value, q: query, sort })}
                   className={`shrink-0 rounded-[8px] px-[16px] py-[10px] text-[14px] font-bold tracking-[-0.28px] transition-all ${
                     isActive
-                      ? "bg-[#1C4ED1] text-white shadow-[0px_4px_10px_rgba(28,78,209,0.18)]"
-                      : "text-[#9CA3AF] hover:bg-white hover:text-[#040B37]"
+                      ? "bg-white text-text-title shadow-[0px_4px_10px_rgba(28,78,209,0.18)]"
+                      : "text-[#9CA3AF]"
                   }`}
                 >
                   {item.label}

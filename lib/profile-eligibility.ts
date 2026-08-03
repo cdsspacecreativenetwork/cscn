@@ -27,8 +27,7 @@ export type EligibilityItemId =
   | "bio"
   | "experience"
   | "expertise"
-  | "social"
-  | "student_signal";
+  | "social";
 
 export type EligibilityItem = {
   id: EligibilityItemId;
@@ -105,17 +104,7 @@ export function getInstructorPublicProfileEligibility(user: ProfileSubject) {
   ]);
 }
 
-export function getStudentPublicProfileEligibility(
-  user: ProfileSubject,
-  signals: { completedCourses?: number; certificates?: number; achievements?: number; projects?: number } = {}
-) {
-  const hasStudentSignal = [
-    signals.completedCourses,
-    signals.certificates,
-    signals.achievements,
-    signals.projects,
-  ].some((value) => typeof value === "number" && value > 0);
-
+export function getStudentPublicProfileEligibility(user: ProfileSubject) {
   return buildEligibility([
     { id: "name", label: "Display name", complete: hasDisplayName(user) },
     { id: "photo", label: "Real profile photo", complete: hasRealPhoto(user) },
@@ -125,7 +114,6 @@ export function getStudentPublicProfileEligibility(
       complete: hasText(user.headline, 6) || hasText(user.learningFocus, 6),
     },
     { id: "bio", label: "Short bio", complete: hasText(user.bio, 24) },
-    { id: "student_signal", label: "Completed course, certificate, achievement, or project", complete: hasStudentSignal },
   ]);
 }
 

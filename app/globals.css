@@ -75,6 +75,9 @@
   --text-mute: #9CA3AF;
   --stroke: #E3E8F4;
   --stroke-ii: #C8D1E0;
+  --cds-w-grad-2: linear-gradient(165deg, rgba(0, 53, 193, 1) 0%, rgba(5, 117, 255, 1) 100%);
+  --cds-w-bg: #F4F6FB;
+  --special-btn-border: #648EFC;
   
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;

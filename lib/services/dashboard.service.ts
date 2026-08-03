@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { getActiveAnnouncementsForRole } from "@/data/announcements";
 import { getInstructorEarningsSummary } from "@/data/admin-billing";
+import { getLearnerInterestProfileByUserId } from "@/data/learner-insights";
+import { getMarketingSettings, type MarketingSettings } from "@/data/marketing";
 
 export interface CourseData {
   id: string;
@@ -87,6 +89,11 @@ export interface StudentDashboardData {
   announcements: AnnouncementData[];
   recommendations: RecommendationData[];
   schedule: ScheduleData[];
+  marketingSettings: MarketingSettings;
+  hasLearnerInterestProfile: boolean;
+  hasCompletedLearnerOnboarding: boolean;
+  isPioneer: boolean;
+  pioneerJoinedAt: Date | null;
 }
 
 // Helper to format date relative or static strings
@@ -446,6 +453,15 @@ export async function getInstructorDashboardData(userId: string, role?: string |
 }
 
 export async function getStudentDashboardData(userId: string, role?: string | null): Promise<StudentDashboardData> {
+  const [marketingSettings, learnerInterestProfile, learner] = await Promise.all([
+    getMarketingSettings(),
+    getLearnerInterestProfileByUserId(userId),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { onboardingCohort: true, pioneerJoinedAt: true },
+    }),
+  ]);
+
   const rawEnrollments = await db.enrollment.findMany({
     where: { userId, status: { not: 'CANCELLED' } },
     select: {
@@ -545,14 +561,11 @@ export async function getStudentDashboardData(userId: string, role?: string | nu
   });
   totalHoursSpent = Math.floor((watchSummary._sum.secondsWatched ?? 0) / 3600);
 
-  // Calculate streak gracefully regardless of Prisma Client generation state
-  let streakRows: any[] = [];
-  if (db.dailyActivity) {
-    streakRows = await db.dailyActivity.findMany({
-      where: { userId },
-      orderBy: { date: 'desc' },
-    });
-  }
+  const streakRows: { date: string }[] = await db.dailyActivity.findMany({
+    where: { userId },
+    orderBy: { date: 'desc' },
+    select: { date: true },
+  });
 
   let streakCount = 0;
   if (streakRows.length > 0) {
@@ -561,10 +574,10 @@ export async function getStudentDashboardData(userId: string, role?: string | nu
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().slice(0, 10);
 
-    let currentDate = streakRows[0].date === todayStr ? todayStr : (streakRows[0].date === yesterdayStr ? yesterdayStr : null);
+    const currentDate = streakRows[0].date === todayStr ? todayStr : (streakRows[0].date === yesterdayStr ? yesterdayStr : null);
     if (currentDate) {
       streakCount = 1;
-      let currObj = new Date(currentDate);
+      const currObj = new Date(currentDate);
       for (let i = 1; i < streakRows.length; i++) {
         currObj.setDate(currObj.getDate() - 1);
         const expectedStr = currObj.toISOString().slice(0, 10);
@@ -591,5 +604,10 @@ export async function getStudentDashboardData(userId: string, role?: string | nu
     announcements,
     recommendations: await getRecommendedCourses(userId),
     schedule: [],
+    marketingSettings,
+    hasLearnerInterestProfile: Boolean(learnerInterestProfile),
+    hasCompletedLearnerOnboarding: Boolean(learnerInterestProfile?.onboardingCompletedAt),
+    isPioneer: Boolean(learner?.onboardingCohort),
+    pioneerJoinedAt: learner?.pioneerJoinedAt ?? null,
   };
 }

@@ -85,7 +85,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
           </p>
         </div>
         <Button
-          variant="gradient"
+          variant="primary"
           size="sm"
           rounded="[10px]"
           hasBorder={false}
@@ -132,7 +132,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
       {data.isNewInstructor ? (
         /* Onboarding welcome & checklist for new instructors */
         <div className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[16px] p-8 shadow-sm flex flex-col lg:flex-row gap-8 items-center justify-between">
-          <div className="space-y-4 max-w-2xl">
+          <div className="space-y-4 max-w-4xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F4F6FB] rounded-full text-[12px] font-semibold text-[#1C4ED1]">
               <Compass size={14} />
               <span>Instructor Setup Guide</span>
@@ -364,7 +364,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                           </div>
                         </div>
                         <Button 
-                        variant="gradient"
+                        variant="primary"
           size="sm"
           rounded="[10px]"
           hasBorder={false}
@@ -560,7 +560,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
                         </div>
                       </div>
                       <Button
-                        variant="gradient"
+                        variant="primary"
                         size="sm"
                         rounded="[10px]"
                         hasBorder={false}

@@ -87,6 +87,14 @@ export async function seedDefaultAchievements() {
       threshold: 1,
       role: AchievementRole.CREATOR,
     },
+    {
+      name: "Pioneer Member",
+      description: "Joined CSCN as part of the founding learner cohort",
+      icon: "Sparkles",
+      triggerType: AchievementTrigger.ACCOUNT_CREATED,
+      threshold: 1,
+      role: AchievementRole.LEARNER,
+    },
   ];
 
   for (const ach of defaultAchievements) {
@@ -101,6 +109,54 @@ export async function seedDefaultAchievements() {
       },
       create: ach,
     });
+  }
+}
+
+export async function awardPioneerAchievement(userId: string): Promise<UnlockedAchievementInfo | null> {
+  try {
+    const achievement = await db.achievement.upsert({
+      where: { name: "Pioneer Member" },
+      update: {
+        description: "Joined CSCN as part of the founding learner cohort",
+        icon: "Sparkles",
+        triggerType: AchievementTrigger.ACCOUNT_CREATED,
+        threshold: 1,
+        role: AchievementRole.LEARNER,
+      },
+      create: {
+        name: "Pioneer Member",
+        description: "Joined CSCN as part of the founding learner cohort",
+        icon: "Sparkles",
+        triggerType: AchievementTrigger.ACCOUNT_CREATED,
+        threshold: 1,
+        role: AchievementRole.LEARNER,
+      },
+    });
+
+    const unlocked = await db.userAchievement.upsert({
+      where: {
+        userId_achievementId: {
+          userId,
+          achievementId: achievement.id,
+        },
+      },
+      update: {},
+      create: {
+        userId,
+        achievementId: achievement.id,
+      },
+    });
+
+    return {
+      id: unlocked.id,
+      name: achievement.name,
+      description: achievement.description,
+      icon: achievement.icon,
+      role: achievement.role,
+    };
+  } catch (error) {
+    console.error("Error awarding pioneer achievement:", error);
+    return null;
   }
 }
 

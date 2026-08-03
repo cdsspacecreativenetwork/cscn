@@ -2,11 +2,12 @@ import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import LinkedIn from "next-auth/providers/linkedin";
 
-const authSecret = process.env.AUTH_SECRET
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
 export default {
   secret: authSecret,
   trustHost: true,
+  basePath: "/api/auth",
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,

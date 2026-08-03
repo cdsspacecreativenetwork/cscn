@@ -133,7 +133,7 @@ export default function InstructorCourseList({ courses, categories, studioPath =
 
         {canCreateCourse && (
           <Button
-            variant="gradient"
+            variant="primary"
             size="sm"
             rounded="[10px]"
             hasBorder={false}

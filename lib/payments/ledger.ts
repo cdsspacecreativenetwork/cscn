@@ -54,6 +54,7 @@ async function createInvoiceIfMissing(orderId: string, input: {
 async function createInstructorEarningIfMissing(input: {
   instructorId: string;
   courseId?: string | null;
+  resourceId?: string | null;
   orderId: string;
   paymentId: string;
   amount: number;
@@ -73,6 +74,7 @@ async function createInstructorEarningIfMissing(input: {
     data: {
       instructorId: input.instructorId,
       courseId: input.courseId ?? null,
+      resourceId: input.resourceId ?? null,
       orderId: input.orderId,
       paymentId: input.paymentId,
       grossAmount: input.amount,
@@ -366,6 +368,25 @@ export async function fulfillPaidCourseOrder(input: {
   return { success: true, courseSlug: order.course.slug };
 }
 
+
+export async function fulfillPaidResourceOrder(input: {
+  orderId: string; paymentId: string; providerReference: string; amount: number; currency: string; channel?: string | null; paidAt?: Date | null; rawPayload?: unknown;
+}) {
+  const order = await db.purchaseOrder.findUnique({ where: { id: input.orderId }, select: { id: true, userId: true, amount: true, currency: true, resource: { select: { id: true, title: true, ownerId: true } }, user: { select: { name: true, email: true } } } });
+  if (!order?.resource) return { error: "Order not found or not attached to a resource." };
+  if (input.currency !== order.currency || Math.abs(input.amount - toNumber(order.amount)) > 0.01) return { error: "Payment amount or currency does not match the resource order." };
+  const paidAt = input.paidAt ?? new Date();
+  const payment = await db.payment.update({ where: { id: input.paymentId }, data: { status: "SUCCEEDED", channel: input.channel ?? null, providerReference: input.providerReference, rawPayload: input.rawPayload as Prisma.InputJsonValue, paidAt }, select: { id: true } });
+  await db.purchaseOrder.update({ where: { id: order.id }, data: { status: "PAID", provider: "PAYSTACK", providerReference: input.providerReference, paidAt } });
+  await db.resourceAccess.upsert({ where: { resourceId_userId: { resourceId: order.resource.id, userId: order.userId } }, create: { resourceId: order.resource.id, userId: order.userId, source: "PURCHASE", orderId: order.id }, update: { revokedAt: null, source: "PURCHASE", orderId: order.id } });
+  await createInvoiceIfMissing(order.id, { userId: order.userId, amount: input.amount, currency: input.currency });
+  await createInstructorEarningIfMissing({ instructorId: order.resource.ownerId, resourceId: order.resource.id, orderId: order.id, paymentId: payment.id, amount: input.amount, currency: input.currency, paidAt });
+  await createNotification(order.userId, "SYSTEM", "Resource purchase confirmed", `You can now download ${order.resource.title}.`, { resourceId: order.resource.id, orderId: order.id, area: "resources" });
+  await createNotification(order.resource.ownerId, "SYSTEM", "New resource sale", `${order.user.name ?? order.user.email ?? "A learner"} purchased ${order.resource.title}.`, { resourceId: order.resource.id, orderId: order.id, area: "earnings" });
+  revalidatePath("/resources"); revalidatePath("/dashboard/instructor/earnings");
+  return { success: true };
+}
+
 export async function fulfillPaystackTransaction(transaction: PaystackTransaction) {
   const reference = transaction.reference;
   const payment = await db.payment.findUnique({
@@ -436,9 +457,7 @@ export async function fulfillPaystackTransaction(transaction: PaystackTransactio
     rawPayload: transaction,
   };
 
-  if (payment.order.type === "MENTORSHIP") {
-    return fulfillPaidMentorshipOrder(payload);
-  }
-
+  if (payment.order.type === "MENTORSHIP") return fulfillPaidMentorshipOrder(payload);
+  if (payment.order.type === "RESOURCE") return fulfillPaidResourceOrder(payload);
   return fulfillPaidCourseOrder(payload);
 }

@@ -12,6 +12,7 @@ import {
 import { getAdminDashboardData } from "@/data/admin-dashboard";
 import { requireAdmin } from "@/lib/admin-guards";
 import { hasAnyAdminPermission } from "@/lib/admin-permissions";
+import Button from "@/components/ui/Button";
 
 export const metadata = { title: "Command Center | CSCN Admin" };
 

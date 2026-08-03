@@ -35,7 +35,7 @@ export default function CourseDetailClient({ course }: { course: Course }) {
           <div className="min-h-[30rem]">
             {activeTab === 'overview' && (
               <div className="animate-in fade-in duration-500">
-                <h2 className="text-2xl font-bold text-navy mb-6">What you'll learn</h2>
+                <h2 className="text-2xl font-bold text-navy mb-6">What you&apos;ll learn</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-background/50 p-8 rounded-2xl border border-stroke mb-10">
                   {[
                     'Design professional UI/UX projects from scratch',
@@ -57,7 +57,7 @@ export default function CourseDetailClient({ course }: { course: Course }) {
                   <p>{course.description}</p>
                   <p>
                     Throughout the course, you will work on real-world projects, including a mobile app for financial services 
-                     and a complex dashboard for creative collaboration. You'll learn not just how to use Figma, 
+                     and a complex dashboard for creative collaboration. You&apos;ll learn not just how to use Figma, 
                      but how to solve problems through design.
                   </p>
                 </div>
@@ -156,7 +156,7 @@ export default function CourseDetailClient({ course }: { course: Course }) {
               </div>
               
               <div className="flex flex-col gap-3 mb-8">
-                <Button className="w-full py-6 text-lg">Start Learning</Button>
+                <Button variant="gradient" size="lg" rounded="full" className="w-full">Start Learning</Button>
                 <Button variant="outline" className="w-full py-6 text-lg">View My Purchases</Button>
               </div>
               

@@ -3,21 +3,28 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
-  ArrowLeft,
   Award,
   BookOpen,
   BriefcaseBusiness,
   Globe,
   MapPin,
   ShieldCheck,
-  Sparkles,
-  Trophy,
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { FaGithub, FaInstagram, FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
+import {
+  FaBehance,
+  FaDribbble,
+  FaGithub,
+  FaInstagram,
+  FaLinkedin,
+  FaTelegram,
+  FaXTwitter,
+  FaYoutube,
+} from 'react-icons/fa6';
 import CourseCard from '@/components/ui/CourseCard';
 import { generateTapbackAvatar } from '@/lib/avatar';
 import { db } from '@/lib/db';
+import { getStudentPublicProfileEligibility } from '@/lib/profile-eligibility';
 
 const socialButtonClass =
   'flex h-10 w-10 items-center justify-center rounded-[10px] border border-stroke-ii bg-white text-text-title transition-all duration-200 hover:border-primary hover:text-primary active:scale-95 hover:shadow-sm';
@@ -163,6 +170,12 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
   const featuredAchievements = student.achievements.slice(0, 6);
   const completedEnrollments = student.enrollments.filter((enrollment) => enrollment.status === 'COMPLETED');
   const certificateEnrollments = completedEnrollments.filter((enrollment) => enrollment.course.certificateEnabled);
+  const publicProfileEligibility = getStudentPublicProfileEligibility(student);
+
+  if (!publicProfileEligibility.eligible) {
+    notFound();
+  }
+
   const socialLinks: SocialLink[] = [
     { label: 'Website', href: student.websiteUrl, icon: Globe },
     { label: 'Portfolio', href: student.portfolioUrl, icon: BriefcaseBusiness },
@@ -170,6 +183,9 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
     { label: 'GitHub', href: student.githubUrl, icon: FaGithub },
     { label: 'X', href: student.twitterUrl, icon: FaXTwitter },
     { label: 'Instagram', href: student.instagramUrl, icon: FaInstagram },
+    { label: 'Telegram', href: student.telegramUrl, icon: FaTelegram },
+    { label: 'Behance', href: student.behanceUrl, icon: FaBehance },
+    { label: 'Dribbble', href: student.dribbbleUrl, icon: FaDribbble },
     { label: 'YouTube', href: student.youtubeUrl, icon: FaYoutube },
   ].flatMap((link) => (link.href ? [{ ...link, href: link.href }] : []));
   const totalCompletedLessons = student.enrollments.reduce(
@@ -185,17 +201,9 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
   }, 0);
 
   return (
-    <div className="min-h-screen bg-[#F4F6FB] pb-24">
+    <div className="min-h-screen bg-[#F4F6FB] pb-24 pt-[96px] lg:pt-[112px]">
       <div className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-6 lg:px-8">
-        <Link
-          href="/courses"
-          className="inline-flex h-12 items-center gap-2 rounded-full border border-stroke bg-white px-5 text-[15px] font-semibold text-text-body shadow-sm transition hover:border-primary hover:text-primary"
-        >
-          <ArrowLeft size={18} />
-          Back
-        </Link>
-
-        <section className="mt-8 grid gap-6 lg:grid-cols-[290px_1fr] lg:gap-10">
+        <section className="grid gap-6 lg:grid-cols-[290px_1fr] lg:gap-10">
           <aside className="h-fit overflow-hidden rounded-[16px] border border-stroke bg-white p-2 shadow-[0px_1px_3px_rgba(16,24,40,0.05)]">
             <div className="relative h-[420px] w-full overflow-hidden rounded-[10px] bg-[#EAF2FF] sm:h-[520px] lg:h-[280px]">
               <Image
@@ -214,9 +222,6 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
                 <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-title">
                   {displayName}
                 </h1>
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white">
-                  <Sparkles size={12} />
-                </span>
               </div>
               <p className="mt-2 text-[15px] font-medium text-text-body">
                 {student.headline ?? student.learningFocus ?? 'CSCN Learner'}
@@ -242,7 +247,7 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
               <hr className="mx-2 my-5 border-t border-dashed border-stroke" />
 
               {socialLinks.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-3">
+                <div className="flex flex-wrap justify-center gap-3 max-w-100 mx-auto">
                   {socialLinks.map(({ label, href, icon: Icon }) => (
                     <Link
                       key={label}
@@ -273,7 +278,7 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
                 `${displayName} is building a visible learning portfolio on CSCN through completed courses, streaks, projects, and course participation.`}
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            {/* <div className="flex flex-wrap gap-3">
               {student.location && (
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-2 text-[13px] font-semibold text-text-body shadow-sm ring-1 ring-stroke">
                   <MapPin size={15} />
@@ -281,10 +286,10 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
                 </span>
               )}
               <span className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-3.5 py-2 text-[13px] font-semibold text-primary">
-                <Sparkles size={15} />
+                <BookOpen size={15} />
                 Learning publicly on CSCN
               </span>
-            </div>
+            </div> */}
 
           </section>
         </section>
@@ -293,7 +298,7 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
           <section className="p-0">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Learning portfolio</p>
+                {/* <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Learning portfolio</p> */}
                 <h2 className="mt-2 text-[clamp(1.45rem,3vw,2rem)] font-semibold tracking-[-0.04em] text-text-title">
                   Courses {displayName} is learning
                 </h2>
@@ -312,9 +317,9 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
             ) : (
               <div className="mt-8 rounded-[18px] border border-dashed border-[#C9D8F7] bg-[#F8FBFF] px-6 py-12 text-center">
                 <h3 className="text-xl font-semibold text-text-title">No public learning yet</h3>
-                <p className="mt-3 text-sm leading-6 text-text-body">
+                {/* <p className="mt-3 text-sm leading-6 text-text-body">
                   Courses will appear here as this learner joins published learning experiences.
-                </p>
+                </p> */}
               </div>
             )}
           </section>
@@ -390,14 +395,22 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
             </section>
           )}
 
-          <section className="p-0">
-            <h2 className="text-[clamp(1.45rem,3vw,2rem)] font-semibold tracking-[-0.04em] text-text-title">Achievements</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-body">
-              Milestones unlocked through consistency, completions, and platform activity.
-            </p>
+          {featuredAchievements.length > 0 && (
+            <section className="rounded-[18px] border border-stroke bg-white p-5 shadow-sm sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Badges</p>
+                  <h2 className="mt-2 text-[clamp(1.35rem,2.6vw,1.8rem)] font-semibold tracking-[-0.035em] text-text-title">
+                    Earned achievements
+                  </h2>
+                </div>
+                <span className="rounded-full bg-primary/5 px-4 py-2 text-sm font-semibold text-primary">
+                  {featuredAchievements.length} shown
+                </span>
+              </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {featuredAchievements.length > 0 ? featuredAchievements.map((userAchievement) => {
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {featuredAchievements.map((userAchievement) => {
                 const iconName = userAchievement.achievement.icon as keyof typeof LucideIcons;
                 const IconComponent =
                   (LucideIcons[iconName] as ComponentType<{ size?: number; className?: string }>) ??
@@ -406,34 +419,21 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
                 return (
                   <div
                     key={userAchievement.id}
-                    className="flex items-start gap-4 rounded-[16px] bg-[#F4F6FB] p-4"
+                    className="group flex min-h-[132px] flex-col items-center justify-center rounded-[14px] border border-[#E3E8F4] bg-[#F8FAFF] p-4 text-center transition hover:border-primary/25 hover:bg-white hover:shadow-sm"
+                    title={userAchievement.achievement.description}
                   >
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-                      <IconComponent size={20} />
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/8 text-primary transition group-hover:scale-105">
+                      <IconComponent size={22} />
                     </div>
-                    <div>
-                      <p className="font-semibold text-text-title">{userAchievement.achievement.name}</p>
-                      <p className="mt-1 text-sm leading-6 text-text-body">
-                        {userAchievement.achievement.description}
-                      </p>
-                    </div>
+                    <p className="mt-3 line-clamp-2 text-[12px] font-bold leading-snug text-text-title">
+                      {userAchievement.achievement.name}
+                    </p>
                   </div>
                 );
-              }) : (
-                <div className="rounded-[16px] bg-[#F4F6FB] px-4 py-5 text-sm text-text-body">
-                  New achievements will appear here as the learner completes lessons and keeps their streak alive.
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 rounded-[16px] bg-[#F4F6FB] p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-mute">Learning snapshot</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-text-title">
-                {Math.floor(totalLearningMinutes / 60)}h {totalLearningMinutes % 60}m completed,
-                {' '}{student.longestStreak}d longest streak, and {totalEnrollments} total enrollments.
-              </p>
-            </div>
-          </section>
+                })}
+              </div>
+            </section>
+          )}
         </main>
       </div>
     </div>

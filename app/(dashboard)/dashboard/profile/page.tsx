@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { getInstructorOnboardingStatusByUserId } from '@/lib/instructor-onboarding';
 import { ProfileHeaderActions } from '@/components/dashboard/profile/ProfileHeaderActions';
 import { getLocationTimezoneOptions } from '@/lib/location-timezones.server';
+import { getStudentPublicProfileEligibility } from '@/lib/profile-eligibility';
 
 export default async function ProfilePage() {
   const user = await currentUser();
@@ -87,10 +88,18 @@ export default async function ProfilePage() {
   const displayName = dbUser.firstName || dbUser.lastName
     ? `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim()
     : dbUser.name || 'User';
-  const publicProfileMissingLabels = onboardingStatus.readiness.items
-    .filter((item) => item.id !== "email" && !item.complete)
-    .map((item) => item.label);
   const isInstructorProfile = dbUser.instructorProfileEnabled;
+  const studentPublicProfileEligibility = getStudentPublicProfileEligibility(dbUser);
+  const publicProfileMissingLabels = isInstructorProfile
+    ? onboardingStatus.readiness.items
+        .filter((item) => item.id !== "email" && !item.complete)
+        .map((item) => item.label)
+    : studentPublicProfileEligibility.missingLabels;
+  const publicProfileUrl = isInstructorProfile
+    ? onboardingStatus.publicProfileUrl
+    : studentPublicProfileEligibility.eligible
+      ? `/student/${dbUser.id}`
+      : null;
   const profileStats = isInstructorProfile
     ? [
         { value: publishedCourses.toLocaleString(), label: "Published Courses" },
@@ -153,7 +162,7 @@ export default async function ProfilePage() {
               <ProfileHeaderActions
                 role={dbUser.role}
                 instructorProfileEnabled={dbUser.instructorProfileEnabled}
-                publicProfileUrl={onboardingStatus.publicProfileUrl}
+                publicProfileUrl={publicProfileUrl}
                 publicProfileMissingLabels={publicProfileMissingLabels}
                 verificationStatus={onboardingStatus.verificationStatus}
                 canRequestVerification={onboardingStatus.canRequestVerification}

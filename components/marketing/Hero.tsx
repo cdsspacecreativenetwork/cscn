@@ -5,8 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { motion } from 'framer-motion';
+import type { MarketingSettings } from '@/data/marketing';
 
-export default function Hero() {
+interface HeroProps {
+  marketingSettings: MarketingSettings;
+}
+
+export default function Hero({ marketingSettings }: HeroProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -123,7 +128,9 @@ export default function Hero() {
             ))}
           </div>
           <div className="flex items-center gap-1 md:gap-1.5">
-            <span className="text-[10px] md:text-sm font-medium text-text-body whitespace-nowrap">Expert in these tools</span>
+              <span className="text-[10px] md:text-sm font-medium text-text-body whitespace-nowrap">
+                {marketingSettings.launchMode ? 'Founding learners get first access' : 'Expert in these tools'}
+              </span>
             <div className="flex items-center gap-1 bg-[#F4F6FB] px-1.5 py-0.5 rounded-full">
               <div className="w-3 h-3 md:w-4 md:h-4 relative">
                 <Image src="/assets/expert-badge.svg" alt="Expert" fill sizes="16px" unoptimized />
@@ -140,7 +147,15 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           className="text-[2.5rem] md:text-[3.5rem] font-semibold leading-[1.2] md:leading-[1.24] text-navy mb-6 md:mb-10 tracking-tight max-w-[49rem]"
         >
-          Build Real Skills.<br className="hidden md:block" /> Work Globally.
+          {marketingSettings.launchMode ? (
+            <>
+              {marketingSettings.launchHeadline}
+            </>
+          ) : (
+            <>
+              Build Real Skills.<br className="hidden md:block" /> Work Globally.
+            </>
+          )}
         </motion.h1>
 
         {/* Description */}
@@ -150,7 +165,9 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           className="text-xl font-medium text-text-body max-w-[36.25rem] mb-10 leading-relaxed tracking-tight"
         >
-          Learn design, product, and digital skills taught by professionals building real companies around the world.
+          {marketingSettings.launchMode
+            ? marketingSettings.launchBody
+            : 'Learn design, product, and digital skills taught by professionals building real companies around the world.'}
         </motion.p>
 
         {/* Action Button */}
@@ -160,9 +177,9 @@ export default function Hero() {
           transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
           className="mb-[5.5rem]"
         >
-          <Link href="/courses">
+          <Link href={marketingSettings.launchMode ? "/signup" : "/courses"}>
             <Button variant="gradient" size="lg" rounded="full">
-              Start Learning
+              {marketingSettings.launchMode ? marketingSettings.launchCtaLabel : marketingSettings.normalCtaLabel}
             </Button>
           </Link>
         </motion.div>

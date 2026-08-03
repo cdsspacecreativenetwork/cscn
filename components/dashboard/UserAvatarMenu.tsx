@@ -23,6 +23,7 @@ type UserAvatarMenuProps = {
     email?: string | null;
     image?: string | null;
     role?: string | null;
+    onboardingCohort?: string | null;
   } | null;
 };
 
@@ -42,6 +43,7 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
   const displayName = sessionUser?.name || sessionUser?.email?.split('@')[0] || 'Guest learner';
   const email = sessionUser?.email || 'Sign in to continue learning';
   const roleLabel = roleLabels[(sessionUser?.role as string) ?? ''] ?? 'Student';
+  const isPioneerStudent = Boolean(sessionUser?.onboardingCohort);
   const fallbackAvatar = generateTapbackAvatar(displayName);
   const [imgSrc, setImgSrc] = React.useState(sessionUser?.image || fallbackAvatar);
 
@@ -89,9 +91,24 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
         </div>
         {showUserText && (
           <div className="hidden min-w-0 text-left sm:block">
-            <p className="max-w-[160px] truncate text-[clamp(14px,1.04vw,18px)] font-semibold text-[#040B37]">
-              {displayName}
-            </p>
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="max-w-[160px] truncate text-[clamp(14px,1.04vw,18px)] font-semibold text-[#040B37]">
+                {displayName}
+              </p>
+              {isPioneerStudent && (
+                <span className="group/badge relative inline-flex shrink-0">
+                  <span
+                    className="flex h-5 w-5 items-center justify-center rounded-full border border-[#BFD1FF] bg-[linear-gradient(135deg,#EEF3FF_0%,#FFFFFF_54%,#DDE7FF_100%)] text-[10px] font-black text-[#1C4ED1] shadow-[0_3px_10px_rgba(28,78,209,0.18)] ring-2 ring-white"
+                    aria-label="Pioneer Student"
+                  >
+                    P
+                  </span>
+                  <span className="pointer-events-none absolute right-1/2 top-[calc(100%+8px)] z-[100] translate-x-1/2 whitespace-nowrap rounded-[8px] border border-[#D8E0EF] bg-white px-3 py-2 text-[12px] font-semibold text-[#040B37] opacity-0 shadow-[0_14px_34px_rgba(4,11,55,0.12)] transition group-hover/badge:opacity-100 group-focus-within/badge:opacity-100">
+                    Pioneer Student
+                  </span>
+                </span>
+              )}
+            </div>
             <p className="text-[clamp(11px,0.81vw,14px)] font-medium text-[#4B5563]">{roleLabel}</p>
           </div>
         )}
@@ -120,6 +137,14 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
               />
             </div>
             <p className="mt-2 max-w-full truncate text-base font-semibold text-[#040B37]">{displayName}</p>
+            {isPioneerStudent && (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#D8E0EF] bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-[#1C4ED1] shadow-sm">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#BFD1FF] bg-[#EEF3FF] text-[9px] leading-none">
+                  P
+                </span>
+                Pioneer Student
+              </div>
+            )}
             <p className="custom-scrollbar mt-0.5 max-w-full overflow-x-auto whitespace-nowrap text-xs font-semibold text-[#64748B]">{email}</p>
             <Link href={isAuthenticated ? '/dashboard/profile' : '/signin'} className="mt-3 w-full" onClick={() => setIsOpen(false)}>
               <Button variant="outline" rounded="[12px]" className="w-full px-4! py-2.5! text-sm! border-[#1C4ED1]! text-[#1C4ED1]! hover:bg-[#1C4ED1]/5!">

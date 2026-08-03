@@ -57,6 +57,7 @@ async function send(opts: nodemailer.SendMailOptions): Promise<{ success: true; 
 
   try {
     const info = await transporter.sendMail(opts);
+    console.log("🚀 ~ send ~ info:", info)
     return { success: true, messageId: info.messageId };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to send email";

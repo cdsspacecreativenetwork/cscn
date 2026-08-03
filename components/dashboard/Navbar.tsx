@@ -15,10 +15,7 @@ interface NavbarProps {
 import { Skeleton } from '../ui/Skeleton';
 
 export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
-  const { data: session, status, update } = useSession();
-
-  // Force a session refresh once on mount so role/name are always fresh
-  React.useEffect(() => { update(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { data: session, status } = useSession();
 
   const isLoading = status === 'loading' || (status === 'authenticated' && !session?.user?.name);
 

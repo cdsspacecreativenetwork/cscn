@@ -2,12 +2,16 @@
 
 import Image from "next/image";
 import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 
 export const Social = () => {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || DEFAULT_LOGIN_REDIRECT;
+
   const onClick = (provider: "google" | "apple" | "linkedin") => {
     signIn(provider, {
-      callbackUrl: DEFAULT_LOGIN_REDIRECT,
+      callbackUrl,
     });
   };
 

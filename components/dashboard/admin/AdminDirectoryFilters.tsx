@@ -65,7 +65,7 @@ export function AdminDirectoryFilters({
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder={searchPlaceholder}
-          className="h-10 w-full rounded-[10px] border border-[#E3E8F4] bg-[#F8FAFF] pl-10 pr-3 text-[14px] font-medium text-[#040B37] outline-none transition focus:border-[#1C4ED1] sm:w-[320px]"
+          className="h-14 w-full rounded-[10px] border border-[#E3E8F4] bg-[#F8FAFF] pl-10 pr-3 text-[14px] font-medium text-[#040B37] outline-none transition focus:border-[#1C4ED1] sm:w-[320px]"
         />
       </form>
 

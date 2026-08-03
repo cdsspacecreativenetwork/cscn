@@ -7,12 +7,16 @@ declare module 'next-auth' {
       id: string;
       role: string;
       emailVerified: Date | null;
+      onboardingCohort: string | null;
+      pioneerJoinedAt: Date | null;
     };
   }
 
   interface User extends Partial<AdminPermissionSet> {
     role?: string;
     emailVerified?: Date | null;
+    onboardingCohort?: string | null;
+    pioneerJoinedAt?: Date | null;
   }
 }
 
@@ -20,5 +24,7 @@ declare module 'next-auth/jwt' {
   interface JWT extends Partial<AdminPermissionSet> {
     role?: string;
     emailVerified?: Date | null;
+    onboardingCohort?: string | null;
+    pioneerJoinedAt?: Date | null;
   }
 }

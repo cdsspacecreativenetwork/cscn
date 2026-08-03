@@ -25,13 +25,22 @@ export const VerificationEmail = ({
           Hi {userName},
         </Text>
         <Text className="text-[#4B5563] text-[16px] leading-[26px] mt-[16px]">
-          We're excited to have you on board. To ensure the security of your account and 
+          We&apos;re excited to have you on board. To ensure the security of your account and
           unlock full access to certificates, exams, and career resources, please verify 
           your email address by clicking the button below:
         </Text>
         <Section className="text-center mt-[32px] mb-[32px]">
           <Button
-            className="bg-brand rounded-[10px] text-white text-[16px] font-bold no-underline text-center px-10 py-4 shadow-lg hover:bg-[#163BB1] transition-all"
+            style={{
+              backgroundColor: "#1C4ED1",
+              borderRadius: "10px",
+              color: "#FFFFFF",
+              fontSize: "16px",
+              fontWeight: 700,
+              textAlign: "center",
+              textDecoration: "none",
+              padding: "16px 40px",
+            }}
             href={confirmLink}
           >
             Verify Email Address
@@ -43,7 +52,7 @@ export const VerificationEmail = ({
           <span className="text-brand break-all">{confirmLink}</span>
         </Text>
         <Text className="text-[#4B5563] text-[16px] leading-[26px] mt-[32px]">
-          If you didn't create an account, you can safely ignore this email.
+          If you didn&apos;t create an account, you can safely ignore this email.
         </Text>
       </Section>
     </BaseLayout>

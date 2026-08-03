@@ -76,7 +76,6 @@ export default function Navbar() {
                   variant="gradient"
                   size="sm"
                   rounded="full"
-                  className="min-w-[118px] xl:min-w-[132px]"
                 >
                   {isLoggedIn ? "Dashboard" : "Sign in"}
                 </Button>

@@ -1,5 +1,6 @@
-// Mock API data and fetching logic for the CSCN platform
+// Marketing data helpers for the CSCN platform.
 import type { CourseCardProps } from '@/components/ui/CourseCard';
+import { db } from '@/lib/db';
 
 export interface Stat {
   id: number;
@@ -13,6 +14,24 @@ export interface Tool {
   name: string;
   icon: string;
 }
+
+const MEMBER_STAT_THRESHOLD = 100;
+const CLASS_STAT_THRESHOLD = 10;
+const RATING_COUNT_THRESHOLD = 20;
+const RATING_AVERAGE_THRESHOLD = 4;
+
+export const SKILL_TOOLS: Tool[] = [
+  { id: 1, name: 'UIUX Design', icon: '/assets/tools/figma.svg' },
+  { id: 2, name: 'UI Engineering', icon: '/assets/tools/claude.svg' },
+  { id: 3, name: 'Master AI Automation', icon: '/assets/tools/ai-magic.svg' },
+  { id: 4, name: 'Brand Identity', icon: '/assets/tools/pen-tool.svg' },
+  { id: 5, name: 'Motion Design', icon: '/assets/tools/after-effects.svg' },
+  { id: 6, name: 'Create Illustrations', icon: '/assets/tools/illustrator.svg' },
+  { id: 7, name: 'Web Development', icon: '/assets/tools/vscode.svg' },
+  { id: 8, name: 'Master Photoshop', icon: '/assets/tools/photoshop.svg' },
+  { id: 9, name: 'Get Inspired...', icon: '/assets/tools/brain.svg' },
+  { id: 10, name: 'Master Prototyping', icon: '/assets/tools/figma.svg' },
+];
 
 export interface Course {
   id: string;
@@ -32,24 +51,34 @@ export interface Course {
 }
 
 export const getStats = async () => {
+  const [members, classes, ratingSummary] = await Promise.all([
+    db.user.count({ where: { role: "USER" } }),
+    db.course.count({ where: { status: "PUBLISHED" } }),
+    db.courseRating.aggregate({
+      _avg: { rating: true },
+      _count: { rating: true },
+    }),
+  ]);
+
+  const averageRating = ratingSummary._avg.rating ? Number(ratingSummary._avg.rating.toFixed(2)) : 0;
+  const ratingCount = ratingSummary._count.rating;
+  const mainStats: Stat[] = [];
+
+  if (members >= MEMBER_STAT_THRESHOLD) {
+    mainStats.push({ id: 1, label: 'Members', value: `${members.toLocaleString()}+`, type: 'normal' });
+  }
+
+  if (classes >= CLASS_STAT_THRESHOLD) {
+    mainStats.push({ id: 2, label: 'Classes', value: classes.toLocaleString(), type: 'normal' });
+  }
+
+  if (ratingCount >= RATING_COUNT_THRESHOLD && averageRating >= RATING_AVERAGE_THRESHOLD) {
+    mainStats.push({ id: 3, label: 'Ratings', value: averageRating.toFixed(2), type: 'rating' });
+  }
+
   return {
-    mainStats: [
-      { id: 1, label: 'Members', value: '100+', type: 'normal' },
-      { id: 2, label: 'Classes', value: '25', type: 'normal' },
-      { id: 3, label: 'Ratings', value: '4.95', type: 'rating' }
-    ] as Stat[],
-    tools: [
-      { id: 1, name: 'UIUX Design', icon: '/assets/tools/figma.svg' },
-      { id: 2, name: 'UI Engineering', icon: '/assets/tools/claude.svg' },
-      { id: 3, name: 'Master AI Automation', icon: '/assets/tools/ai-magic.svg' },
-      { id: 4, name: 'Brand Identity', icon: '/assets/tools/pen-tool.svg' },
-      { id: 5, name: 'Motion Design', icon: '/assets/tools/after-effects.svg' },
-      { id: 6, name: 'Create Illustrations', icon: '/assets/tools/illustrator.svg' },
-      { id: 7, name: 'Web Development', icon: '/assets/tools/vscode.svg' },
-      { id: 8, name: 'Master Photoshop', icon: '/assets/tools/photoshop.svg' },
-      { id: 9, name: 'Get Inspired...', icon: '/assets/tools/brain.svg' },
-      { id: 10, name: 'Master Prototyping', icon: '/assets/tools/figma.svg' }
-    ] as Tool[]
+    mainStats,
+    tools: SKILL_TOOLS,
   };
 };
 
@@ -158,7 +187,7 @@ export const getCourses = async (): Promise<Course[]> => {
 };
 
 // Helper for mock data
-function course(id: string, title: string, category: any, author: string, image: string, avatar: string) {
+function course(id: string, title: string, category: Course['category'], author: string, image: string, avatar: string) {
   return {
     id,
     title,

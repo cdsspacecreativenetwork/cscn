@@ -14,6 +14,7 @@ export default function ResourcesPage() {
   const [selectedCourse, setSelectedCourse] = useState('All Courses');
   const [scope, setScope] = useState<ResourceScope>('student');
   const [courses, setCourses] = useState<string[]>([]);
+  const [canViewTeachingResources, setCanViewTeachingResources] = useState(false);
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -22,8 +23,18 @@ export default function ResourcesPage() {
         const data = await getResources(searchQuery, selectedType, selectedCourse, scope);
         setResources(data.resources);
         setCourses(data.courses);
+        setCanViewTeachingResources(data.canViewTeachingResources);
+        if (scope === 'instructor' && !data.canViewTeachingResources) {
+          setScope('student');
+          setSelectedCourse('All Courses');
+        }
       } catch (error) {
         console.error('Failed to fetch resources:', error);
+        setResources([]);
+        if (scope === 'instructor') {
+          setScope('student');
+          setSelectedCourse('All Courses');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -46,6 +57,7 @@ export default function ResourcesPage() {
         }}
         courses={courses}
         scope={scope}
+        canViewTeachingResources={canViewTeachingResources}
       />
 
       {/* Resources Grid */}

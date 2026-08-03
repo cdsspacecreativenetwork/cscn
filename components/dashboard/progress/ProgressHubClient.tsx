@@ -777,7 +777,7 @@ export function ProgressHubClient({
               </div>
               <Button
                 onClick={() => setIsQuestsOpen(true)}
-                variant="gradient"
+                variant="primary"
                 size="sm"
                 rightIcon={<ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />}
                 hasBorder={false}

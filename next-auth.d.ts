@@ -4,6 +4,8 @@ import type { AdminPermissionSet } from "@/lib/admin-permissions";
 
 export type ExtendedUser = DefaultSession["user"] & AdminPermissionSet & {
   role: UserRole | string;
+  onboardingCohort?: string | null;
+  pioneerJoinedAt?: Date | null;
 };
 
 declare module "next-auth" {
@@ -17,5 +19,7 @@ import { JWT } from "next-auth/jwt";
 declare module "next-auth/jwt" {
   interface JWT extends Partial<AdminPermissionSet> {
     role?: UserRole | string;
+    onboardingCohort?: string | null;
+    pioneerJoinedAt?: Date | null;
   }
 }

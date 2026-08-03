@@ -20,7 +20,7 @@ type ProfileHeaderActionsProps = {
 };
 
 function compactMissing(labels: string[]) {
-  if (labels.length === 0) return "Complete your public instructor profile first.";
+  if (labels.length === 0) return "Complete your public profile first.";
   return `Complete: ${labels.join(", ")}.`;
 }
 
@@ -37,8 +37,9 @@ export function ProfileHeaderActions({
   const [activeHelper, setActiveHelper] = useState<"profile" | "verification" | null>(null);
   const canSelfActivate = role === "SUPER_ADMIN";
   const isAdminRole = role === "ADMIN" || role === "SUPER_ADMIN";
+  const isInstructorRole = role === "INSTRUCTOR" || instructorProfileEnabled || isAdminRole;
   const showActivate = (role === "ADMIN" || role === "SUPER_ADMIN") && !instructorProfileEnabled;
-  const viewDisabledReason = publicProfileUrl ? undefined : compactMissing(publicProfileMissingLabels);
+  const viewDisabledReason = publicProfileUrl ? "Open your public profile" : compactMissing(publicProfileMissingLabels);
 
   useEffect(() => {
     if (!activeHelper) return;
@@ -55,8 +56,6 @@ export function ProfileHeaderActions({
           ? undefined
           : "Complete your public profile and verify your email first.";
 
-  if (!instructorProfileEnabled && !isAdminRole) return null;
-
   return (
     <div
       className="relative flex flex-wrap items-center gap-2"
@@ -70,6 +69,7 @@ export function ProfileHeaderActions({
         size="sm"
         rounded="[10px]"
         aria-disabled={!publicProfileUrl}
+        title={viewDisabledReason}
         className={!publicProfileUrl ? "opacity-60" : undefined}
         rightIcon={<ExternalLink size={15} />}
         onClick={() => {
@@ -123,7 +123,7 @@ export function ProfileHeaderActions({
         </div>
       )}
 
-      {showActivate && (
+      {isInstructorRole && showActivate && (
         <Button
           type="button"
           variant="secondary"
@@ -148,33 +148,35 @@ export function ProfileHeaderActions({
         </Button>
       )}
 
-      <Button
-        type="button"
-        variant="primary"
-        size="sm"
-        rounded="[10px]"
-        loading={isSubmitting}
-        disabled={isSubmitting}
-        aria-disabled={!canRequestVerification}
-        className={!canRequestVerification ? "opacity-60" : undefined}
-        leftIcon={<Send size={15} />}
-        onClick={() => {
-          if (!canRequestVerification) {
-            setActiveHelper("verification");
-            return;
-          }
-          startSubmitTransition(async () => {
-            const result = await submitInstructorVerificationAction();
-            if ("error" in result) {
-              toast.error(result.error);
+      {isInstructorRole && (
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          rounded="[10px]"
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          aria-disabled={!canRequestVerification}
+          className={!canRequestVerification ? "opacity-60" : undefined}
+          leftIcon={<Send size={15} />}
+          onClick={() => {
+            if (!canRequestVerification) {
+              setActiveHelper("verification");
               return;
             }
-            toast.success(result.success);
-          });
-        }}
-      >
-        Submit verification
-      </Button>
+            startSubmitTransition(async () => {
+              const result = await submitInstructorVerificationAction();
+              if ("error" in result) {
+                toast.error(result.error);
+                return;
+              }
+              toast.success(result.success);
+            });
+          }}
+        >
+          Submit verification
+        </Button>
+      )}
     </div>
   );
 }

@@ -8,6 +8,12 @@ import { LoginSchema } from "@/schemas";
 import { getUserByEmail, getUserById } from "@/data/user";
 import { ADMIN_PERMISSION_KEYS } from "@/lib/admin-permissions";
 
+// Glash forwards requests to Next.js through an internal localhost origin.
+// Give Auth.js the public origin so OAuth URLs and cookies remain consistent.
+if (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_APP_URL) {
+  process.env.AUTH_URL = process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "");
+}
+
 export const {
   handlers: { GET, POST },
   auth,
@@ -60,7 +66,7 @@ export const {
 
           const decoded = await decode({
             token: sessionToken,
-            secret: process.env.AUTH_SECRET || "",
+            secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "",
             salt: cookieName,
           });
 
@@ -96,6 +102,10 @@ export const {
         }
         // @ts-ignore
         session.user.emailVerified = token.emailVerified;
+        // @ts-ignore
+        session.user.onboardingCohort = token.onboardingCohort;
+        // @ts-ignore
+        session.user.pioneerJoinedAt = token.pioneerJoinedAt;
       }
 
       return session;
@@ -124,6 +134,10 @@ export const {
         token.picture = existingUser.image;
         // @ts-ignore
         token.emailVerified = existingUser.emailVerified;
+        // @ts-ignore
+        token.onboardingCohort = existingUser.onboardingCohort;
+        // @ts-ignore
+        token.pioneerJoinedAt = existingUser.pioneerJoinedAt;
         for (const permission of ADMIN_PERMISSION_KEYS) {
           // @ts-ignore - permission keys are selected from the Prisma user record.
           token[permission] = existingUser[permission] ?? false;

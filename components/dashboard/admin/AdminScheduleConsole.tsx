@@ -262,9 +262,9 @@ export function AdminScheduleConsole({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {overview.stats.map((stat) => (
-          <div key={stat.label} className="rounded-[16px] border border-[#E3E8F4] bg-white p-5">
+          <div key={stat.label} className="rounded-[16px] border border-[#E3E8F4] bg-white p-5 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <p className="text-[13px] font-semibold text-[#9CA3AF]">{stat.label}</p>
               <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#1C4ED1]/5 text-[#1C4ED1]">
@@ -312,7 +312,7 @@ export function AdminScheduleConsole({
             {overview.attentionEvents.length > 0 ? (
               overview.attentionEvents.map((event) => <EventRow key={event.id} event={event} compact attention />)
             ) : (
-              <div className="flex min-h-[260px] flex-col items-center justify-center rounded-[16px] border border-dashed border-[#C8D1E0] bg-[#F4F6FB] p-8 text-center">
+              <div className="flex min-h-[260px] flex-col items-center justify-center rounded-[16px] border border-dashed border-[#C8D1E0] bg-white p-8 text-center">
                 <UsersRound size={30} className="text-[#1C4ED1]" strokeWidth={1.8} />
                 <h3 className="mt-3 text-[17px] font-bold text-[#040B37]">No schedule risks right now</h3>
                 <p className="mt-2 text-[13px] font-medium text-[#9CA3AF]">Sessions with missing links or notification coverage issues will appear here.</p>
@@ -328,7 +328,7 @@ export function AdminScheduleConsole({
         </div>
       </section>
 
-      <section className="rounded-[20px] border border-[#E3E8F4] bg-[#F4F6FB] p-4 shadow-sm lg:p-5">
+      <section className="rounded-[20px] border border-[#E3E8F4] bg-white p-4 shadow-sm lg:p-5">
         <div className="mb-5 flex flex-col gap-1">
           <h2 className="text-[20px] font-bold text-[#040B37]">Recent platform events</h2>
           <p className="text-[13px] font-medium text-[#9CA3AF]">Most recent sessions and event items, including cancelled mentorship sessions.</p>

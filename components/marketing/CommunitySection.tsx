@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import Button from '../ui/Button';
 
 interface Project {
   id: string;
@@ -151,11 +152,10 @@ export default function CommunitySection({
           viewport={{ once: true }}
           className="flex justify-center px-4"
         >
-          <div className="p-[2px] border border-[#648EFC] rounded-full bg-background shadow-sm active:scale-95 transition-transform group">
-            <button className="bg-gradient-to-br from-[#0035C1] to-[#0575FF] text-white px-10 py-4 rounded-full font-semibold text-lg hover:brightness-110 transition-all font-inter shadow-md">
+          
+            <Button variant="gradient" size="lg" rounded="full">
               Get a course today
-            </button>
-          </div>
+            </Button>
         </motion.div>
       </div>
     </motion.section>

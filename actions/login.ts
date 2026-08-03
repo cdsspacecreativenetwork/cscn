@@ -10,6 +10,14 @@ import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { getUserByEmail } from "@/data/user";
 import { verifyTOTP } from "@/lib/totp";
 
+function getSafeRedirectPath(value?: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return DEFAULT_LOGIN_REDIRECT;
+  }
+
+  return value;
+}
+
 export const login = async (values: z.infer<typeof LoginSchema>) => {
   const validatedFields = LoginSchema.safeParse(values);
 
@@ -17,7 +25,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     return { error: "Invalid fields!" };
   }
 
-  const { email, password, code } = validatedFields.data;
+  const { email, password, code, callbackUrl } = validatedFields.data;
 
   const existingUser = await getUserByEmail(email);
 
@@ -47,7 +55,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     await signIn("credentials", {
       email,
       password,
-      redirectTo: DEFAULT_LOGIN_REDIRECT,
+      redirectTo: getSafeRedirectPath(callbackUrl),
     });
     return { success: "Success" };
   } catch (error) {

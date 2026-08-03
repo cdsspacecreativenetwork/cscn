@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Plus, ArrowUpRight, MoreHorizontal, GraduationCap, Clock, CheckCircle2, Flame, Share2, EyeOff, Sparkles, BookOpen } from 'lucide-react';
+import { Plus, ArrowUpRight, MoreHorizontal, GraduationCap, Clock, CheckCircle2, Flame, Share2, EyeOff, BookOpen } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useRouter } from 'next/navigation';
 import { useDashboardStore } from '@/lib/store/dashboardStore';
@@ -77,7 +77,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
           </p>
         </div>
         <Button
-          variant="gradient"
+          variant="primary"
           size="sm"
           rounded="[10px]"
           className="w-full sm:w-auto"
@@ -137,31 +137,14 @@ export default function StudentDashboardClient({ data, user }: Props) {
                 <div className="relative p-6 sm:p-8">
                   <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#1C4ED1]/10 blur-3xl" />
                   <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="max-w-2xl">
-                      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1.5 text-[12px] font-black uppercase tracking-[0.12em] text-[#1C4ED1]">
-                        <Sparkles size={14} />
-                        New learner
-                      </div>
+                    <div className="max-w-l">
                       <h3 className="text-[24px] font-semibold leading-tight text-[#040B37] sm:text-[30px]">
                         Choose your first course and we will personalize your dashboard as you learn.
                       </h3>
-                      <p className="mt-3 text-[14px] font-medium leading-relaxed text-[#6B7280] sm:text-[15px]">
-                        Your continue-learning card, progress, streaks, and recommendations will update after you enroll or watch a lesson.
-                      </p>
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {['AI', 'Design', 'Web Dev', 'Branding', 'Product'].map((interest) => (
-                          <span
-                            key={interest}
-                            className="rounded-full border border-[#E3E8F4] bg-[#F8FAFF] px-3 py-1.5 text-[12px] font-bold text-[#4B5563]"
-                          >
-                            {interest}
-                          </span>
-                        ))}
-                      </div>
                     </div>
                     <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">
                       <Button
-                        variant="gradient"
+                        variant="primary"
                         size="md"
                         rounded="[10px]"
                         hasBorder={false}
@@ -169,14 +152,6 @@ export default function StudentDashboardClient({ data, user }: Props) {
                         onClick={() => router.push('/courses')}
                       >
                         Browse Courses
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="md"
-                        rounded="[10px]"
-                        onClick={() => router.push('/dashboard/profile')}
-                      >
-                        Complete Profile
                       </Button>
                     </div>
                   </div>
@@ -240,7 +215,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
                     </div>
                   </div>
                   <Button
-                    variant="gradient"
+                    variant="primary"
                     size="sm"
                     rounded="[10px]"
                     hasBorder={false}
@@ -438,7 +413,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
                           </div>
                         </div>
                         <Button
-                          variant="gradient"
+                          variant="primary"
                           size="sm"
                           rounded="[10px]"
                           hasBorder={false}

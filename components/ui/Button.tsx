@@ -62,13 +62,11 @@ const sizeMap: Record<string, string> = {
   icon: 'p-2.5  w-10 h-10',
 };
 
-// Gradient variant: inner-button sizing uses the same horizontal padding but
-// matches the design's exact 12.5 px vertical padding.
 const gradientSizeMap: Record<string, string> = {
-  sm:   'px-4  py-[9px]    text-[13px]',
-  md:   'px-5  py-[11px]   text-[15px]',
-  lg:   'px-6  py-[12.5px] text-[16px]',
-  xl:   'px-8  py-[15px]   text-[18px]',
+  sm:   'px-5 py-[9px] text-[15px]',
+  md:   'px-[22px] py-2.5 text-[15px]',
+  lg:   'px-6 py-[11px] text-[16px]',
+  xl:   'px-[26px] py-3 text-[16px]',
   icon: 'p-2.5 w-10 h-10',
 };
 
@@ -83,6 +81,7 @@ export default function Button({
   className = '',
   disabled,
   hasBorder = true,
+  style,
   ...props
 }: ButtonProps) {
 
@@ -93,24 +92,29 @@ export default function Button({
   if (variant === 'gradient') {
     if (hasBorder) {
       return (
-        <div className={`inline-flex border border-[#648efc] p-[2px] ${roundedClass} ${className} shrink-0 items-center justify-center`}>
-          <button
-            disabled={isDisabled}
-            className={`flex items-center justify-center w-full bg-gradient-to-r from-[#0035C1] to-[#0575FF] ${roundedClass} ${gradientSizeMap[size]} font-jakarta font-medium tracking-[-0.16px] whitespace-nowrap leading-normal text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer`}
-            {...props}
+        <button
+          disabled={isDisabled}
+          className={`inline-flex h-max w-max cursor-pointer flex-col items-center justify-center rounded-full border border-[var(--special-btn-border)] bg-transparent p-[2px] transition-transform duration-200 ease-out hover:scale-[1.03] hover:border-[#7b9ffd] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#648EFC]/40 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+          style={style}
+          {...props}
+        >
+          <span
+            className={`flex w-full flex-row items-center justify-center gap-2 rounded-full ${gradientSizeMap[size]} font-inter font-medium tracking-normal text-[#F4F6FB] whitespace-nowrap leading-[1.25] transition-opacity hover:opacity-95`}
+            style={{ background: 'var(--cds-w-grad-2)' }}
           >
             {loading && <Spinner />}
-            {!loading && leftIcon  && <span className="mr-2 shrink-0">{leftIcon}</span>}
-            {children}
-            {!loading && rightIcon && <span className="ml-2 shrink-0">{rightIcon}</span>}
-          </button>
-        </div>
+            {!loading && leftIcon  && <span className="shrink-0">{leftIcon}</span>}
+            <span>{children}</span>
+            {!loading && rightIcon && <span className="shrink-0">{rightIcon}</span>}
+          </span>
+        </button>
       );
     } else {
       return (
         <button
           disabled={isDisabled}
-          className={`inline-flex items-center justify-center bg-gradient-to-r from-[#0035C1] to-[#0575FF] ${roundedClass} ${gradientSizeMap[size]} font-jakarta font-medium tracking-[-0.16px] whitespace-nowrap leading-normal text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${className}`}
+          className={`inline-flex items-center justify-center ${roundedClass} ${gradientSizeMap[size]} font-inter font-medium tracking-normal whitespace-nowrap leading-[1.25] text-[#F4F6FB] transition-all hover:opacity-95 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${className}`}
+          style={{ ...style, background: 'var(--cds-w-grad-2)' }}
           {...props}
         >
           {loading && <Spinner />}
@@ -135,6 +139,7 @@ export default function Button({
     <button
       disabled={isDisabled}
       className={`inline-flex items-center justify-center font-jakarta font-semibold tracking-[-0.01em] whitespace-nowrap cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeMap[size]} ${roundedClass} ${className}`}
+      style={style}
       {...props}
     >
       {loading && <Spinner />}

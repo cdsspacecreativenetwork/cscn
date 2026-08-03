@@ -624,7 +624,7 @@ function ReviewCard({
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[168px]">
           <Button
-            variant="gradient"
+            variant="primary"
             size="sm"
             rounded="[10px]"
             hasBorder={false}
@@ -1139,7 +1139,7 @@ export default function AdminCourseList({ courses: initialCourses, adminId, perm
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-[16px] py-[10px] rounded-[8px] font-jakarta font-medium text-[14px] tracking-[-0.28px] transition-all whitespace-nowrap ${isActive
-                  ? 'bg-linear-to-r from-[#0035C1] to-[#0575FF] text-white shadow-[0_8px_20px_rgba(28,78,209,0.22)]'
+                  ? 'bg-white text-text-title shadow-[0_8px_20px_rgba(28,78,209,0.22)]'
                   : 'text-[#9CA3AF] hover:text-text-body'
                 }`}
             >
@@ -1148,7 +1148,7 @@ export default function AdminCourseList({ courses: initialCourses, adminId, perm
                   ${tab.accent === 'amber'
                   ? 'bg-amber-100 text-amber-700'
                   : isActive
-                    ? 'bg-white/20 text-white'
+                    ? 'bg-primary/40 text-white'
                     : 'bg-[#D1D5DB]/60 text-[#9CA3AF]'
                 }`}
               >

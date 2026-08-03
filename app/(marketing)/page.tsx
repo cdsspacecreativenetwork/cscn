@@ -15,13 +15,18 @@ import { Reveal } from '@/components/ui/Reveal';
 import { headers } from 'next/headers';
 import { getRequestCountry, localizePrice } from '@/lib/localization/pricing';
 import { getHomepageFeaturedInstructors } from '@/data/featured-instructors';
+import { getMarketingSettings, listPublishedHomepageReviews } from '@/data/marketing';
 
 export default async function LandingPage() {
   // Fetch data on the server for instant page load (No Flicker)
   const requestCountry = getRequestCountry(await headers());
+  const marketingSettings = await getMarketingSettings();
   const statsData = await getStats();
-  const dbCourses = await listFeaturedCourses(8);
+  const dbCourses = marketingSettings.launchMode ? [] : await listFeaturedCourses(8);
   const featuredInstructors = await getHomepageFeaturedInstructors();
+  const homepageReviews = marketingSettings.homepageReviewsEnabled
+    ? await listPublishedHomepageReviews(9)
+    : [];
   const dbCards = await Promise.all(dbCourses.map(async (course) => {
     const price = await localizePrice({
       amount: course.price ? Number(course.price) : null,
@@ -34,7 +39,7 @@ export default async function LandingPage() {
 
   return (
     <div className="landing-page overflow-hidden">
-      <Hero />
+      <Hero marketingSettings={marketingSettings} />
 
       {/* Stats Section - Fast reveal */}
       <Reveal delay={0.2}>
@@ -43,7 +48,7 @@ export default async function LandingPage() {
 
       {/* Interactive Courses Section */}
       <Reveal delay={0.3}>
-        <CoursesSection initialCourses={dbCards} />
+        <CoursesSection initialCourses={dbCards} marketingSettings={marketingSettings} />
       </Reveal>
 
       {/* High-Fidelity Features Section */}
@@ -57,9 +62,18 @@ export default async function LandingPage() {
       </Reveal>
 
       {/* High-Fidelity Reviews Section */}
-      <Reveal delay={0.4}>
-        <ReviewsSection />
-      </Reveal>
+      {homepageReviews.length > 0 && (
+        <Reveal delay={0.4}>
+          <ReviewsSection reviews={homepageReviews.map((review) => ({
+            id: review.id,
+            name: review.name,
+            role: review.role,
+            avatarUrl: review.avatarUrl,
+            content: review.content,
+            rating: review.rating,
+          }))} />
+        </Reveal>
+      )}
 
       {/* Community & Student Projects Section */}
       <Reveal delay={0.5}>

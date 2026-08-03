@@ -74,9 +74,14 @@ model User {
   canViewAnalytics       Boolean @default(false)
 
   marketingConsent Boolean @default(false)
+  onboardingCohort String?
+  pioneerJoinedAt DateTime?
 
   // Course relations
   taughtCourses     Course[]             @relation("InstructorCourses")
+  createdResources  MarketplaceResource[] @relation("MarketplaceResourceOwner")
+  resourceAccesses  ResourceAccess[]
+  resourceReviews   ResourceReview[] @relation("ResourceReviewer")
   enrollments       Enrollment[]
   purchaseOrders    PurchaseOrder[]      @relation("StudentOrders")
   payments          Payment[]
@@ -110,6 +115,7 @@ model User {
   courseFeedback    CourseFeedbackItem[] @relation("FeedbackAuthor")
   dailyActivities   DailyActivity[]
   ratings           CourseRating[]
+  learnerInterestProfile LearnerInterestProfile?
   examAttempts      ExamAttempt[]
   pricingProposals  CoursePricingProposal[] @relation("PricingProposalSubmitter")
   reviewedPricingProposals CoursePricingProposal[] @relation("PricingProposalReviewer")
@@ -135,6 +141,7 @@ model User {
   @@index([publicProfileStatus])
   @@index([instructorProfileEnabled, instructorVerificationStatus])
   @@index([instructorFeatured, instructorFeaturedOrder])
+  @@index([onboardingCohort])
 }
 
 model Account {
@@ -290,6 +297,7 @@ model Course {
   purchaseOrders PurchaseOrder[]
   instructorEarnings InstructorEarning[]
   scheduleEvents ScheduleEvent[]
+  marketplaceResources MarketplaceResource[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -304,6 +312,7 @@ model Module {
   courseId    String
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons     Lesson[]
+  marketplaceResources MarketplaceResource[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -333,6 +342,7 @@ model Lesson {
   muxStatus     MuxVideoStatus @default(NONE)
 
   resources LessonResource[]
+  marketplaceResources MarketplaceResource[]
   progress  LessonProgress[]
   notes     LessonNote[]
   watchSegments LessonWatchSegment[]
@@ -354,6 +364,112 @@ model LessonResource {
   lesson   Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+}
+
+
+// --- Resource Marketplace ----------------------------------------------------
+model MarketplaceResource {
+  id          String         @id @default(cuid())
+  ownerId     String
+  title       String
+  slug        String         @unique
+  description String         @db.Text
+  category    ResourceCategory
+  status      ResourceStatus @default(DRAFT)
+  thumbnailUrl String?
+  filePath    String
+  fileName    String
+  fileSize    Int?
+  mimeType    String?
+  isFree      Boolean        @default(true)
+  price       Decimal?       @db.Decimal(10, 2)
+  currency    String         @default("NGN")
+  courseId    String?
+  moduleId    String?
+  lessonId    String?
+  publishedAt DateTime?
+  owner       User           @relation("MarketplaceResourceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  course      Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  module      Module?        @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  lesson      Lesson?        @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  accesses    ResourceAccess[]
+  reviews     ResourceReview[]
+  downloads   ResourceDownload[]
+  orders      PurchaseOrder[]
+  earnings    InstructorEarning[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  @@index([ownerId, status])
+  @@index([status, publishedAt])
+  @@index([courseId])
+}
+
+model ResourceAccess {
+  id         String               @id @default(cuid())
+  resourceId String
+  userId     String
+  source     ResourceAccessSource
+  orderId    String?              @unique
+  grantedById String?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  resource   MarketplaceResource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  @@unique([resourceId, userId])
+  @@index([userId, revokedAt])
+}
+
+model ResourceReview {
+  id         String               @id @default(cuid())
+  resourceId String
+  reviewerId String
+  status     ResourceReviewStatus
+  note       String?              @db.Text
+  resource   MarketplaceResource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  reviewer   User                 @relation("ResourceReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime             @default(now())
+  @@index([resourceId, createdAt])
+}
+
+model ResourceDownload {
+  id         String               @id @default(cuid())
+  resourceId String
+  userId     String
+  resource   MarketplaceResource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  createdAt  DateTime             @default(now())
+  @@index([resourceId])
+  @@index([userId])
+}
+
+enum ResourceCategory {
+  TEMPLATE
+  STARTER_KIT
+  MOCKUP
+  ASSET
+  GUIDE
+  OTHER
+}
+
+enum ResourceStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  UNPUBLISHED
+  ARCHIVED
+}
+
+enum ResourceAccessSource {
+  FREE_CLAIM
+  PURCHASE
+  GRANT
+}
+
+enum ResourceReviewStatus {
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
 }
 
 model Quiz {
@@ -534,6 +650,7 @@ model PurchaseOrder {
   id                String              @id @default(cuid())
   userId            String
   courseId          String?
+  resourceId        String?
   mentorBookingId   String?             @unique
   type              OrderType           @default(COURSE)
   status            OrderStatus         @default(PENDING)
@@ -548,6 +665,7 @@ model PurchaseOrder {
 
   user     User    @relation("StudentOrders", fields: [userId], references: [id], onDelete: Cascade)
   course   Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  resource MarketplaceResource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
   mentorBooking MentorBooking? @relation(fields: [mentorBookingId], references: [id], onDelete: SetNull)
   payments Payment[]
   earnings InstructorEarning[]
@@ -556,6 +674,7 @@ model PurchaseOrder {
 
   @@index([userId])
   @@index([courseId])
+  @@index([resourceId])
   @@index([mentorBookingId])
   @@index([status])
   @@index([createdAt])
@@ -591,6 +710,7 @@ model InstructorEarning {
   id               String        @id @default(cuid())
   instructorId     String
   courseId         String?
+  resourceId       String?
   orderId          String?
   paymentId        String?
   grossAmount      Decimal       @db.Decimal(12, 2)
@@ -608,12 +728,14 @@ model InstructorEarning {
 
   instructor User           @relation("InstructorEarnings", fields: [instructorId], references: [id], onDelete: Cascade)
   course     Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  resource   MarketplaceResource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
   order      PurchaseOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
   payment    Payment?       @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   payoutRequest PayoutRequest? @relation(fields: [payoutRequestId], references: [id], onDelete: SetNull)
 
   @@index([instructorId])
   @@index([courseId])
+  @@index([resourceId])
   @@index([status])
   @@index([payoutRequestId])
   @@index([createdAt])
@@ -767,6 +889,7 @@ model UserSubscription {
 }
 
 enum OrderType {
+  RESOURCE
   COURSE
   MENTORSHIP
   SUBSCRIPTION
@@ -1036,6 +1159,36 @@ model Announcement {
 
   @@index([status])
   @@index([audience, publishedAt])
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HomepageReview {
+  id        String              @id @default(cuid())
+  name      String
+  role      String?
+  avatarUrl String?
+  content   String              @db.Text
+  rating    Int?
+  source    String?
+  status    ReviewPublishStatus @default(PENDING)
+  featured  Boolean             @default(false)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([status, featured])
+  @@index([createdAt])
+}
+
+enum ReviewPublishStatus {
+  PENDING
+  PUBLISHED
+  ARCHIVED
 }
 
 model AuditLog {
@@ -1580,6 +1733,7 @@ enum AchievementTrigger {
   STREAK_DAYS
   COURSE_COMPLETE
   PUBLISH_COURSE
+  ACCOUNT_CREATED
 }
 
 enum AchievementRole {
@@ -1658,6 +1812,26 @@ model CourseRating {
 
   @@unique([studentId, courseId])
   @@index([courseId])
+}
+
+model LearnerInterestProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  interestAreas         Json
+  skillLevel            String
+  primaryGoal           String
+  learningStyle         Json?
+  note                  String?   @db.Text
+  onboardingCompletedAt DateTime?
+  onboardingVersion     String    @default("launch-v1")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([skillLevel])
+  @@index([primaryGoal])
+  @@index([createdAt])
 }
 
 // ─── Integrated Certification Exams ──────────────────────────────────────────

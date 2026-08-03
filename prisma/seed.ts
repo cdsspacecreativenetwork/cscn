@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { AchievementRole, AchievementTrigger, PrismaClient } from "@prisma/client";
 import { PrismaNeonHttp } from "@prisma/adapter-neon";
 
 const url = (process.env.DATABASE_URL ?? "").replace(/^['"]|['"]$/g, "");
@@ -1546,78 +1546,93 @@ Taught by a former Stripe staff engineer who has worked on systems serving milli
   );
 
   console.log("Seeding achievements...");
-  const defaultAchievements = [
+  const defaultAchievements: {
+    name: string;
+    description: string;
+    icon: string;
+    triggerType: AchievementTrigger;
+    threshold: number;
+    role: AchievementRole;
+  }[] = [
     {
       name: "First Step",
       description: "Complete your first lesson",
       icon: "CheckCircle",
-      triggerType: "LESSON_COUNT",
+      triggerType: AchievementTrigger.LESSON_COUNT,
       threshold: 1,
-      role: "LEARNER",
+      role: AchievementRole.LEARNER,
     },
     {
       name: "Curious Mind",
       description: "Complete 5 lessons on the platform",
       icon: "BookOpen",
-      triggerType: "LESSON_COUNT",
+      triggerType: AchievementTrigger.LESSON_COUNT,
       threshold: 5,
-      role: "LEARNER",
+      role: AchievementRole.LEARNER,
     },
     {
       name: "7-Day Streak",
       description: "Learn or teach for 7 consecutive days",
       icon: "Flame",
-      triggerType: "STREAK_DAYS",
+      triggerType: AchievementTrigger.STREAK_DAYS,
       threshold: 7,
-      role: "HYBRID",
+      role: AchievementRole.HYBRID,
     },
     {
       name: "30-Day Streak",
       description: "Learn or teach for 30 consecutive days",
       icon: "Zap",
-      triggerType: "STREAK_DAYS",
+      triggerType: AchievementTrigger.STREAK_DAYS,
       threshold: 30,
-      role: "HYBRID",
+      role: AchievementRole.HYBRID,
     },
     {
       name: "Course Completer",
       description: "Complete any course fully",
       icon: "Award",
-      triggerType: "COURSE_COMPLETE",
+      triggerType: AchievementTrigger.COURSE_COMPLETE,
       threshold: 1,
-      role: "LEARNER",
+      role: AchievementRole.LEARNER,
     },
     {
       name: "First Student",
       description: "Get your first student enrolled in a course",
       icon: "UserPlus",
-      triggerType: "STUDENT_COUNT",
+      triggerType: AchievementTrigger.STUDENT_COUNT,
       threshold: 1,
-      role: "CREATOR",
+      role: AchievementRole.CREATOR,
     },
     {
       name: "Rising Star",
       description: "Get 50 students enrolled across your courses",
       icon: "Sparkles",
-      triggerType: "STUDENT_COUNT",
+      triggerType: AchievementTrigger.STUDENT_COUNT,
       threshold: 50,
-      role: "CREATOR",
+      role: AchievementRole.CREATOR,
     },
     {
       name: "Century",
       description: "Get 100 students enrolled across your courses",
       icon: "Trophy",
-      triggerType: "STUDENT_COUNT",
+      triggerType: AchievementTrigger.STUDENT_COUNT,
       threshold: 100,
-      role: "CREATOR",
+      role: AchievementRole.CREATOR,
     },
     {
       name: "Published",
       description: "Publish your first course successfully",
       icon: "Globe",
-      triggerType: "PUBLISH_COURSE",
+      triggerType: AchievementTrigger.PUBLISH_COURSE,
       threshold: 1,
-      role: "CREATOR",
+      role: AchievementRole.CREATOR,
+    },
+    {
+      name: "Pioneer Member",
+      description: "Joined CSCN as part of the founding learner cohort",
+      icon: "Sparkles",
+      triggerType: AchievementTrigger.ACCOUNT_CREATED,
+      threshold: 1,
+      role: AchievementRole.LEARNER,
     },
   ];
 
@@ -1627,11 +1642,11 @@ Taught by a former Stripe staff engineer who has worked on systems serving milli
       update: {
         description: ach.description,
         icon: ach.icon,
-        triggerType: ach.triggerType as any,
+        triggerType: ach.triggerType,
         threshold: ach.threshold,
-        role: ach.role as any,
+        role: ach.role,
       },
-      create: ach as any,
+      create: ach,
     });
   }
 

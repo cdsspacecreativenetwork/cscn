@@ -41,6 +41,9 @@ export default async function DashboardPage() {
     return <InstructorDashboardClient data={data} user={user} creatorReadiness={creatorReadiness} />;
   } else {
     const data = await getStudentDashboardData(user.id, role);
+    if (data.marketingSettings.launchMode && !data.hasCompletedLearnerOnboarding) {
+      redirect('/onboarding');
+    }
     return <StudentDashboardClient data={data} user={user} />;
   }
 }

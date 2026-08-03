@@ -170,7 +170,7 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
               className="object-cover"
             />
             <div 
-              className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer backdrop-blur-[2px]"
+              className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer backdrop-blur-[2px] rounded-full"
             >
               <Camera className="text-white mb-1" size={28} />
               <span className="text-white text-xs font-bold tracking-wider">UPDATE</span>

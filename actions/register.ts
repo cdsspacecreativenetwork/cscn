@@ -11,6 +11,16 @@ import { generateVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/mail";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { generateTapbackAvatar } from "@/lib/avatar";
+import { getMarketingSettings, PIONEER_COHORT } from "@/data/marketing";
+import { awardPioneerAchievement } from "@/lib/services/achievements.service";
+
+function getSafeRedirectPath(value?: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return DEFAULT_LOGIN_REDIRECT;
+  }
+
+  return value;
+}
 
 export const register = async (values: z.infer<typeof RegisterSchema>) => {
   const validatedFields = RegisterSchema.safeParse(values);
@@ -19,7 +29,7 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
     return { error: "Invalid fields!" };
   }
 
-  const { email, password, firstName, lastName } = validatedFields.data;
+  const { email, password, firstName, lastName, callbackUrl } = validatedFields.data;
   const fullName = `${firstName} ${lastName}`;
   const hashedPassword = await bcrypt.hash(password, 10);
   
@@ -31,7 +41,10 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
     return { error: "Email already in use!" };
   }
 
-  await db.user.create({
+  const marketingSettings = await getMarketingSettings();
+  const shouldAwardPioneer = marketingSettings.launchMode && marketingSettings.pioneerBadgeEnabled;
+
+  const user = await db.user.create({
     data: {
       firstName,
       lastName,
@@ -39,8 +52,15 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
       email,
       password: hashedPassword,
       image: avatarUrl,
+      onboardingCohort: shouldAwardPioneer ? PIONEER_COHORT : null,
+      pioneerJoinedAt: shouldAwardPioneer ? new Date() : null,
     },
+    select: { id: true },
   });
+
+  if (shouldAwardPioneer) {
+    await awardPioneerAchievement(user.id);
+  }
 
   const verificationToken = await generateVerificationToken(email);
   await sendVerificationEmail(
@@ -52,8 +72,12 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
   await signIn("credentials", {
     email,
     password,
-    redirectTo: DEFAULT_LOGIN_REDIRECT,
+    redirectTo: getSafeRedirectPath(callbackUrl),
   });
 
-  return { success: "Registration successful!" };
+  return {
+    success: shouldAwardPioneer
+      ? "Welcome onboard. You're part of the CSCN Pioneer Cohort."
+      : "Registration successful!",
+  };
 };

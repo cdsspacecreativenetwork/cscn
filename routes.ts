@@ -37,7 +37,9 @@ export const authRoutes = [
 export const apiAuthPrefix = "/api/auth";
 
 /**
- * The default redirect path after logging in
+ * The default redirect path after logging in. This route resolves the user's
+ * real destination server-side, so launch-mode students do not flicker through
+ * the dashboard before onboarding.
  * @type {string}
  */
-export const DEFAULT_LOGIN_REDIRECT = "/dashboard";
+export const DEFAULT_LOGIN_REDIRECT = "/auth/continue";

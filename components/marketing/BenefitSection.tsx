@@ -11,9 +11,12 @@ export default function BenefitSection() {
   };
 
   const images = {
-    left: '/assets/one/left.png',
+    left: 'https://res.cloudinary.com/vb0cug7o/image/upload/v1783508130/left_tszzhp.svg',
     middle: '/assets/one/learn from experts.png',
-    right: '/assets/one/right.png'
+    right: 'https://res.cloudinary.com/vb0cug7o/image/upload/v1783508360/right_gh9mbf.svg'
+    // left: '/assets/one/left.png',
+    // middle: '/assets/one/learn from experts.png',
+    // right: '/assets/one/right.png'
   };
 
   return (

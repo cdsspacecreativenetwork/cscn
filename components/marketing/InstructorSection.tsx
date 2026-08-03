@@ -81,7 +81,7 @@ export default function InstructorSection({ instructors = [] }: InstructorSectio
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1, duration: 0.6 }}
-                className="relative h-[400px] w-full rounded-3xl overflow-hidden group cursor-pointer"
+                className="relative h-[450px] w-full rounded-3xl overflow-hidden group cursor-pointer"
               >
                 {/* Background Image */}
                 <div className="absolute inset-0 bg-gray-200">

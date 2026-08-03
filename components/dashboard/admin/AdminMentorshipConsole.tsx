@@ -509,7 +509,7 @@ export function AdminMentorshipConsole({ data, canManageMentorship }: Props) {
         <div className="rounded-[22px] border border-[#D8E0EF] bg-white p-5 shadow-sm lg:p-6">
           <h2 className="text-[22px] font-black tracking-[-0.04em] text-[#040B37]">Needs attention</h2>
           <p className="mt-1 text-[13px] font-semibold text-[#9CA3AF]">Quality signals before this becomes a full disputes/no-show system.</p>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 space-y-3 md:grid md:grid-cols-3 gap-4">
             {data.issues.map((issue) => (
               <div key={issue.label} className="rounded-[16px] border border-[#E3E8F4] bg-[#F8FAFC] p-4">
                 <div className="flex items-start justify-between gap-3">

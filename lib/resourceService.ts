@@ -18,6 +18,7 @@ export interface Resource {
 export interface ResourceResponse {
   resources: Resource[];
   courses: string[];
+  canViewTeachingResources: boolean;
 }
 
 export const getResources = async (

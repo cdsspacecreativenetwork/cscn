@@ -47,7 +47,7 @@ export const BaseLayout = ({
           <Container className="border border-solid border-[#e3e8f4] rounded-[16px] my-[40px] mx-auto p-[40px] max-w-[600px] bg-white shadow-xl">
             <Section className="mt-[32px]">
               <Img
-                src={`${url}/assets/images/logo.svg`} 
+                src={`https://res.cloudinary.com/vb0cug7o/image/upload/v1783958463/logo_re0xsl.svg`}
                 width="120"
                 height="auto"
                 alt="CSCN Logo"
