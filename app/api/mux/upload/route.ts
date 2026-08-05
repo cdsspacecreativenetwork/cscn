@@ -1,9 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { db } from '@/lib/db';
-import { mux } from '@/lib/mux';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { mux } from "@/lib/mux";
 
-async function getLessonWithAccess(lessonId: string, userId: string, userRole: string | undefined) {
+async function getLessonWithAccess(
+  lessonId: string,
+  userId: string,
+  userRole: string | undefined,
+) {
   const lesson = await db.lesson.findUnique({
     where: { id: lessonId },
     select: {
@@ -24,7 +28,7 @@ async function getLessonWithAccess(lessonId: string, userId: string, userRole: s
   });
   if (!lesson) return null;
 
-  const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+  const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
   const isOwner =
     lesson.module.course.instructorId === userId ||
     lesson.module.course.instructors.some((i) => i.userId === userId);
@@ -35,39 +39,72 @@ async function getLessonWithAccess(lessonId: string, userId: string, userRole: s
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const lessonId = new URL(req.url).searchParams.get('lessonId');
-  if (!lessonId) return NextResponse.json({ error: 'lessonId required' }, { status: 400 });
+  const lessonId = new URL(req.url).searchParams.get("lessonId");
+  if (!lessonId)
+    return NextResponse.json({ error: "lessonId required" }, { status: 400 });
 
-  const lesson = await getLessonWithAccess(lessonId, session.user.id, session.user.role as string);
-  if (!lesson) return NextResponse.json({ error: 'Not found or forbidden' }, { status: 404 });
+  const lesson = await getLessonWithAccess(
+    lessonId,
+    session.user.id,
+    session.user.role as string,
+  );
+  if (!lesson)
+    return NextResponse.json(
+      { error: "Not found or forbidden" },
+      { status: 404 },
+    );
 
-  const upload = await mux.video.uploads.create({
-    cors_origin: process.env.NEXT_PUBLIC_APP_URL ?? '*',
-    new_asset_settings: {
-      playback_policy: ['signed'],
-      generated_subtitles: [{ language_code: 'en', name: 'English' }]
-    } as any,
-  });
+  try {
+    const upload = await mux.video.uploads.create({
+      cors_origin: process.env.NEXT_PUBLIC_APP_URL ?? "*",
+      new_asset_settings: {
+        playback_policy: ["signed"],
+        generated_subtitles: [{ language_code: "en", name: "English" }],
+      } as any,
+    });
 
-  await db.lesson.update({
-    where: { id: lessonId },
-    data: { muxUploadId: upload.id, muxStatus: 'UPLOADING' },
-  });
+    await db.lesson.update({
+      where: { id: lessonId },
+      data: { muxUploadId: upload.id, muxStatus: "UPLOADING" },
+    });
 
-  return NextResponse.json({ uploadUrl: upload.url, uploadId: upload.id });
+    return NextResponse.json({ uploadUrl: upload.url, uploadId: upload.id });
+  } catch (err: any) {
+    // console.log("🚀 ~ POST ~ err:", err)
+    console.error("Mux upload creation failed:", err);
+    return NextResponse.json(
+      {
+        error:
+          err.message ||
+          "Failed to create Mux upload. Please check Mux environment variables.",
+      },
+      { status: 500 },
+    );
+  }
 }
 
 export async function DELETE(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const lessonId = new URL(req.url).searchParams.get('lessonId');
-  if (!lessonId) return NextResponse.json({ error: 'lessonId required' }, { status: 400 });
+  const lessonId = new URL(req.url).searchParams.get("lessonId");
+  if (!lessonId)
+    return NextResponse.json({ error: "lessonId required" }, { status: 400 });
 
-  const lesson = await getLessonWithAccess(lessonId, session.user.id, session.user.role as string);
-  if (!lesson) return NextResponse.json({ error: 'Not found or forbidden' }, { status: 404 });
+  const lesson = await getLessonWithAccess(
+    lessonId,
+    session.user.id,
+    session.user.role as string,
+  );
+  if (!lesson)
+    return NextResponse.json(
+      { error: "Not found or forbidden" },
+      { status: 404 },
+    );
 
   // Delete the Mux asset if one exists (covers PROCESSING and READY states)
   if (lesson.muxAssetId) {
@@ -85,7 +122,7 @@ export async function DELETE(req: NextRequest) {
       muxUploadId: null,
       muxAssetId: null,
       muxPlaybackId: null,
-      muxStatus: 'NONE',
+      muxStatus: "NONE",
     },
   });
 

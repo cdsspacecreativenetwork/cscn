@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { NotificationDropdown } from './NotificationDropdown';
 import { useNotifications } from '@/hooks/useNotifications';
 import { UserAvatarMenu } from './UserAvatarMenu';
+import { CommandPaletteModal } from './CommandPaletteModal';
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -20,41 +21,29 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const isLoading = status === 'loading' || (status === 'authenticated' && !session?.user?.name);
 
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
-  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);
   const { notifications, unreadCount, markRead, markAllRead, markVisibleAsSeen } = useNotifications();
 
+  // Listen for Cmd+K / Ctrl+K keyboard shortcut globally
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
-    <header className="h-[clamp(60px,4.17vw,72px)] bg-white border-b border-[#E3E8F4] flex items-center justify-between gap-3 px-[clamp(16px,1.85vw,32px)] sticky top-0 z-40 shrink-0">
+    <header className="h-[clamp(60px,4.17vw,72px)] bg-white border-b border-[#E3E8F4] flex items-center justify-between gap-3 px-[clamp(16px,1.85vw,32px)] sticky top-0 z-40 shrink-0 font-jakarta">
       {/* Click-outside backdrop for notifications */}
       {isNotificationsOpen && (
         <div 
           className="fixed inset-0 z-30" 
           onClick={() => setIsNotificationsOpen(false)}
         />
-      )}
-
-      {isSearchOpen && (
-        <div className="fixed inset-0 z-[80] bg-[#040B37]/25 p-4 backdrop-blur-sm md:hidden">
-          <div className="mx-auto mt-4 flex w-full max-w-lg items-center gap-2 rounded-2xl border border-[#D8E0EE] bg-white p-2 shadow-[0_22px_60px_rgba(4,11,55,0.18)]">
-            <div className="relative min-w-0 flex-1">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-              <input
-                autoFocus
-                type="text"
-                placeholder="Search courses, lessons, people..."
-                className="h-11 w-full rounded-xl bg-[#F4F6FB] pl-11 pr-4 text-[15px] font-semibold text-[#040B37] outline-none placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-[#1C4ED1]/15"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsSearchOpen(false)}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E3E8F4] text-[#4B5563]"
-              aria-label="Close search"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
       )}
 
       {/* Left Area: Menu Toggle (Mobile) + Search */}
@@ -72,26 +61,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           />
         </button>
 
-        {/* Search Bar - Fluid Width */}
+        {/* Mobile Search Button */}
         <button
           type="button"
-          onClick={() => setIsSearchOpen(true)}
+          onClick={() => setIsCommandPaletteOpen(true)}
           className="flex h-[clamp(40px,2.55vw,44px)] w-[clamp(40px,2.55vw,44px)] items-center justify-center rounded-[12px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#4B5563] transition hover:border-[#1C4ED1] hover:text-[#1C4ED1] md:hidden"
-          aria-label="Open search"
+          aria-label="Open command palette search"
         >
           <Search size={20} />
         </button>
 
-        <div className="relative hidden w-[clamp(220px,26.68vw,461px)] group md:block">
-          <div className="absolute left-[clamp(12px,0.92vw,16px)] top-1/2 -translate-y-1/2 text-[#9CA3AF] group-focus-within:text-[#1C4ED1] transition-colors">
-            <Search size={20} style={{ width: 'clamp(16px, 1.15vw, 20px)', height: 'clamp(16px, 1.15vw, 20px)' }} />
+        {/* Desktop Search Trigger Input with ⌘K Badge */}
+        <button
+          type="button"
+          onClick={() => setIsCommandPaletteOpen(true)}
+          className="relative hidden w-[clamp(220px,26.68vw,461px)] group md:flex items-center justify-between h-[clamp(40px,2.55vw,44px)] px-[clamp(14px,1.15vw,18px)] bg-[#F4F6FB] border border-[#E3E8F4] rounded-full text-[#9CA3AF] hover:border-[#1C4ED1]/50 hover:bg-white transition-all text-left group"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Search size={18} className="text-[#9CA3AF] group-hover:text-[#1C4ED1] transition-colors shrink-0" />
+            <span className="text-[clamp(13px,0.92vw,14px)] font-medium text-[#6B7280] group-hover:text-[#040B37] truncate">
+              Search features & sections...
+            </span>
           </div>
-          <input
-            type="text"
-            placeholder="Search..."
-            className="w-full h-[clamp(40px,2.55vw,44px)] pl-[clamp(38px,2.55vw,44px)] pr-[clamp(12px,0.92vw,16px)] bg-[#F4F6FB] border border-[#E3E8F4] rounded-full text-[clamp(14px,0.92vw,15px)] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] transition-all"
-          />
-        </div>
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[11px] font-extrabold text-[#4B5563] bg-white border border-[#E3E8F4] rounded-[6px] shadow-2xs font-mono shrink-0">
+            <span>⌘</span>K
+          </kbd>
+        </button>
       </div>
 
       {/* User Actions - Fluid Spacing */}
@@ -135,6 +130,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           <UserAvatarMenu user={session?.user ?? null} showUserText />
         )}
       </div>
+
+      {/* Global Command Palette Modal */}
+      <CommandPaletteModal
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
     </header>
   );
 };

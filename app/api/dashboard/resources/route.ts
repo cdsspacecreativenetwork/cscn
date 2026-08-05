@@ -7,6 +7,20 @@ function isResourceType(value: string | null): value is ResourceType {
   return value === 'PDF' || value === 'LINK' || value === 'FILE';
 }
 
+function deriveResourceType(mimeType: string | null, filePath: string): ResourceType {
+  if (filePath.toLowerCase().endsWith('.pdf') || mimeType?.includes('pdf')) return 'PDF';
+  if (filePath.startsWith('http://') || filePath.startsWith('https://') || mimeType === 'url') return 'LINK';
+  return 'FILE';
+}
+
+function formatBytes(bytes: number | null | undefined): string | undefined {
+  if (!bytes || bytes === 0) return undefined;
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 export async function GET(request: NextRequest) {
   const session = await auth();
   const userId = session?.user?.id;
@@ -21,17 +35,36 @@ export async function GET(request: NextRequest) {
   const courseTitle = searchParams.get('course')?.trim();
   const role = session.user.role as string | undefined;
 
-  const teachingCourseCount = await db.course.count({
+  const instructorCoursesRaw = await db.course.findMany({
     where: {
       OR: [
         { instructorId: userId },
         { instructors: { some: { userId } } },
       ],
     },
+    select: {
+      id: true,
+      title: true,
+      modules: {
+        orderBy: { position: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          lessons: {
+            orderBy: { position: 'asc' },
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { title: 'asc' },
   });
+
   const canViewTeachingResources =
-    teachingCourseCount > 0 ||
-    role === 'INSTRUCTOR';
+    instructorCoursesRaw.length > 0 || role === 'INSTRUCTOR';
 
   if (scope === 'instructor' && !canViewTeachingResources) {
     return NextResponse.json({ error: 'Teaching resources are not available for this account.' }, { status: 403 });
@@ -54,21 +87,30 @@ export async function GET(request: NextRequest) {
           },
         };
 
-  const where: Prisma.LessonResourceWhereInput = {
+  // 1. Fetch Lesson Resources
+  const whereLessonResource: Prisma.LessonResourceWhereInput = {
     ...(query ? { title: { contains: query, mode: 'insensitive' as const } } : {}),
     ...(isResourceType(type) ? { type } : {}),
-    lesson: {
-      module: {
-        course: {
-          ...courseAccess,
-          ...(courseTitle ? { title: courseTitle } : {}),
+    ...(courseTitle && courseTitle !== 'General Resources' ? {
+      lesson: {
+        module: {
+          course: {
+            ...courseAccess,
+            title: courseTitle,
+          },
         },
       },
-    },
+    } : {
+      lesson: {
+        module: {
+          course: courseAccess,
+        },
+      },
+    }),
   };
 
-  const rows = await db.lessonResource.findMany({
-    where,
+  const lessonRows = courseTitle === 'General Resources' ? [] : await db.lessonResource.findMany({
+    where: whereLessonResource,
     orderBy: { createdAt: 'desc' },
     take: 200,
     select: {
@@ -95,9 +137,66 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const resources = scope === 'instructor'
+  // 2. Fetch Marketplace Resources (Standalone or Course-linked)
+  const whereMarketplaceResource: Prisma.MarketplaceResourceWhereInput = scope === 'instructor'
+    ? {
+        ownerId: userId,
+        ...(query ? {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' as const } },
+            { description: { contains: query, mode: 'insensitive' as const } },
+          ],
+        } : {}),
+        ...(courseTitle === 'General Resources'
+          ? { courseId: null }
+          : courseTitle && courseTitle !== 'All Courses'
+          ? { course: { title: courseTitle } }
+          : {}),
+      }
+    : {
+        status: 'PUBLISHED',
+        ...(query ? {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' as const } },
+            { description: { contains: query, mode: 'insensitive' as const } },
+          ],
+        } : {}),
+        ...(courseTitle === 'General Resources'
+          ? { courseId: null }
+          : courseTitle && courseTitle !== 'All Courses'
+          ? { course: { title: courseTitle } }
+          : {}),
+      };
+
+  const marketplaceRows = await db.marketplaceResource.findMany({
+    where: whereMarketplaceResource,
+    orderBy: { createdAt: 'desc' },
+    take: 200,
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      filePath: true,
+      fileName: true,
+      fileSize: true,
+      mimeType: true,
+      thumbnailUrl: true,
+      category: true,
+      isFree: true,
+      price: true,
+      currency: true,
+      courseId: true,
+      moduleId: true,
+      lessonId: true,
+      course: { select: { title: true } },
+      lesson: { select: { title: true } },
+      slug: true,
+    },
+  });
+
+  const formattedLessonResources = scope === 'instructor'
     ? Array.from(
-        rows.reduce((map, row) => {
+        lessonRows.reduce((map, row) => {
           const key = `${row.type}::${row.url}::${row.title}`;
           const existing = map.get(key);
           if (existing) {
@@ -110,38 +209,74 @@ export async function GET(request: NextRequest) {
             id: row.id,
             title: row.title,
             url: row.url,
-            type: row.type,
+            type: row.type as ResourceType,
             category: row.lesson.module.course.category?.name ?? row.lesson.module.title,
             courseTitle: row.lesson.module.course.title,
             lessonTitle: row.lesson.title,
             scope,
             usageCount: 1,
+            isStandalone: false,
+            isFree: true,
           });
           return map;
-        }, new Map<string, {
-          id: string;
-          title: string;
-          url: string;
-          type: ResourceType;
-          category: string;
-          courseTitle: string;
-          lessonTitle: string;
-          scope: typeof scope;
-          usageCount: number;
-        }>())
+        }, new Map<string, any>())
       ).map(([, resource]) => resource)
-    : rows.map((row) => ({
+    : lessonRows.map((row) => ({
         id: row.id,
         title: row.title,
         url: row.url,
-        type: row.type,
+        type: row.type as ResourceType,
         category: row.lesson.module.course.category?.name ?? row.lesson.module.title,
         courseTitle: row.lesson.module.course.title,
         lessonTitle: row.lesson.title,
         scope,
+        isStandalone: false,
+        isFree: true,
       }));
 
-  const courses = Array.from(new Set(resources.map((resource) => resource.courseTitle))).sort();
+  const formattedMarketplaceResources = marketplaceRows.map((row) => {
+    const derivedType = deriveResourceType(row.mimeType, row.filePath);
+    const downloadUrl = row.filePath.startsWith('http')
+      ? row.filePath
+      : `/api/resources/${row.slug}/download`;
 
-  return NextResponse.json({ resources, courses, canViewTeachingResources });
+    return {
+      id: row.id,
+      title: row.title,
+      slug: row.slug,
+      description: row.description,
+      url: downloadUrl,
+      type: derivedType,
+      size: formatBytes(row.fileSize),
+      thumbnail: row.thumbnailUrl || undefined,
+      category: row.category || 'General',
+      courseTitle: row.course?.title || 'General Resource',
+      lessonTitle: row.lesson?.title || (row.courseId ? 'Course Asset' : 'Standalone Download'),
+      scope,
+      isStandalone: !row.courseId,
+      courseId: row.courseId || undefined,
+      moduleId: row.moduleId || undefined,
+      lessonId: row.lessonId || undefined,
+      isFree: row.isFree,
+      price: row.price ? Number(row.price) : undefined,
+      currency: row.currency || 'NGN',
+    };
+  });
+
+  const combinedResources = [...formattedMarketplaceResources, ...formattedLessonResources];
+
+  // Filter by ResourceType if specified
+  const filteredResources = isResourceType(type)
+    ? combinedResources.filter((r) => r.type === type)
+    : combinedResources;
+
+  const rawCourses = Array.from(new Set(combinedResources.map((resource) => resource.courseTitle))).sort();
+  const courses = ['All Courses', 'General Resources', ...rawCourses.filter((c) => c !== 'General Resource')];
+
+  return NextResponse.json({
+    resources: filteredResources,
+    courses: Array.from(new Set(courses)),
+    canViewTeachingResources,
+    instructorCourses: instructorCoursesRaw,
+  });
 }

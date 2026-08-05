@@ -1,9 +1,22 @@
 import Link from "next/link";
 import { getPublishedMarketplaceResources } from "@/data/marketplace-resources";
-import { claimFreeResourceAction, redirectToResourceCheckoutAction } from "@/actions/marketplace-resources";
+import PublicResourcesClient from "./PublicResourcesClient";
 
 export const metadata = { title: "Resources | CSCN Learning Platform" };
 export default async function ResourcesPage() {
   const resources = await getPublishedMarketplaceResources();
-  return <main className="mx-auto min-h-screen max-w-[83rem] px-4 pb-16 pt-32"><div className="mb-10 flex items-end justify-between"><div><h1 className="text-3xl font-semibold text-navy">Resources</h1><p className="mt-2 text-text-mute">Templates, starter kits, guides, and design assets from CSCN instructors.</p></div><Link className="text-sm font-bold text-primary" href="/dashboard/instructor/resources">Creator library</Link></div><div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{resources.map((resource) => <article key={resource.id} className="rounded-2xl border border-stroke bg-white p-5"><p className="text-xs font-bold uppercase tracking-widest text-primary">{resource.category.replaceAll("_", " ")}</p><h2 className="mt-3 text-xl font-bold text-navy">{resource.title}</h2><p className="mt-2 line-clamp-3 text-sm text-text-mute">{resource.description}</p><p className="mt-4 text-sm font-medium text-text-mute">By {resource.owner.name ?? "CSCN Instructor"}{resource.course ? ` · Linked to ${resource.course.title}` : ""}</p><form className="mt-5" action={resource.isFree ? claimFreeResourceAction.bind(null, resource.slug) : redirectToResourceCheckoutAction.bind(null, resource.slug)}><button className="w-full rounded-full border border-stroke px-4 py-3 font-bold text-navy hover:bg-background">{resource.isFree ? "Claim free resource" : `Buy ?${Number(resource.price).toLocaleString()}`}</button></form></article>)}</div>{resources.length === 0 && <p className="rounded-xl border border-dashed border-stroke p-10 text-center text-text-mute">No resources are published yet.</p>}</main>;
+
+  return (
+    <main className="mx-auto min-h-screen max-w-[83rem] px-4 pb-16 pt-32 font-jakarta">
+      <div className="mb-10 flex items-end justify-between">
+        <div>
+          <h1 className="text-[32px] font-semibold text-text-title leading-10 lg:pt-10">
+            Resources
+          </h1>
+        </div>
+      </div>
+      
+      <PublicResourcesClient resources={resources} />
+    </main>
+  );
 }

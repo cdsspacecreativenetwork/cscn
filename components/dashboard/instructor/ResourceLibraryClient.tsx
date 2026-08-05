@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ChangeEvent, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -24,7 +24,10 @@ function CreateResourceModal({ courses, onClose }: { courses: Course[]; onClose:
 
   const submit = (formData: FormData) => startTransition(async () => {
     const result = await createMarketplaceResourceAction(formData);
-    if (result?.error) return toast.error(result.error);
+    if (result?.error) {
+      toast.error(result.error);
+      return;
+    }
     toast.success("Resource draft created. Submit it when you are ready for review.");
     router.refresh(); onClose();
   });

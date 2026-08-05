@@ -12,6 +12,12 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   if (!resource) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const allowed = resource.ownerId === session.user.id || await userCanDownloadResource(session.user.id, resource.id);
   if (!allowed) return NextResponse.json({ error: "Resource access is required" }, { status: 403 });
+  
+  if (resource.filePath.startsWith("/uploads/")) {
+    await db.resourceDownload.create({ data: { resourceId: resource.id, userId: session.user.id } });
+    return NextResponse.redirect(new URL(resource.filePath, _.url).toString());
+  }
+
   const { data, error } = await storage.storage.from("marketplace-resources").createSignedUrl(resource.filePath, 60, { download: resource.fileName });
   if (error || !data?.signedUrl) return NextResponse.json({ error: "Download unavailable" }, { status: 503 });
   await db.resourceDownload.create({ data: { resourceId: resource.id, userId: session.user.id } });

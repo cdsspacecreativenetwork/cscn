@@ -18,47 +18,268 @@ const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]
 async function requireCreator() {
   const user = await currentUser();
   if (!user?.id || !["INSTRUCTOR", "ADMIN", "SUPER_ADMIN"].includes(user.role ?? "")) throw new Error("Only instructors can create marketplace resources.");
-  return user;
+  return user as { id: string; role?: string };
 }
 
 export async function createMarketplaceResourceAction(formData: FormData) {
   const user = await requireCreator();
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const category = String(formData.get("category") ?? "OTHER");
+  const category = String(formData.get("category") ?? "ASSET");
   const price = Number(formData.get("price") ?? 0);
   const file = formData.get("file") as File | null;
   const thumbnail = formData.get("thumbnail") as File | null;
-  if (!title || !description || !file) return { error: "Title, description, and a download file are required." };
-  if (file.size > 100 * 1024 * 1024) return { error: "Files must be 100MB or smaller." };
+  const linkUrl = String(formData.get("linkUrl") ?? "").trim();
+  const resourceType = String(formData.get("type") ?? "FILE");
+
+  if (!title) return { error: "Resource title is required." };
+  if (!file && !linkUrl) return { error: "Please upload a file or provide a web link URL." };
+  if (file && file.size > 100 * 1024 * 1024) return { error: "Files must be 100MB or smaller." };
   if (price < 0) return { error: "Price cannot be negative." };
-  const { data: buckets } = await storage.storage.listBuckets();
-  if (!buckets?.some((bucket) => bucket.name === BUCKET)) await storage.storage.createBucket(BUCKET, { public: false });
-  const path = `${user.id}/${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-  const { error: uploadError } = await storage.storage.from(BUCKET).upload(path, file, { contentType: file.type || "application/octet-stream" });
-  if (uploadError) return { error: uploadError.message };
+
+  let path = linkUrl;
+  let fileName = linkUrl ? title : "file";
+  let fileSize = 0;
+  let mimeType: string | null = resourceType === "LINK" ? "url" : "application/octet-stream";
+
+  if (file && file.size > 0) {
+    fileName = file.name;
+    fileSize = file.size;
+    mimeType = file.type || "application/octet-stream";
+
+    try {
+      const { data: buckets } = await storage.storage.listBuckets();
+      if (!buckets?.some((bucket) => bucket.name === BUCKET)) {
+        await storage.storage.createBucket(BUCKET, { public: false });
+      }
+      path = `${user.id}/${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+      const { error: uploadError } = await storage.storage.from(BUCKET).upload(path, file, { contentType: mimeType });
+      if (uploadError) throw new Error(uploadError.message);
+    } catch (err: any) {
+      console.warn("Supabase upload failed, falling back to local file storage:", err.message);
+      const fs = require("fs");
+      const pathLib = require("path");
+      const localDir = pathLib.join(process.cwd(), "public", "uploads");
+      if (!fs.existsSync(localDir)) {
+        fs.mkdirSync(localDir, { recursive: true });
+      }
+      const uniqueName = `${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+      const localPath = pathLib.join(localDir, uniqueName);
+      const buffer = Buffer.from(await file.arrayBuffer());
+      fs.writeFileSync(localPath, buffer);
+      path = `/uploads/${uniqueName}`;
+    }
+  }
+
   let thumbnailUrl: string | null = null;
   if (thumbnail?.size) {
-    if (!thumbnail.type.startsWith("image/")) return { error: "Thumbnail must be an image." };
-    const thumbnailBucket = "marketplace-thumbnails";
-    const { data: thumbnailBuckets } = await storage.storage.listBuckets();
-    if (!thumbnailBuckets?.some((bucket) => bucket.name === thumbnailBucket)) await storage.storage.createBucket(thumbnailBucket, { public: true });
-    const thumbnailPath = `${user.id}/${uuidv4()}-${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-    const { error: thumbnailError } = await storage.storage.from(thumbnailBucket).upload(thumbnailPath, thumbnail, { contentType: thumbnail.type });
-    if (thumbnailError) return { error: thumbnailError.message };
-    thumbnailUrl = storage.storage.from(thumbnailBucket).getPublicUrl(thumbnailPath).data.publicUrl;
+    if (!thumbnail.type.startsWith("image/")) return { error: "Thumbnail must be an image file." };
+    try {
+      const thumbnailBucket = "marketplace-thumbnails";
+      const { data: thumbnailBuckets } = await storage.storage.listBuckets();
+      if (!thumbnailBuckets?.some((bucket) => bucket.name === thumbnailBucket)) {
+        await storage.storage.createBucket(thumbnailBucket, { public: true });
+      }
+      const thumbnailPath = `${user.id}/${uuidv4()}-${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+      const { error: thumbnailError } = await storage.storage.from(thumbnailBucket).upload(thumbnailPath, thumbnail, { contentType: thumbnail.type });
+      if (thumbnailError) throw new Error(thumbnailError.message);
+      thumbnailUrl = storage.storage.from(thumbnailBucket).getPublicUrl(thumbnailPath).data.publicUrl;
+    } catch (err: any) {
+      console.warn("Supabase thumbnail upload failed, falling back to local storage:", err.message);
+      const fs = require("fs");
+      const pathLib = require("path");
+      const localDir = pathLib.join(process.cwd(), "public", "uploads");
+      if (!fs.existsSync(localDir)) {
+        fs.mkdirSync(localDir, { recursive: true });
+      }
+      const uniqueName = `${uuidv4()}-${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+      const localPath = pathLib.join(localDir, uniqueName);
+      const buffer = Buffer.from(await thumbnail.arrayBuffer());
+      fs.writeFileSync(localPath, buffer);
+      thumbnailUrl = `/uploads/${uniqueName}`;
+    }
   }
+
   const courseId = String(formData.get("courseId") || "") || null;
   const moduleId = String(formData.get("moduleId") || "") || null;
   const lessonId = String(formData.get("lessonId") || "") || null;
+
   if (courseId) {
-    const linkedCourse = await db.course.findFirst({ where: { id: courseId, instructorId: user.id, ...(moduleId ? { modules: { some: { id: moduleId, ...(lessonId ? { lessons: { some: { id: lessonId } } } : {}) } } } : {}) }, select: { id: true } });
-    if (!linkedCourse) return { error: "Choose a course, module, and lesson that you own." };
+    const linkedCourse = await db.course.findFirst({
+      where: {
+        id: courseId,
+        OR: [
+          { instructorId: user.id },
+          { instructors: { some: { userId: user.id } } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!linkedCourse) return { error: "Choose a course that you instruct." };
   }
+
+  const isPaidStandalone = !courseId && price > 0;
+  const status = isPaidStandalone ? "PENDING_REVIEW" : "PUBLISHED";
+
   const slug = `${slugify(title)}-${uuidv4().slice(0, 6)}`;
-  const resource = await db.marketplaceResource.create({ data: { ownerId: user.id, title, slug, description, category: category as never, filePath: path, fileName: file.name, fileSize: file.size, mimeType: file.type || null, isFree: price === 0, price: price || null, courseId, moduleId, lessonId, currency: String(formData.get("currency") || "NGN") }, select: { id: true } });
+  const resource = await db.marketplaceResource.create({
+    data: {
+      ownerId: user.id,
+      title,
+      slug,
+      description: description || title,
+      category: category as never,
+      thumbnailUrl,
+      filePath: path,
+      fileName,
+      fileSize,
+      mimeType,
+      isFree: price === 0,
+      price: price || null,
+      courseId,
+      moduleId,
+      lessonId,
+      currency: String(formData.get("currency") || "NGN"),
+      status,
+      publishedAt: status === "PUBLISHED" ? new Date() : null,
+    },
+    select: { id: true },
+  });
+
+  revalidatePath("/dashboard/resources");
   revalidatePath("/dashboard/instructor/resources");
-  return { success: true, resourceId: resource.id };
+  return { success: true, resourceId: resource.id, status };
+}
+
+export async function updateMarketplaceResourceAction(resourceId: string, formData: FormData) {
+  const user = await requireCreator();
+  const existing = await db.marketplaceResource.findFirst({
+    where: { id: resourceId, ownerId: user.id },
+  });
+  if (!existing) return { error: "Resource not found or unauthorized." };
+
+  const title = String(formData.get("title") ?? "").trim() || existing.title;
+  const description = String(formData.get("description") ?? "").trim();
+  const price = Number(formData.get("price") ?? 0);
+  const file = formData.get("file") as File | null;
+  const thumbnail = formData.get("thumbnail") as File | null;
+  const linkUrl = String(formData.get("linkUrl") ?? "").trim();
+  const resourceType = String(formData.get("type") ?? "FILE");
+
+  let path = existing.filePath;
+  let fileName = existing.fileName;
+  let fileSize = existing.fileSize;
+  let mimeType = existing.mimeType;
+
+  if (linkUrl) {
+    path = linkUrl;
+    fileName = title;
+    fileSize = 0;
+    mimeType = "url";
+  } else if (file && file.size > 0) {
+    if (file.size > 100 * 1024 * 1024) return { error: "Files must be 100MB or smaller." };
+    fileName = file.name;
+    fileSize = file.size;
+    mimeType = file.type || "application/octet-stream";
+
+    try {
+      const { data: buckets } = await storage.storage.listBuckets();
+      if (!buckets?.some((b) => b.name === BUCKET)) {
+        await storage.storage.createBucket(BUCKET, { public: false });
+      }
+      path = `${user.id}/${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+      const { error: uploadError } = await storage.storage.from(BUCKET).upload(path, file, { contentType: mimeType });
+      if (uploadError) throw new Error(uploadError.message);
+    } catch (err: any) {
+      console.warn("Supabase file update failed, falling back to local storage:", err.message);
+      const fs = require("fs");
+      const pathLib = require("path");
+      const localDir = pathLib.join(process.cwd(), "public", "uploads");
+      if (!fs.existsSync(localDir)) {
+        fs.mkdirSync(localDir, { recursive: true });
+      }
+      const uniqueName = `${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+      const localPath = pathLib.join(localDir, uniqueName);
+      const buffer = Buffer.from(await file.arrayBuffer());
+      fs.writeFileSync(localPath, buffer);
+      path = `/uploads/${uniqueName}`;
+    }
+  }
+
+  let thumbnailUrl = existing.thumbnailUrl;
+  if (thumbnail?.size) {
+    if (!thumbnail.type.startsWith("image/")) return { error: "Thumbnail must be an image file." };
+    try {
+      const thumbnailBucket = "marketplace-thumbnails";
+      const { data: thumbnailBuckets } = await storage.storage.listBuckets();
+      if (!thumbnailBuckets?.some((b) => b.name === thumbnailBucket)) {
+        await storage.storage.createBucket(thumbnailBucket, { public: true });
+      }
+      const thumbnailPath = `${user.id}/${uuidv4()}-${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+      const { error: thumbnailError } = await storage.storage.from(thumbnailBucket).upload(thumbnailPath, thumbnail, { contentType: thumbnail.type });
+      if (thumbnailError) throw new Error(thumbnailError.message);
+      thumbnailUrl = storage.storage.from(thumbnailBucket).getPublicUrl(thumbnailPath).data.publicUrl;
+    } catch (err: any) {
+      console.warn("Supabase thumbnail update failed, falling back to local storage:", err.message);
+      const fs = require("fs");
+      const pathLib = require("path");
+      const localDir = pathLib.join(process.cwd(), "public", "uploads");
+      if (!fs.existsSync(localDir)) {
+        fs.mkdirSync(localDir, { recursive: true });
+      }
+      const uniqueName = `${uuidv4()}-${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+      const localPath = pathLib.join(localDir, uniqueName);
+      const buffer = Buffer.from(await thumbnail.arrayBuffer());
+      fs.writeFileSync(localPath, buffer);
+      thumbnailUrl = `/uploads/${uniqueName}`;
+    }
+  }
+
+  const courseId = String(formData.get("courseId") || "") || null;
+  const moduleId = String(formData.get("moduleId") || "") || null;
+  const lessonId = String(formData.get("lessonId") || "") || null;
+
+  const isPaidStandalone = !courseId && price > 0;
+  const status = isPaidStandalone ? "PENDING_REVIEW" : "PUBLISHED";
+
+  await db.marketplaceResource.update({
+    where: { id: resourceId },
+    data: {
+      title,
+      description: description || title,
+      thumbnailUrl,
+      filePath: path,
+      fileName,
+      fileSize,
+      mimeType,
+      isFree: price === 0,
+      price: price || null,
+      courseId,
+      moduleId,
+      lessonId,
+      status,
+      publishedAt: status === "PUBLISHED" ? new Date() : existing.publishedAt,
+    },
+  });
+
+  revalidatePath("/dashboard/resources");
+  return { success: true, status };
+}
+
+export async function deleteMarketplaceResourceAction(resourceId: string) {
+  const user = await requireCreator();
+  const existing = await db.marketplaceResource.findFirst({
+    where: { id: resourceId, ownerId: user.id },
+  });
+
+  if (!existing) return { error: "Resource not found or unauthorized." };
+
+  await db.marketplaceResource.delete({
+    where: { id: resourceId },
+  });
+
+  revalidatePath("/dashboard/resources");
+  return { success: true };
 }
 
 export async function submitMarketplaceResourceAction(resourceId: string) {
@@ -112,4 +333,42 @@ export async function grantMarketplaceResourceAccessAction(resourceId: string, e
   if (!owned) return { error: "Resource not found." };
   await db.resourceAccess.upsert({ where: { resourceId_userId: { resourceId, userId: recipient.id } }, create: { resourceId, userId: recipient.id, source: "GRANT", grantedById: user.id, expiresAt: expiresAt ? new Date(expiresAt) : null }, update: { source: "GRANT", grantedById: user.id, expiresAt: expiresAt ? new Date(expiresAt) : null, revokedAt: null } });
   return { success: true };
+}
+
+export async function duplicateMarketplaceResourceAction(resourceId: string) {
+  const user = await requireCreator();
+  const existing = await db.marketplaceResource.findFirst({
+    where: { id: resourceId, ownerId: user.id },
+  });
+
+  if (!existing) return { error: "Resource not found or unauthorized." };
+
+  const slug = `${slugify(existing.title)}-copy-${uuidv4().slice(0, 4)}`;
+
+  const duplicated = await db.marketplaceResource.create({
+    data: {
+      ownerId: user.id,
+      title: `${existing.title} (Copy)`,
+      slug,
+      description: existing.description,
+      category: existing.category,
+      thumbnailUrl: existing.thumbnailUrl,
+      filePath: existing.filePath,
+      fileName: existing.fileName,
+      fileSize: existing.fileSize,
+      mimeType: existing.mimeType,
+      isFree: existing.isFree,
+      price: existing.price,
+      currency: existing.currency,
+      courseId: existing.courseId,
+      moduleId: existing.moduleId,
+      lessonId: existing.lessonId,
+      status: "DRAFT",
+    },
+    select: { id: true },
+  });
+
+  revalidatePath("/dashboard/resources");
+  revalidatePath("/dashboard/instructor/resources");
+  return { success: true, resourceId: duplicated.id };
 }
