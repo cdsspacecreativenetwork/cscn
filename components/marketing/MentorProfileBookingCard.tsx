@@ -16,6 +16,7 @@ export function MentorProfileBookingCard({ mentor }: { mentor: MentorBookingPane
         <Button
           type="button"
           variant="gradient"
+          size="lg"
           rounded="full"
           rightIcon={<ArrowRight size={16} />}
           onClick={() => setOpen(true)}

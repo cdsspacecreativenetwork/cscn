@@ -44,6 +44,7 @@ function BookingSubmitButton({
       type="submit"
       variant="gradient"
       rounded="full"
+      size="lg"
       loading={pending}
       disabled={disabled || pending}
       rightIcon={!pending ? <ArrowRight size={16} /> : undefined}

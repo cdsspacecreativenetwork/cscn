@@ -43,7 +43,7 @@ export const MENTORS: Mentor[] = [
     id: 'baribor-duba',
     name: 'Baribor Duba',
     role: 'Product Designer',
-    image: '/assets/instructors/img.svg',
+    image: '/assets/instructors/img.png',
     courses: 12,
     students: '100K'
   }

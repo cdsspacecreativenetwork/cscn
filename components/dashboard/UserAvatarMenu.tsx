@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
+import { logout } from '@/actions/logout';
 import {
   BookOpen,
   ChevronDown,
@@ -46,6 +47,15 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
   const isPioneerStudent = Boolean(sessionUser?.onboardingCohort);
   const fallbackAvatar = generateTapbackAvatar(displayName);
   const [imgSrc, setImgSrc] = React.useState(sessionUser?.image || fallbackAvatar);
+
+  const handleLogout = () => {
+    setIsOpen(false);
+    logout().catch(() => {
+      signOut({ callbackUrl: '/signin' }).finally(() => {
+        window.location.href = '/signin';
+      });
+    });
+  };
 
   React.useEffect(() => {
     queueMicrotask(() => setImgSrc(sessionUser?.image || fallbackAvatar));
@@ -173,8 +183,8 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
             <div className="mt-2 border-t border-[#E3E8F4] pt-2">
               <button
                 type="button"
-                onClick={() => signOut({ callbackUrl: '/signin' })}
-                className="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-left text-[13px] font-semibold text-red-600 transition hover:bg-red-50"
+                onClick={handleLogout}
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-left text-[13px] font-semibold text-red-600 transition hover:bg-red-50"
               >
                 <LogOut size={15} strokeWidth={1.65} />
                 Sign Out

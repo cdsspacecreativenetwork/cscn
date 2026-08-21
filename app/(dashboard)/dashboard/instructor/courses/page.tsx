@@ -23,8 +23,10 @@ export default async function InstructorCoursesPage() {
     redirect('/dashboard/profile?setup=instructor');
   }
 
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+
   const [courses, categories] = await Promise.all([
-    getInstructorCourses(session.user.id),
+    getInstructorCourses(session.user.id, isAdmin),
     getCategories(),
   ]);
 

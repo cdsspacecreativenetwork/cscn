@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { getStudioCourse, getCourseAnalytics, getCourseRole, getCourseInstructors, getPendingCourseInvites } from '@/data/instructor';
+import { getAvailableExamsAction } from '@/actions/instructor';
 import { getCategories } from '@/data/courses';
 import { getLatestCourseReview } from '@/data/course-reviews';
 import { getUnresolvedFeedbackCount, getCourseFeedback } from '@/data/course-feedback';
@@ -22,16 +23,19 @@ export default async function CourseStudioPage({ params, searchParams }: Props) 
     redirect('/dashboard/profile?setup=instructor');
   }
 
-  const [course, categories, analytics] = await Promise.all([
-    getStudioCourse(courseId, session.user.id),
+  const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SUPER_ADMIN';
+
+  const [course, categories, analytics, availableExams] = await Promise.all([
+    getStudioCourse(courseId, session.user.id, isAdmin),
     getCategories(),
-    getCourseAnalytics(courseId, session.user.id),
+    getCourseAnalytics(courseId, session.user.id, isAdmin),
+    getAvailableExamsAction().catch(() => []),
   ]);
 
   if (!course) notFound();
 
   const [callerRole, latestReview, openFeedbackCount, feedbackData] = await Promise.all([
-    getCourseRole(courseId, session.user.id),
+    getCourseRole(courseId, session.user.id, isAdmin),
     getLatestCourseReview(courseId),
     getUnresolvedFeedbackCount(courseId),
     getCourseFeedback(courseId),
@@ -40,9 +44,9 @@ export default async function CourseStudioPage({ params, searchParams }: Props) 
   if (!callerRole) notFound();
 
   const [instructors, pendingInvites] = await Promise.all([
-    getCourseInstructors(courseId, session.user.id),
+    getCourseInstructors(courseId, session.user.id, isAdmin),
     callerRole === 'OWNER'
-      ? getPendingCourseInvites(courseId, session.user.id)
+      ? getPendingCourseInvites(courseId, session.user.id, isAdmin)
       : Promise.resolve([]),
   ]);
 
@@ -52,11 +56,12 @@ export default async function CourseStudioPage({ params, searchParams }: Props) 
     pendingInvites,
   };
 
-  const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SUPER_ADMIN';
+  const studioCourse = JSON.parse(JSON.stringify(course));
+  studioCourse.availableExams = JSON.parse(JSON.stringify(availableExams));
 
   return (
     <CourseStudio
-      course={JSON.parse(JSON.stringify(course))}
+      course={studioCourse}
       categories={categories.map((c) => ({ id: c.id, name: c.name }))}
       analytics={analytics}
       initialTab={tab ?? 'settings'}
@@ -70,3 +75,4 @@ export default async function CourseStudioPage({ params, searchParams }: Props) 
     />
   );
 }
+

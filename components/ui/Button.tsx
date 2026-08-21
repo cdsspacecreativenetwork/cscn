@@ -90,11 +90,15 @@ export default function Button({
 
   /* ── Gradient variant ─────────────────────────────────────────────────── */
   if (variant === 'gradient') {
+    const hasWidthClass = /\bw-(full|auto|fit|min|max|\d+|\[[^\]]+\])/.test(className);
+    const widthDefaultClass = hasWidthClass ? '' : 'w-max';
+    const displayClass = className.includes('w-full') ? 'flex' : 'inline-flex';
+
     if (hasBorder) {
       return (
         <button
           disabled={isDisabled}
-          className={`inline-flex h-max w-max cursor-pointer flex-col items-center justify-center rounded-full border border-[var(--special-btn-border)] bg-transparent p-[2px] transition-transform duration-200 ease-out hover:scale-[1.03] hover:border-[#7b9ffd] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#648EFC]/40 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+          className={`${displayClass} h-max cursor-pointer flex-col items-center justify-center rounded-full border border-[var(--special-btn-border)] bg-transparent p-[2px] transition-transform duration-200 ease-out hover:scale-[1.03] hover:border-[#7b9ffd] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#648EFC]/40 disabled:cursor-not-allowed disabled:opacity-40 ${widthDefaultClass} ${className}`}
           style={style}
           {...props}
         >
@@ -113,7 +117,7 @@ export default function Button({
       return (
         <button
           disabled={isDisabled}
-          className={`inline-flex items-center justify-center ${roundedClass} ${gradientSizeMap[size]} font-inter font-medium tracking-normal whitespace-nowrap leading-[1.25] text-[#F4F6FB] transition-all hover:opacity-95 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${className}`}
+          className={`${displayClass} items-center justify-center ${roundedClass} ${gradientSizeMap[size]} font-inter font-medium tracking-normal whitespace-nowrap leading-[1.25] text-[#F4F6FB] transition-all hover:opacity-95 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${className}`}
           style={{ ...style, background: 'var(--cds-w-grad-2)' }}
           {...props}
         >

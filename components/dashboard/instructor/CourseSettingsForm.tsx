@@ -1,5 +1,6 @@
 import { useState, useTransition, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { X, Plus, Camera, ImageIcon, CheckCircle2, XCircle, Clock3, ClipboardPaste } from 'lucide-react';
 import { updateCourseSettingsAction, uploadThumbnailAction, getAvailableExamsAction } from '@/actions/instructor';
 import { toast } from 'sonner';
@@ -572,11 +573,18 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
         </div>
 
         {/* Certificate & Assessments */}
-        {isProfessionalCertificate && (
         <div className="bg-white rounded-2xl border border-stroke p-6 flex flex-col gap-5">
-          <div>
-            <h2 className="font-semibold text-navy text-base">Certificate & Assessments</h2>
-            <p className="text-sm text-text-mute mt-0.5">Reward completion and verify learner skills.</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="font-semibold text-navy text-base">Certificate & Assessments</h2>
+              <p className="text-sm text-text-mute mt-0.5">Reward completion and verify learner skills.</p>
+            </div>
+            <Link
+              href={`/dashboard/instructor/courses/${course.id}?tab=exams`}
+              className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1 shrink-0"
+            >
+              Open Exams & Certification Studio →
+            </Link>
           </div>
 
           <label className="flex items-start gap-3 cursor-pointer group">
@@ -630,7 +638,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
                     />
                   ) : (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-                      No exams available. Certification exams are created by Admins/Owners.
+                      No exams available. You can create a new certification exam in the <Link href={`/dashboard/instructor/courses/${course.id}?tab=exams`} className="font-bold underline">Exams Tab</Link>.
                     </div>
                   )}
                 </Field>
@@ -638,7 +646,6 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
             </div>
           )}
         </div>
-        )}
 
         {/* Search Engine Optimization */}
         <div className="bg-white rounded-2xl border border-stroke p-6 flex flex-col gap-5">
@@ -697,7 +704,7 @@ export default function CourseSettingsForm({ course, categories, latestReview, i
         </div>
 
         {!isLocked && (
-          <Button variant="gradient" size="md" rounded="[10px]" hasBorder={false} className="w-fit" onClick={handleSave} loading={saving}>
+          <Button variant="primary" size="md" rounded="[10px]" hasBorder={false} className="w-fit" onClick={handleSave} loading={saving}>
             Save Settings
           </Button>
         )}

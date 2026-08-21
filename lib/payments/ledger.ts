@@ -368,11 +368,10 @@ export async function fulfillPaidCourseOrder(input: {
   return { success: true, courseSlug: order.course.slug };
 }
 
-
 export async function fulfillPaidResourceOrder(input: {
   orderId: string; paymentId: string; providerReference: string; amount: number; currency: string; channel?: string | null; paidAt?: Date | null; rawPayload?: unknown;
 }) {
-  const order = await db.purchaseOrder.findUnique({ where: { id: input.orderId }, select: { id: true, userId: true, amount: true, currency: true, resource: { select: { id: true, title: true, ownerId: true } }, user: { select: { name: true, email: true } } } });
+  const order = await db.purchaseOrder.findUnique({ where: { id: input.orderId }, select: { id: true, userId: true, amount: true, currency: true, resource: { select: { id: true, title: true, slug: true, ownerId: true } }, user: { select: { name: true, email: true } } } });
   if (!order?.resource) return { error: "Order not found or not attached to a resource." };
   if (input.currency !== order.currency || Math.abs(input.amount - toNumber(order.amount)) > 0.01) return { error: "Payment amount or currency does not match the resource order." };
   const paidAt = input.paidAt ?? new Date();
@@ -383,8 +382,8 @@ export async function fulfillPaidResourceOrder(input: {
   await createInstructorEarningIfMissing({ instructorId: order.resource.ownerId, resourceId: order.resource.id, orderId: order.id, paymentId: payment.id, amount: input.amount, currency: input.currency, paidAt });
   await createNotification(order.userId, "SYSTEM", "Resource purchase confirmed", `You can now download ${order.resource.title}.`, { resourceId: order.resource.id, orderId: order.id, area: "resources" });
   await createNotification(order.resource.ownerId, "SYSTEM", "New resource sale", `${order.user.name ?? order.user.email ?? "A learner"} purchased ${order.resource.title}.`, { resourceId: order.resource.id, orderId: order.id, area: "earnings" });
-  revalidatePath("/resources"); revalidatePath("/dashboard/instructor/earnings");
-  return { success: true };
+  revalidatePath("/resources"); revalidatePath(`/resources/${order.resource.slug}`); revalidatePath("/dashboard/instructor/earnings");
+  return { success: true, resourceSlug: order.resource.slug };
 }
 
 export async function fulfillPaystackTransaction(transaction: PaystackTransaction) {
@@ -411,6 +410,7 @@ export async function fulfillPaystackTransaction(transaction: PaystackTransactio
       select: {
         type: true,
         course: { select: { slug: true } },
+        resource: { select: { slug: true } },
         mentorBooking: { select: { id: true } },
       },
     });
@@ -418,6 +418,7 @@ export async function fulfillPaystackTransaction(transaction: PaystackTransactio
       success: true,
       alreadyProcessed: true,
       courseSlug: order?.course?.slug,
+      resourceSlug: order?.resource?.slug,
       mentorBookingId: order?.mentorBooking?.id,
     };
   }

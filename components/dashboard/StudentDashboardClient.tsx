@@ -65,7 +65,7 @@ export default function StudentDashboardClient({ data, user }: Props) {
   };
 
   return (
-    <div className="p-[clamp(16px,2.78vw,48px)] space-y-[clamp(28px,3.24vw,56px)] max-w-[1728px] mx-auto font-jakarta">
+    <div className="p-[clamp(16px,2.78vw,48px)] space-y-8 max-w-[1728px] mx-auto font-jakarta">
       {/* Header section - Fluid Scaling */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
         <div className="space-y-1 w-full">
@@ -114,10 +114,10 @@ export default function StudentDashboardClient({ data, user }: Props) {
       </div>
 
       {/* Row 1: Continue Learning & Announcements */}
-      <div className="grid grid-cols-1 mlg:grid-cols-4 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Continue Learning */}
-        <div className="mlg:col-span-3 space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-3 space-y-6">
+          <div className="flex items-center justify-between min-h-[32px]">
             <h2 className="text-[18px] xl:text-[20px] font-medium text-[#040B37]">
               {hasLearningActivity ? 'Continue Learning' : 'Start Your Learning Journey'}
             </h2>
@@ -238,32 +238,35 @@ export default function StudentDashboardClient({ data, user }: Props) {
         </div>
 
         {/* Announcements */}
-        <div className="mlg:col-span-1 space-y-6 mlg:pt-[52px]">
-          <div className="bg-white border border-[#E3E8F4] rounded-[12px] overflow-hidden shadow-sm">
-            <div className="px-6 py-4 border-b border-[#E3E8F4] bg-[#F4F6FB]/30">
-              <h2 className="text-[16px] font-medium text-[#040B37]">Announcements</h2>
+        <div className="lg:col-span-1 lg:pt-[44px]">
+          <div className="bg-white border border-[#E3E8F4] rounded-[16px] overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-[#E3E8F4] bg-white">
+              <h2 className="text-[15px] font-bold text-[#040B37] tracking-tight">
+                Announcements
+              </h2>
             </div>
+
             <div className="divide-y divide-[#E3E8F4]">
               {data.announcements.length > 0 ? (
                 data.announcements.map((ann) => (
                   <div
                     key={ann.id}
                     onClick={() => ann.linkUrl && window.open(ann.linkUrl, '_blank', 'noopener,noreferrer')}
-                    className={`p-5 flex gap-4 hover:bg-[#F4F6FB]/50 transition-all group ${ann.linkUrl ? 'cursor-pointer' : ''}`}
+                    className={`p-4 flex items-start gap-3.5 hover:bg-[#F4F6FB]/50 transition-all group ${ann.linkUrl ? 'cursor-pointer' : ''}`}
                   >
-                    <div className="w-10 h-10 bg-[#F4F6FB] rounded-xl flex items-center justify-center text-[18px] shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 bg-[#F4F6FB] rounded-lg border border-[#E3E8F4]/60 flex items-center justify-center text-[16px] shrink-0 group-hover:scale-105 transition-transform mt-0.5">
                       {ann.emoji}
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{ann.title}</p>
-                      {ann.body && <p className="line-clamp-2 text-[12px] font-medium text-[#9CA3AF]">{ann.body}</p>}
-                      <p className="text-[11px] font-medium text-[#9CA3AF]">{ann.time}</p>
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors">{ann.title}</p>
+                      {ann.body && <p className="line-clamp-2 text-[12px] font-normal text-[#4B5563] leading-relaxed">{ann.body}</p>}
+                      <p className="text-[11px] font-normal text-[#9CA3AF] mt-0.5">{ann.time}</p>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="p-6 text-center">
-                  <p className="text-[14px] font-semibold text-[#4B5563]">No announcements right now</p>
+                  <p className="text-[14px] font-semibold text-[#040B37]">No announcements right now</p>
                   <p className="mt-1 text-[12px] font-medium text-[#9CA3AF]">
                     Platform updates will appear here when they are published.
                   </p>
@@ -275,16 +278,16 @@ export default function StudentDashboardClient({ data, user }: Props) {
       </div>
 
       {/* Row 2: Recommended For You & Today's Schedule */}
-      <div className="grid grid-cols-1 mlg:grid-cols-4 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Recommended */}
-        <div className="mlg:col-span-3 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[18px] xl:text-[20px] font-medium text-[#040B37]">
+        <div className="lg:col-span-3 space-y-4">
+          <div className="flex items-center justify-between h-7">
+            <h2 className="text-[16px] sm:text-[18px] font-semibold text-[#040B37]">
               {hasLearningActivity ? 'Recommended For You' : 'Popular Courses To Start'}
             </h2>
             <button
               onClick={() => router.push('/courses')}
-              className="text-[#1C4ED1] font-medium hover:underline text-[15px]"
+              className="text-[#1C4ED1] font-semibold hover:underline text-[13px]"
             >
               View all
             </button>
@@ -372,18 +375,12 @@ export default function StudentDashboardClient({ data, user }: Props) {
 
                     {/* Category & Title */}
                     <div>
-                      {/* <span className="text-[11px] font-bold tracking-wider text-[#1C4ED1] uppercase">
-                        {course.category || "UI/UX DESIGN"} • {course.difficulty || "BEGINNER"}
-                      </span> */}
                       <h3
                         className="text-[17px] font-semibold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors line-clamp-2 cursor-pointer animate-duration-300"
                         onClick={() => router.push(`/courses/${course.slug}`)}
                       >
                         {course.title}
                       </h3>
-                      {/* <p className="text-[13px] font-medium text-[#4B5563] leading-relaxed line-clamp-2">
-                        {course.shortDesc || "Master the foundational skills and practical techniques needed to excel in this field."}
-                      </p> */}
                     </div>
 
                     {/* Activity & Meta Box */}
@@ -443,34 +440,38 @@ export default function StudentDashboardClient({ data, user }: Props) {
         </div>
 
         {/* Schedule */}
-        <div className="mlg:col-span-1 space-y-6 mlg:pt-[44px]">
-          <div className="bg-white border border-[#E3E8F4] rounded-[12px] overflow-hidden shadow-sm">
-            <div className="px-6 py-4 border-b border-[#E3E8F4] flex justify-between items-center bg-[#F4F6FB]/30">
-              <h2 className="text-[16px] font-medium text-[#040B37]">Today&apos;s Schedule</h2>
-              <button className="text-[#1C4ED1] text-[14px] font-semibold flex items-center gap-1 hover:underline">
-                Full calendar <ArrowUpRight size={14} />
+        <div className="lg:col-span-1 lg:pt-[44px]">
+          <div className="bg-white border border-[#E3E8F4] rounded-[16px] overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-[#E3E8F4] flex justify-between items-center bg-white">
+              <h2 className="text-[15px] font-bold text-[#040B37] tracking-tight">
+                Today&apos;s Schedule
+              </h2>
+              <button
+                onClick={() => router.push('/dashboard/schedule')}
+                className="text-[#1C4ED1] font-semibold hover:underline text-[13px] flex items-center gap-1 cursor-pointer"
+              >
+                Full calendar <ArrowUpRight size={13} />
               </button>
             </div>
+
             <div className="divide-y divide-[#E3E8F4]">
               {data.schedule.length > 0 ? (
                 data.schedule.map((item) => (
-                  <div key={item.id} className="p-5 flex items-start gap-5 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
-                    <div className="flex flex-col gap-1 min-w-[70px] shrink-0">
-                      <p className="text-[14px] font-medium text-[#4B5563] group-hover:text-[#040B37] transition-colors">{item.time}</p>
-                      <p className="text-[11px] text-[#9CA3AF]">{item.duration}</p>
+                  <div key={item.id} className="p-4 flex items-start gap-3 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
+                    <div className="flex flex-col gap-0.5 min-w-[62px] shrink-0">
+                      <p className="text-[12px] font-semibold text-[#040B37] group-hover:text-[#1C4ED1] transition-colors">{item.time}</p>
+                      <p className="text-[10px] font-normal text-[#9CA3AF]">{item.duration}</p>
                     </div>
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="w-2 h-2 bg-[#1C4ED1] rounded-full shrink-0"></div>
-                      <div className="flex flex-col gap-1">
-                        <p className="text-[14px] font-medium text-[#4B5563] leading-snug group-hover:text-[#040B37] transition-colors">{item.title}</p>
-                        <p className="text-[11px] text-[#9CA3AF]">{item.type}</p>
-                      </div>
+                    <div className="w-2 h-2 bg-[#1C4ED1] rounded-full shrink-0 mt-1.5"></div>
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors line-clamp-2">{item.title}</p>
+                      <p className="text-[11px] font-normal text-[#9CA3AF]">{item.type}</p>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="p-6 text-center">
-                  <p className="text-[14px] font-semibold text-[#4B5563]">No scheduled items today</p>
+                  <p className="text-[14px] font-semibold text-[#040B37]">No scheduled items today</p>
                   <p className="mt-1 text-[12px] font-medium text-[#9CA3AF]">
                     Live sessions, deadlines, and mentorship bookings will appear here.
                   </p>

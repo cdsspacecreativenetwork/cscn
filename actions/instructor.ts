@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
@@ -815,6 +815,322 @@ export async function getAvailableExamsAction() {
   const { db } = await import("@/lib/db");
   return db.exam.findMany({
     orderBy: { title: "asc" },
-    select: { id: true, title: true, duration: true },
+    select: { id: true, title: true, duration: true, passingScore: true },
   });
 }
+
+export async function getCourseExamDetailsAction(courseId: string) {
+  const userId = await requireInstructor();
+  const { db } = await import("@/lib/db");
+
+  const course = await db.course.findFirst({
+    where: {
+      id: courseId,
+      OR: [
+        { instructorId: userId },
+        { instructors: { some: { userId } } },
+      ],
+    },
+    select: {
+      id: true,
+      title: true,
+      courseType: true,
+      certificateEnabled: true,
+      examGated: true,
+      finalExamId: true,
+      finalExam: {
+        select: {
+          id: true,
+          title: true,
+          duration: true,
+          passingScore: true,
+          retakeCooldownHours: true,
+          schedulingMode: true,
+          description: true,
+          questions: {
+            orderBy: { position: "asc" },
+            select: {
+              id: true,
+              question: true,
+              type: true,
+              options: true,
+              correctAnswer: true,
+              codeContext: true,
+              points: true,
+              position: true,
+            },
+          },
+          _count: {
+            select: {
+              questions: true,
+              attempts: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!course) throw new Error("Course not found or access denied.");
+
+  const availableExams = await db.exam.findMany({
+    orderBy: { title: "asc" },
+    select: {
+      id: true,
+      title: true,
+      duration: true,
+      passingScore: true,
+      retakeCooldownHours: true,
+      schedulingMode: true,
+      _count: {
+        select: { questions: true },
+      },
+    },
+  });
+
+  return { course, availableExams };
+}
+
+export async function updateCourseExamSettingsAction(
+  courseId: string,
+  payload: {
+    certificateEnabled: boolean;
+    examGated: boolean;
+    finalExamId?: string | null;
+    title?: string;
+    duration?: number;
+    passingScore?: number;
+    retakeCooldownHours?: number;
+    schedulingMode?: string;
+    description?: string;
+  }
+) {
+  const userId = await requireInstructor();
+  const { db } = await import("@/lib/db");
+
+  const course = await db.course.findFirst({
+    where: {
+      id: courseId,
+      OR: [
+        { instructorId: userId },
+        { instructors: { some: { userId } } },
+      ],
+    },
+    select: { id: true, finalExamId: true },
+  });
+
+  if (!course) throw new Error("Course not found or access denied.");
+
+  // Update Course certification settings
+  await db.course.update({
+    where: { id: courseId },
+    data: {
+      certificateEnabled: payload.certificateEnabled,
+      examGated: payload.examGated,
+      finalExamId: payload.finalExamId !== undefined ? payload.finalExamId : undefined,
+    },
+  });
+
+  // If exam ID is present and exam settings are provided, update the linked Exam
+  const targetExamId = payload.finalExamId || course.finalExamId;
+  if (targetExamId && (payload.title || payload.duration || payload.passingScore !== undefined)) {
+    await db.exam.update({
+      where: { id: targetExamId },
+      data: {
+        ...(payload.title ? { title: payload.title } : {}),
+        ...(payload.duration ? { duration: payload.duration } : {}),
+        ...(payload.passingScore !== undefined ? { passingScore: payload.passingScore } : {}),
+        ...(payload.retakeCooldownHours !== undefined ? { retakeCooldownHours: payload.retakeCooldownHours } : {}),
+        ...(payload.schedulingMode ? { schedulingMode: payload.schedulingMode } : {}),
+        ...(payload.description !== undefined ? { description: payload.description } : {}),
+      },
+    });
+  }
+
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  return { success: true };
+}
+
+export async function createAndLinkExamAction(
+  courseId: string,
+  payload: {
+    title: string;
+    duration: number;
+    passingScore: number;
+    retakeCooldownHours?: number;
+    schedulingMode?: string;
+    description?: string;
+  }
+) {
+  const userId = await requireInstructor();
+  const { db } = await import("@/lib/db");
+
+  const course = await db.course.findFirst({
+    where: {
+      id: courseId,
+      OR: [
+        { instructorId: userId },
+        { instructors: { some: { userId } } },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (!course) throw new Error("Course not found or access denied.");
+
+  const exam = await db.exam.create({
+    data: {
+      title: payload.title,
+      duration: payload.duration,
+      passingScore: payload.passingScore,
+      retakeCooldownHours: payload.retakeCooldownHours ?? 24,
+      schedulingMode: payload.schedulingMode ?? "FLEXI",
+      description: payload.description ?? null,
+    },
+  });
+
+  await db.course.update({
+    where: { id: courseId },
+    data: {
+      finalExamId: exam.id,
+      examGated: true,
+      certificateEnabled: true,
+    },
+  });
+
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  return { success: true, examId: exam.id };
+}
+
+export async function unlinkCourseExamAction(courseId: string) {
+  const userId = await requireInstructor();
+  const { db } = await import("@/lib/db");
+
+  const course = await db.course.findFirst({
+    where: {
+      id: courseId,
+      OR: [
+        { instructorId: userId },
+        { instructors: { some: { userId } } },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (!course) throw new Error("Course not found or access denied.");
+
+  await db.course.update({
+    where: { id: courseId },
+    data: {
+      finalExamId: null,
+      examGated: false,
+    },
+  });
+
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  return { success: true };
+}
+
+// ── Exam Question Actions ─────────────────────────────────────────────────────
+
+export async function getExamQuestionsAction(examId: string) {
+  await requireInstructor();
+  const { db } = await import("@/lib/db");
+  return db.examQuestion.findMany({
+    where: { examId },
+    orderBy: { position: "asc" },
+  });
+}
+
+export async function addExamQuestionAction(
+  examId: string,
+  courseId: string,
+  payload: {
+    question: string;
+    type: "mcq" | "coding";
+    options?: string[];
+    correctAnswer: string;
+    codeContext?: string | null;
+    points?: number;
+  }
+) {
+  const userId = await requireInstructor();
+  const { db } = await import("@/lib/db");
+
+  await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
+
+  const lastQuestion = await db.examQuestion.findFirst({
+    where: { examId },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+  const nextPosition = (lastQuestion?.position ?? -1) + 1;
+
+  const question = await db.examQuestion.create({
+    data: {
+      examId,
+      question: payload.question,
+      type: payload.type,
+      options: payload.options ? payload.options : undefined,
+      correctAnswer: payload.correctAnswer,
+      codeContext: payload.codeContext ?? null,
+      points: payload.points ?? (payload.type === "coding" ? 10 : 5),
+      position: nextPosition,
+    },
+  });
+
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  return { success: true, question };
+}
+
+export async function updateExamQuestionAction(
+  questionId: string,
+  courseId: string,
+  payload: {
+    question?: string;
+    type?: "mcq" | "coding";
+    options?: string[];
+    correctAnswer?: string;
+    codeContext?: string | null;
+    points?: number;
+  }
+) {
+  const userId = await requireInstructor();
+  const { db } = await import("@/lib/db");
+
+  await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
+
+  const question = await db.examQuestion.update({
+    where: { id: questionId },
+    data: {
+      ...(payload.question ? { question: payload.question } : {}),
+      ...(payload.type ? { type: payload.type } : {}),
+      ...(payload.options ? { options: payload.options } : {}),
+      ...(payload.correctAnswer !== undefined ? { correctAnswer: payload.correctAnswer } : {}),
+      ...(payload.codeContext !== undefined ? { codeContext: payload.codeContext } : {}),
+      ...(payload.points !== undefined ? { points: payload.points } : {}),
+    },
+  });
+
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  return { success: true, question };
+}
+
+export async function deleteExamQuestionAction(
+  questionId: string,
+  courseId: string
+) {
+  const userId = await requireInstructor();
+  const { db } = await import("@/lib/db");
+
+  await requireCourseAccess(courseId, userId, "CO_INSTRUCTOR");
+
+  await db.examQuestion.delete({
+    where: { id: questionId },
+  });
+
+  revalidatePath(`/dashboard/instructor/courses/${courseId}`);
+  return { success: true };
+}
+
+

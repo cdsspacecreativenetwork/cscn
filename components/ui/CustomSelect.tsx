@@ -147,7 +147,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               </div>
             )}
 
-            <div className="max-h-[320px] overflow-y-auto p-1.5 custom-scrollbar">
+            <div className="max-h-[320px] overflow-y-auto p-1.5 custom-scrollbar gap-4">
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((option) => (
                   <button

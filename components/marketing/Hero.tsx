@@ -115,27 +115,27 @@ export default function Hero({ marketingSettings }: HeroProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="bg-white px-3 py-1.5 md:px-4 md:py-2 rounded-full inline-flex items-center gap-2 md:gap-2.5 mb-10 shadow-md border border-stroke max-w-[95%] md:max-w-none"
+          className="bg-white px-2 py-1 xs:px-3 xs:py-1.5 md:px-4 md:py-2 rounded-full inline-flex items-center gap-1 xs:gap-2 md:gap-2.5 mb-10 shadow-md border border-stroke max-w-[98%] xs:max-w-[95%] md:max-w-none shrink-0"
         >
-          <div className="flex items-center ml-1">
+          <div className="flex items-center ml-0.5 xs:ml-1 shrink-0">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className={`w-6 h-6 md:w-8 md:h-8 rounded-full border border-[#F4F6FB] overflow-hidden relative bg-[#eee] ${i === 1 ? '' : '-ml-2 md:-ml-3'}`}
+                className={`w-5 h-5 xs:w-6 xs:h-6 md:w-8 md:h-8 rounded-full border border-[#F4F6FB] overflow-hidden relative bg-[#eee] shrink-0 ${i === 1 ? '' : '-ml-1.5 xs:-ml-2 md:-ml-3'}`}
               >
                 <Image src={`/assets/avatars/avatar${i}.png`} alt={`Instructor ${i}`} fill sizes="32px" />
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-1 md:gap-1.5">
-              <span className="text-[10px] md:text-sm font-medium text-text-body whitespace-nowrap">
-                {marketingSettings.launchMode ? 'Founding learners get first access' : 'Expert in these tools'}
-              </span>
-            <div className="flex items-center gap-1 bg-[#F4F6FB] px-1.5 py-0.5 rounded-full">
-              <div className="w-3 h-3 md:w-4 md:h-4 relative">
+          <div className="flex items-center gap-1 md:gap-1.5 shrink-0">
+            <span className="text-[9px] min-[350px]:text-[10px] md:text-sm font-medium text-text-body whitespace-nowrap tracking-tight">
+              {marketingSettings.launchMode ? 'Founding learners get first access' : 'Expert in these tools'}
+            </span>
+            <div className="flex items-center gap-0.5 xs:gap-1 bg-[#F4F6FB] px-1 py-0.5 xs:px-1.5 rounded-full shrink-0">
+              <div className="w-2.5 h-2.5 xs:w-3 xs:h-3 md:w-4 md:h-4 relative shrink-0">
                 <Image src="/assets/expert-badge.svg" alt="Expert" fill sizes="16px" unoptimized />
               </div>
-              <span className="text-[10px] md:text-sm font-bold text-primary tracking-tight">more</span>
+              <span className="text-[9px] min-[350px]:text-[10px] md:text-sm font-bold text-primary tracking-tight">more</span>
             </div>
           </div>
         </motion.div>
@@ -251,11 +251,6 @@ export default function Hero({ marketingSettings }: HeroProps) {
                   <Image src="/assets/video-controls/fullscreen.svg" alt="Fullscreen" fill className="object-contain" sizes="48px" unoptimized />
                 </div>
               </button>
-              {/* <button className="bg-white/10 border-none w-12 h-12 rounded-full cursor-pointer flex items-center justify-center hover:bg-white/20 transition-colors">
-                <div className="w-full h-full relative">
-                  <Image src="/assets/video-controls/settings.svg" alt="Settings" fill className="object-contain" />
-                </div>
-              </button> */}
             </div>
           </div>
         </motion.div>

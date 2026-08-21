@@ -177,7 +177,7 @@ export default function InstructorCourseList({ courses, categories, studioPath =
           <p className="text-text-mute font-medium">No courses here yet.</p>
           {canCreateCourse && (
             <Button
-              variant="gradient"
+              variant="primary"
               size="sm"
               rounded="[10px]"
               hasBorder={false}

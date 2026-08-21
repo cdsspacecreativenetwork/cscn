@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -1841,6 +1842,9 @@ model Exam {
   title        String
   duration     Int      // duration in minutes
   passingScore Int      // e.g. 70 for 70%
+  retakeCooldownHours Int @default(24)
+  schedulingMode String   @default("FLEXI") // "FLEXI" | "SCHEDULED_SLOT"
+  description  String?  @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1858,6 +1862,7 @@ model ExamQuestion {
   options       Json?    // String[] options for MCQ
   correctAnswer String   // correct option text or expected result
   codeContext   String?  @db.Text // baseline template for coding challenges
+  points        Int      @default(5)
   position      Int
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

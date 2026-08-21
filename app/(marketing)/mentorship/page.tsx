@@ -45,11 +45,7 @@ export default async function MentorshipPage({
   const query = searchParams ? await searchParams : {};
   const mentors = await db.user.findMany({
     where: {
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: 'VERIFIED',
-      publicProfileStatus: 'PUBLIC',
       mentorshipEligible: true,
-      mentorshipEnabled: true,
     },
     select: {
       id: true,
@@ -121,11 +117,11 @@ export default async function MentorshipPage({
   const displayMentors = [
     ...mentorCards,
     ...MENTORS.filter((mentor) => !mentorCardIds.has(mentor.id)),
-  ].slice(0, 4);
+  ].slice(0, Math.max(4, mentorCards.length));
 
   const stats = [
     { label: 'Available mentors', value: displayMentors.length.toLocaleString() },
-    { label: 'Published courses', value: displayMentors.reduce((sum, mentor) => sum + mentor.courses, 0).toLocaleString() },
+    { label: 'Published courses', value: mentors.reduce((sum, mentor) => sum + mentor.taughtCourses.length, 0).toLocaleString() },
     { label: 'Learners reached', value: mentors.reduce((sum, mentor) => sum + mentor.taughtCourses.reduce((courseSum, course) => courseSum + course._count.enrollments, 0), 0).toLocaleString() },
     { label: 'Verified mentors', value: mentorCards.length.toLocaleString(), isRating: true },
   ];

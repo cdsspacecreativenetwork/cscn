@@ -16,8 +16,8 @@ import { FormSuccess } from "@/components/auth/FormSuccess";
 import { Social } from "@/components/auth/Social";
 
 const fieldGroupClass = "space-y-2";
-const labelClass = "block text-[16px] xl:text-[18px] font-medium text-[#4B5563] tracking-[-0.18px]";
-const inputClass = "w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#4B5563] placeholder:text-[#4B5563] text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:bg-[#1C4ED1]/40 disabled:text-white disabled:placeholder:text-white/80 disabled:cursor-not-allowed";
+const labelClass = "block text-[16px] xl:text-[18px] font-normal text-[#4B5563] tracking-[-0.18px]";
+const inputClass = "w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#4B5563] placeholder:text-[#4B5563]/40 text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:bg-[#1C4ED1]/40 disabled:text-white disabled:placeholder:text-white/80 disabled:cursor-not-allowed";
 const inputWithIconClass = `${inputClass} pr-14`;
 const subtextClass = "text-[#4B5563] font-medium";
 
@@ -71,13 +71,13 @@ function SignupPageContent() {
   };
 
   return (
-    <AuthLayout 
-      title="Start learning today" 
+    <AuthLayout
+      title="Start learning today"
       subtitle="Create your free CSCN account"
       sidebarTitle="Learn without limits."
       sidebarSubtitle="Join thousands of professionals mastering in-demand skills through structured, expert-led learning paths."
     >
-      <form 
+      <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-8 xl:space-y-10"
       >
@@ -158,17 +158,16 @@ function SignupPageContent() {
                 </p>
               )}
             </div>
-            
+
             {/* Accordion reveal password strength checklist */}
             <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isPasswordFocused || passwordValue.length > 0 ? 'max-h-[220px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
               <div className="space-y-2.5 p-4 bg-[#F8FAFB] rounded-[16px] border border-[#E3E8F4]">
                 {criteria.map((c, idx) => (
                   <div key={idx} className="flex items-center gap-2.5 text-[14px] font-semibold transition-colors duration-200">
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                      c.met 
-                        ? 'border-emerald-500 bg-emerald-500 text-white' 
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${c.met
+                        ? 'border-emerald-500 bg-emerald-500 text-white'
                         : 'border-gray-300 bg-white text-transparent'
-                    }`}>
+                      }`}>
                       {c.met ? (
                         <svg className="w-3 h-3 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
                           <path d="M20 6L9 17l-5-5" />
@@ -204,7 +203,7 @@ function SignupPageContent() {
         </div>
 
         <div className="flex flex-col items-center gap-8 xl:gap-[40px]">
-          <button 
+          <button
             type="submit"
             disabled={isPending || !agreed}
             className="w-full h-[56px] p-[2px] bg-[#F4F6FB] border border-[#648EFC] rounded-full shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] overflow-hidden group disabled:cursor-not-allowed"

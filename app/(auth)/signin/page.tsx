@@ -15,8 +15,8 @@ import { FormError } from "@/components/auth/FormError";
 import { Social } from "@/components/auth/Social";
 
 const fieldGroupClass = "space-y-2";
-const labelClass = "block text-[16px] xl:text-[18px] font-medium text-[#4B5563] tracking-[-0.18px]";
-const inputClass = "w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#4B5563] placeholder:text-[#4B5563] text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:bg-[#1C4ED1]/40 disabled:text-white disabled:placeholder:text-white/80 disabled:cursor-not-allowed";
+const labelClass = "block text-[16px] xl:text-[18px] font-normal text-[#4B5563] tracking-[-0.18px]";
+const inputClass = "w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#4B5563] placeholder:text-[#4B5563]/40 text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:bg-[#1C4ED1]/40 disabled:text-white disabled:placeholder:text-white/80 disabled:cursor-not-allowed";
 const inputWithIconClass = `${inputClass} pr-14`;
 const subtextClass = "text-[#4B5563] font-medium";
 
@@ -184,7 +184,7 @@ function LoginPageContent() {
               <div className="flex items-center gap-2 text-[16px] xl:text-[18px] tracking-[-0.18px]">
                 <span className={subtextClass}>New to CSCN?</span>
                 <Link href={callbackUrl ? `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signup"} className="text-[#1C4ED1] font-semibold">
-                  Create a free account
+                  Create an account
                 </Link>
               </div>
             </>

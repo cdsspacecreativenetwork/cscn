@@ -171,16 +171,18 @@ export default function ProjectSidebarModal() {
               </svg>
             </button> */}
 
-            <Button
-              variant="gradient"
-              className="w-full"
-              onClick={() => router.push('/courses')}
-            >
-              Start Learning Like {project.student.split(' ')[0]}
-              <svg className="group-hover:translate-x-1 transition-transform" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-              </svg>
-            </Button>
+            <div className="w-full flex">
+              <Button
+                variant="gradient"
+                className="w-full"
+                onClick={() => router.push('/courses')}
+              >
+                Start Learning Like {project.student.split(' ')[0]}
+                <svg className="group-hover:translate-x-1 transition-transform" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                </svg>
+              </Button>
+            </div>
           </div>
         </motion.div>
       </div>

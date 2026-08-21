@@ -24,9 +24,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   showBackToHome = true
 }) => {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center overflow-hidden font-inter overscroll-none lg:p-0">
-      {/* Centered Design Container - Adaptive Height (100vh up to 992px max) */}
-      <div className="w-full max-w-[1728px] relative flex flex-col lg:flex-row items-center justify-center h-screen lg:max-h-[992px] p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center font-inter lg:p-0">
+      {/* Centered Design Container - Adaptive Height (100vh up to 992px max on desktop) */}
+      <div className="w-full max-w-[1728px] relative flex flex-col lg:flex-row items-center justify-center min-h-screen lg:h-screen lg:max-h-[992px] p-4 sm:p-6 lg:p-4">
 
         {/* Sidebar - Adaptive Growth (starts narrow at 1024px, reaches 49.3% design peak at 1728px) */}
         <div 
@@ -113,10 +113,10 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         </div>
 
         {/* Form Section - Symmetrical 50/50 Split with Balanced Padding */}
-        <div className="flex-1 flex flex-col items-center lg:items-start lg:px-12 xl:px-[106px] py-12 bg-white h-full overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center lg:items-start lg:px-12 xl:px-[106px] pt-6 pb-16 lg:py-12 bg-white w-full h-auto lg:h-full lg:overflow-y-auto my-auto justify-center">
           <div className="w-full max-w-[480px] xl:max-w-[631px]">
             {/* Mobile Logo */}
-            <div className="lg:hidden mb-12">
+            <div className="lg:hidden mb-8">
               <Image src="/images/logo.svg" alt="CSCN Logo" width={120} height={34} />
             </div>
 

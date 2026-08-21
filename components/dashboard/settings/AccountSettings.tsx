@@ -246,8 +246,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
       if (res.error) {
         setDeleteError(res.error);
       } else {
-        // Trigger client-side sign out and redirect to signin page
-        await signOut({ callbackUrl: '/signin' });
+        await signOut({ callbackUrl: '/signin' }).catch(() => {});
+        window.location.href = '/signin';
       }
     } catch (err) {
       setDeleteError("An unexpected error occurred during account deletion.");

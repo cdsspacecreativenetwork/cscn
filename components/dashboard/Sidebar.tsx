@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
+import { logout } from '@/actions/logout';
 import {
   BarChart2,
   BookOpen,
@@ -173,7 +174,7 @@ function SidebarLink({
           />
         </div>
       )}
-      {!collapsed && <span className="text-[clamp(14px,0.92vw,16px)] font-medium truncate">{item.name}</span>}
+      {!collapsed && <span className="text-[clamp(14px,0.92vw,16px)] font-normal truncate">{item.name}</span>}
     </Link>
   );
 }
@@ -231,6 +232,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
   const isInstructor = role === 'INSTRUCTOR';
   const effectivelyCollapsed = !!isCollapsed && !isOpen;
   const handleNavClick = () => onClose?.();
+
+  const handleLogout = () => {
+    onClose?.();
+    logout().catch(() => {
+      signOut({ callbackUrl: '/signin' }).finally(() => {
+        window.location.href = '/signin';
+      });
+    });
+  };
+
   const visibleAdminOperationItems = adminOperationItems.filter((item) => {
     if (!item.permissions) return true;
     return hasAnyAdminPermission(session?.user, item.permissions);
@@ -376,8 +387,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
 
       <div className={`p-[clamp(16px,1.38vw,24px)] border-t border-[#E3E8F4] transition-all ${effectivelyCollapsed ? 'flex justify-center px-4' : ''}`}>
         <button
-          onClick={() => signOut({ callbackUrl: '/signin' })}
-          className={`flex items-center text-[#EF4444] hover:bg-red-50 rounded-lg transition-all ${
+          type="button"
+          onClick={handleLogout}
+          className={`flex items-center text-[#EF4444] hover:bg-red-50 rounded-lg transition-all cursor-pointer ${
             effectivelyCollapsed ? 'p-3' : 'gap-[clamp(8px,0.69vw,12px)] px-[clamp(12px,0.92vw,16px)] py-[clamp(8px,0.69vw,12px)] w-full'
           }`}
           title={effectivelyCollapsed ? 'Logout' : undefined}

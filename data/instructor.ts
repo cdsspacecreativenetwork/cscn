@@ -1,4 +1,4 @@
-﻿import { db } from "@/lib/db";
+import { db } from "@/lib/db";
 import type { Difficulty, CourseStatus, CourseInstructorRole, ContentType, CourseType } from "@prisma/client";
 import { createNotification } from "@/data/notifications";
 import { sendCourseInviteEmail } from "@/lib/mail";
@@ -22,8 +22,11 @@ const ROLE_RANK = { OWNER: 3, CO_INSTRUCTOR: 2, TEACHING_ASSISTANT: 1 } as const
 export async function requireCourseAccess(
   courseId: string,
   userId: string,
-  minimumRole: "TEACHING_ASSISTANT" | "CO_INSTRUCTOR" | "OWNER" = "CO_INSTRUCTOR"
+  minimumRole: "TEACHING_ASSISTANT" | "CO_INSTRUCTOR" | "OWNER" = "CO_INSTRUCTOR",
+  isAdmin: boolean = false
 ): Promise<void> {
+  if (isAdmin) return;
+
   const required = ROLE_RANK[minimumRole];
 
   const course = await db.course.findUnique({
@@ -32,6 +35,12 @@ export async function requireCourseAccess(
   });
   if (!course) throw new Error("Course not found");
   if (course.instructorId === userId) return; // Primary owner always passes
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") return;
 
   if (required === 3) throw new Error("Only the course owner can perform this action");
 
@@ -46,31 +55,39 @@ export async function requireCourseAccess(
 // Returns the user's effective role on the course, or null if no access.
 export async function getCourseRole(
   courseId: string,
-  userId: string
+  userId: string,
+  isAdmin: boolean = false
 ): Promise<"OWNER" | "CO_INSTRUCTOR" | "TEACHING_ASSISTANT" | null> {
   const course = await db.course.findUnique({
     where: { id: courseId },
     select: { instructorId: true },
   });
-  if (course?.instructorId === userId) return "OWNER";
+  if (!course) return null;
+  if (course.instructorId === userId) return "OWNER";
 
   const record = await db.courseInstructor.findUnique({
     where: { courseId_userId: { courseId, userId } },
     select: { role: true },
   });
-  return record?.role ?? null;
+  if (record) return record.role;
+
+  if (isAdmin) return "OWNER";
+
+  return null;
 }
 
 // ── Course list ──────────────────────────────────────────────────────────────
 
-export async function getInstructorCourses(userId: string) {
+export async function getInstructorCourses(userId: string, isAdmin: boolean = false) {
   return db.course.findMany({
-    where: {
-      OR: [
-        { instructorId: userId },
-        { instructors: { some: { userId } } },
-      ],
-    },
+    where: isAdmin
+      ? {}
+      : {
+          OR: [
+            { instructorId: userId },
+            { instructors: { some: { userId } } },
+          ],
+        },
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,
@@ -91,14 +108,18 @@ export async function getInstructorCourses(userId: string) {
 // ── Course studio (full data for editor) ────────────────────────────────────
 // Accessible by OWNER and any CourseInstructor entry (CO_INSTRUCTOR / TEACHING_ASSISTANT)
 
-export async function getStudioCourse(courseId: string, userId: string) {
+export async function getStudioCourse(courseId: string, userId: string, isAdmin: boolean = false) {
   const course = await db.course.findFirst({
     where: {
       id: courseId,
-      OR: [
-        { instructorId: userId },
-        { instructors: { some: { userId } } },
-      ],
+      ...(isAdmin
+        ? {}
+        : {
+            OR: [
+              { instructorId: userId },
+              { instructors: { some: { userId } } },
+            ],
+          }),
     },
     select: {
       id: true,
@@ -137,6 +158,36 @@ export async function getStudioCourse(courseId: string, userId: string) {
         },
       },
       finalExamId: true,
+      finalExam: {
+        select: {
+          id: true,
+          title: true,
+          duration: true,
+          passingScore: true,
+          retakeCooldownHours: true,
+          schedulingMode: true,
+          description: true,
+          questions: {
+            orderBy: { position: "asc" },
+            select: {
+              id: true,
+              question: true,
+              type: true,
+              options: true,
+              correctAnswer: true,
+              codeContext: true,
+              points: true,
+              position: true,
+            },
+          },
+          _count: {
+            select: {
+              questions: true,
+              attempts: true,
+            },
+          },
+        },
+      },
       revisions: {
         where: { status: { in: ["DRAFT", "PENDING_REVIEW"] } },
         orderBy: { version: "desc" },
@@ -303,8 +354,8 @@ async function submitCoursePricingProposal(
   });
 }
 
-export async function getCourseAnalytics(courseId: string, userId: string) {
-  const role = await getCourseRole(courseId, userId);
+export async function getCourseAnalytics(courseId: string, userId: string, isAdmin: boolean = false) {
+  const role = await getCourseRole(courseId, userId, isAdmin);
   if (!role) return null;
 
   const [enrollments, lessonProgressRows, lessons, watchSegments] = await Promise.all([
@@ -777,8 +828,8 @@ export async function moveAndReorderLessons(
 // ── Co-instructor Management ──────────────────────────────────────────────────
 
 // Any roster member can view the team
-export async function getCourseInstructors(courseId: string, userId: string) {
-  await requireCourseAccess(courseId, userId, "TEACHING_ASSISTANT");
+export async function getCourseInstructors(courseId: string, userId: string, isAdmin: boolean = false) {
+  await requireCourseAccess(courseId, userId, "TEACHING_ASSISTANT", isAdmin);
   return db.courseInstructor.findMany({
     where: { courseId },
     orderBy: { createdAt: "asc" },
@@ -841,8 +892,8 @@ export async function createCourseInvite(
   return invite;
 }
 
-export async function getPendingCourseInvites(courseId: string, userId: string) {
-  await requireCourseAccess(courseId, userId, "OWNER");
+export async function getPendingCourseInvites(courseId: string, userId: string, isAdmin: boolean = false) {
+  await requireCourseAccess(courseId, userId, "OWNER", isAdmin);
   return db.courseInvite.findMany({
     where: {
       courseId,

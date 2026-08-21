@@ -40,9 +40,9 @@ export const MiniCalendar = ({ selectedDate, onDateSelect, markedDates = new Set
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
   return (
-    <div className="bg-white border border-[#E3E8F4] rounded-[16px] w-full max-w-[334px] overflow-hidden font-jakarta" data-node-id="8869:3246">
+    <div className="bg-white border border-[#E3E8F4] rounded-[16px] w-full overflow-hidden font-jakarta" data-node-id="8869:3246">
       {/* Header */}
-      <div className="px-6 pt-6 flex items-center justify-between mb-4">
+      <div className="px-5 pt-5 flex items-center justify-between mb-4">
         <button 
           onClick={prevMonth}
           className="w-8 h-8 flex items-center justify-center border border-[#E3E8F4] rounded-[8px] hover:bg-gray-50 transition-colors"
@@ -63,7 +63,7 @@ export const MiniCalendar = ({ selectedDate, onDateSelect, markedDates = new Set
       </div>
 
       {/* Grid */}
-      <div className="px-[23px] pb-6">
+      <div className="px-3 sm:px-4 pb-5">
         <div className="grid grid-cols-7 mb-2 opacity-70">
           {days.map((day) => (
             <div key={day} className="text-center py-2">

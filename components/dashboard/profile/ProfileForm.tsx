@@ -14,7 +14,7 @@ import { CustomSelect } from '@/components/ui/CustomSelect';
 import {
   FALLBACK_LOCATION_TIMEZONE_OPTIONS,
   getLocationTimezoneOption,
-  type LocationTimezoneOption,
+  type LocationTimezoneOption,  
 } from '@/lib/location-timezones';
 
 const FormField = ({ 
@@ -46,7 +46,7 @@ const FormField = ({
         placeholder={placeholder}
         rows={4}
         disabled={disabled}
-        className="w-full bg-background border border-[#E3E8F4] rounded-[16px] p-4 text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all shadow-sm resize-none font-medium disabled:opacity-50"
+        className="w-full bg-background border border-[#E3E8F4] rounded-[16px] p-4 text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all resize-none font-medium disabled:opacity-50"
       />
     ) : (
       <input 
@@ -54,7 +54,7 @@ const FormField = ({
         type={type}
         placeholder={placeholder}
         disabled={disabled}
-        className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all shadow-sm font-medium disabled:opacity-50"
+        className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all font-medium disabled:opacity-50"
       />
     )}
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
@@ -269,7 +269,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
 
   return (
     <form id="profile-form" onSubmit={form.handleSubmit((values) => onSubmit(values))} className="w-full space-y-12 md:space-y-10">
-      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white md:shadow-sm">
+      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white">
         {/* Form Header */}
         <div className="pb-5 md:border-b md:border-[#E3E8F4] md:px-8 md:py-5">
           <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
@@ -378,7 +378,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
                 form.setValue('expertise', splitExpertise(nextValue), { shouldDirty: true, shouldValidate: true });
               }}
               placeholder="UI design, React, Brand strategy"
-              className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all shadow-sm font-medium disabled:opacity-50"
+              className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all font-medium disabled:opacity-50"
             />
             <p className="text-xs font-medium text-[#9CA3AF]">
               Separate tags with commas. These power your public instructor profile and verification readiness.
@@ -387,7 +387,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
         </div>
       </div>
 
-      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white md:shadow-sm">
+      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white">
         <div className="pb-5 md:border-b md:border-[#E3E8F4] md:px-8 md:py-5">
           <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
             Public Profile Links
@@ -412,7 +412,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
       </div>
 
       {/* Dynamic Social Links Section */}
-      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white md:shadow-sm">
+      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white">
         <div className="flex items-center justify-between gap-4 pb-5 md:border-b md:border-[#E3E8F4] md:px-8 md:py-5">
           <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
             Social Links
@@ -444,7 +444,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
                     <input
                       {...form.register(`socials.${index}.url` as const)}
                       placeholder={`https://${platform === 'website' ? '...' : platform + '.com/...'}`}
-                      className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all shadow-sm font-medium disabled:opacity-50"
+                      className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all font-medium disabled:opacity-50"
                     />
                     {form.formState.errors.socials?.[index]?.url && (
                       <p className="text-red-500 text-xs ml-2">

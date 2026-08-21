@@ -309,21 +309,12 @@ export function ScheduleClient({
 
   return (
     <div className="mx-auto flex w-full max-w-[1728px] flex-col gap-8 p-[clamp(16px,2.78vw,48px)] pb-24 font-jakarta">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex max-w-[720px] flex-col gap-2">
-          {/* <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#1C4ED1]">
-            <CalendarClock size={14} strokeWidth={1.9} />
-            Learning calendar
-          </span> */}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-[24px] font-bold tracking-tight text-[#040B37] lg:text-[28px]">
             Schedule
           </h1>
-          <p className="text-[14px] font-medium leading-relaxed text-[#9CA3AF]">
-            Your live sessions, mentorship bookings, certification exams, and course deadlines appear here when they are scheduled by instructors or admins.
-          </p>
-        </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex rounded-[12px] bg-[#E3E8F4] p-1">
             {(['Week', 'Month'] as const).map((view) => (
               <button
@@ -340,6 +331,10 @@ export function ScheduleClient({
             ))}
           </div>
         </div>
+
+        <p className="max-w-[720px] text-[14px] font-medium leading-relaxed text-[#9CA3AF]">
+          Your live sessions, mentorship bookings, certification exams, and course deadlines appear here when they are scheduled by instructors or admins.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -351,12 +346,12 @@ export function ScheduleClient({
         ))}
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        <aside className="w-full lg:w-fit lg:shrink-0">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:items-start">
+        <aside className="w-full lg:col-span-1">
           <MiniCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} markedDates={markedDates} />
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col gap-5">
+        <section className="flex min-w-0 flex-col gap-5 lg:col-span-3">
           <div className="flex flex-col gap-4 rounded-[16px] border border-[#E3E8F4] bg-white p-4 shadow-sm md:p-5">
             <div className="flex flex-col gap-1">
               <h2 className="text-[18px] font-bold tracking-tight text-[#040B37]">
@@ -369,12 +364,12 @@ export function ScheduleClient({
               </p>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto rounded-[12px] bg-stroke p-1">
+            <div className="flex w-full flex-wrap gap-1.5 rounded-[12px] bg-stroke p-1 sm:flex-nowrap">
               {FILTERS.map((filter) => (
                 <button
                   key={filter.value}
                   onClick={() => setActiveFilter(filter.value)}
-                  className={`shrink-0 rounded-[9px] px-4 py-2 text-[13px] font-semibold transition-all ${
+                  className={`flex-1 rounded-[9px] px-3 py-2 text-center text-[13px] font-semibold transition-all whitespace-nowrap ${
                     activeFilter === filter.value
                       ? 'bg-white text-[#040B37] shadow-[0px_3px_8px_rgba(159,173,205,0.35)]'
                       : 'text-text-mute hover:text-[#4B5563]'

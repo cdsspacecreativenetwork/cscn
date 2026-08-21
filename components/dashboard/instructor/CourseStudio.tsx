@@ -13,9 +13,10 @@ import CurriculumBuilder from './CurriculumBuilder';
 import CourseAnalyticsTab from './CourseAnalyticsTab';
 import InstructorRosterTab from './InstructorRosterTab';
 import FeedbackTab from './FeedbackTab';
+import CourseExamsTab from './CourseExamsTab';
 import type { LessonQuiz } from './QuizLessonBuilder';
 
-type Tab = 'settings' | 'curriculum' | 'analytics' | 'instructors' | 'feedback';
+type Tab = 'settings' | 'curriculum' | 'exams' | 'analytics' | 'instructors' | 'feedback';
 
 interface StudioLesson {
   id: string; title: string; position: number;
@@ -119,7 +120,7 @@ export default function CourseStudio({
   adminReviewSlot,
 }: Props) {
   const router = useRouter();
-  const validTabs: Tab[] = ['settings', 'curriculum', 'analytics', 'instructors', 'feedback'];
+  const validTabs: Tab[] = ['settings', 'curriculum', 'exams', 'analytics', 'instructors', 'feedback'];
   const isTeachingAssistant = callerRole === 'TEACHING_ASSISTANT';
   const allowedTabs: Tab[] = isTeachingAssistant ? ['curriculum', 'feedback'] : validTabs;
   const [activeTab, setActiveTab] = useState<Tab>(
@@ -189,6 +190,7 @@ export default function CourseStudio({
   const baseTabs: { id: Tab; label: string; badge?: number }[] = [
     { id: 'settings', label: 'Settings' },
     { id: 'curriculum', label: 'Curriculum' },
+    { id: 'exams', label: 'Exams & Certification' },
     { id: 'analytics', label: 'Analytics' },
     { id: 'instructors', label: 'Instructors' },
     { id: 'feedback', label: 'Feedback', badge: openFeedbackCount > 0 ? openFeedbackCount : undefined },
@@ -341,6 +343,22 @@ export default function CourseStudio({
         )}
         {activeTab === 'curriculum' && (
           <CurriculumBuilder courseId={course.id} courseTitle={course.title} courseSlug={course.slug} initialModules={course.modules} isAdmin={isAdmin} isLocked={isLocked} />
+        )}
+        {activeTab === 'exams' && (
+          <CourseExamsTab
+            course={{
+              id: course.id,
+              title: course.title,
+              courseType: course.courseType,
+              certificateEnabled: (course as any).certificateEnabled,
+              examGated: (course as any).examGated,
+              finalExamId: course.finalExamId,
+              finalExam: (course as any).finalExam,
+            }}
+            availableExams={(course as any).availableExams ?? []}
+            isLocked={isLocked}
+            onRefresh={() => router.refresh()}
+          />
         )}
         {activeTab === 'analytics' && (
           <CourseAnalyticsTab courseId={course.id} data={analytics} />
