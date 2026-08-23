@@ -25,6 +25,7 @@ type DbScheduleEvent = {
   endedAt: Date | null;
   meetingUrl: string | null;
   course: { id: string; title: string; slug: string } | null;
+  cohort?: { id: string; title: string; slug: string } | null;
   attendees?: { reminderEnabled: boolean }[];
   mentorBooking?: {
     id: string;
@@ -116,7 +117,7 @@ export function mapScheduleEvent(event: DbScheduleEvent, viewerTimeZone?: string
     id: event.id,
     type: event.type as ScheduleEvent["type"],
     title: event.title,
-    subtitle: event.course?.title ?? undefined,
+    subtitle: event.course?.title ?? event.cohort?.title ?? undefined,
     description: event.description,
     startsAt: event.startsAt.toISOString(),
     endsAt: event.endsAt?.toISOString() ?? null,
@@ -176,10 +177,28 @@ export async function getStudentScheduleEvents(userId: string) {
               },
             },
           },
+          {
+            audience: "COHORT_MEMBERS",
+            cohort: {
+              memberships: {
+                some: {
+                  userId,
+                  status: { in: ["ACTIVE", "COMPLETED"] },
+                },
+              },
+            },
+          },
         ],
       },
       include: {
         course: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+        cohort: {
           select: {
             id: true,
             title: true,

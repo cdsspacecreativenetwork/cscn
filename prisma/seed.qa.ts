@@ -111,7 +111,7 @@ async function main() {
     update: { password, emailVerified: new Date(), role: "USER" },
   });
 
-  await db.user.upsert({
+  const admin = await db.user.upsert({
     where: { email: "admin@local.cscn.test" },
     create: {
       email: "admin@local.cscn.test",
@@ -339,6 +339,60 @@ async function main() {
       },
     });
   }
+
+  const learningCohort = await db.cohort.findUniqueOrThrow({
+    where: { slug: "preview-ai-workflows-october-2026" },
+    select: { id: true, programId: true },
+  });
+  await db.cohort.update({ where: { id: learningCohort.id }, data: { price: 0 } });
+  await db.cohortApplication.upsert({
+    where: { cohortId_userId: { cohortId: learningCohort.id, userId: learner.id } },
+    create: {
+      cohortId: learningCohort.id,
+      userId: learner.id,
+      status: "ACCEPTED",
+      background: "Local-only learner dashboard fixture for reviewing a confirmed cohort membership.",
+      goals: "Review program courses, schedule, announcements, and truthful progress states.",
+      prerequisites: "Local QA requirements confirmed.",
+      answers: { country: "Nigeria", experienceLevel: "SOME_EXPERIENCE", weeklyHours: 6, hasLaptop: true, hasReliableInternet: true, commitmentConfirmed: true },
+      submittedAt: new Date("2026-08-23T12:00:00.000Z"),
+      reviewedAt: new Date("2026-08-23T13:00:00.000Z"),
+      reviewedById: admin.id,
+      reviewNote: "Local-only accepted fixture for the cohort learning dashboard.",
+    },
+    update: {
+      status: "ACCEPTED",
+      reviewedAt: new Date("2026-08-23T13:00:00.000Z"),
+      reviewedById: admin.id,
+      reviewNote: "Local-only accepted fixture for the cohort learning dashboard.",
+      offerExpiresAt: null,
+    },
+  });
+  await db.cohortMembership.upsert({
+    where: { cohortId_userId: { cohortId: learningCohort.id, userId: learner.id } },
+    create: { cohortId: learningCohort.id, userId: learner.id, role: "LEARNER", status: "ACTIVE", joinedAt: new Date("2026-08-23T13:00:00.000Z") },
+    update: { role: "LEARNER", status: "ACTIVE", joinedAt: new Date("2026-08-23T13:00:00.000Z") },
+  });
+  const learningCourses = await db.programCourse.findMany({ where: { programId: learningCohort.programId }, select: { courseId: true } });
+  for (const { courseId } of learningCourses) {
+    await db.enrollment.upsert({
+      where: { userId_courseId: { userId: learner.id, courseId } },
+      create: { userId: learner.id, courseId, status: "ACTIVE", enrolledAt: new Date("2026-08-23T13:00:00.000Z") },
+      update: { status: "ACTIVE" },
+    });
+  }
+
+  const announcement = await db.announcement.findFirst({ where: { cohortId: learningCohort.id, title: "[Preview] Welcome to your cohort workspace" }, select: { id: true } });
+  if (announcement) {
+    await db.announcement.update({ where: { id: announcement.id }, data: { status: "PUBLISHED", body: "This is local QA copy. Review the learning plan and orientation details before the cohort begins.", publishedAt: new Date("2026-08-23T14:00:00.000Z") } });
+  } else {
+    await db.announcement.create({ data: { cohortId: learningCohort.id, authorId: admin.id, title: "[Preview] Welcome to your cohort workspace", body: "This is local QA copy. Review the learning plan and orientation details before the cohort begins.", audience: "STUDENTS", status: "PUBLISHED", priority: 10, publishedAt: new Date("2026-08-23T14:00:00.000Z") } });
+  }
+
+  const orientation = await db.scheduleEvent.findFirst({ where: { cohortId: learningCohort.id, title: "[Preview] Cohort orientation" }, select: { id: true } });
+  const orientationData = { cohortId: learningCohort.id, createdById: admin.id, type: "LIVE_SESSION" as const, audience: "COHORT_MEMBERS" as const, status: "SCHEDULED" as const, title: "[Preview] Cohort orientation", description: "Local QA event for reviewing cohort schedule visibility. No real meeting is represented.", startsAt: new Date("2026-09-28T17:00:00.000Z"), endsAt: new Date("2026-09-28T18:00:00.000Z"), timezone: "Africa/Lagos" };
+  if (orientation) await db.scheduleEvent.update({ where: { id: orientation.id }, data: orientationData });
+  else await db.scheduleEvent.create({ data: orientationData });
 
   console.log("Local QA fixtures are ready.");
   console.log("Learner: learner@local.cscn.test / LocalReviewOnly!2026");

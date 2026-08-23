@@ -11,6 +11,7 @@ import { createAuditLog } from "@/data/audit-logs";
 import { createNotification } from "@/data/notifications";
 import { grantPaidCourseAccess } from "@/lib/services/enrollment-access.service";
 import { validatePaidCohortAccess } from "@/lib/cohort-admission-decisions";
+import { activateCohortLearnerMembership } from "@/lib/services/cohort-membership.service";
 
 const INSTRUCTOR_SHARE_PERCENT = 80;
 const EARNING_HOLD_DAYS = 14;
@@ -458,10 +459,10 @@ export async function fulfillPaidCohortOrder(input: {
       where: { id: order.id },
       data: { status: "PAID", provider: "PAYSTACK", providerReference: input.providerReference, paidAt },
     });
-    await tx.cohortMembership.upsert({
-      where: { cohortId_userId: { cohortId: application.cohort.id, userId: order.userId } },
-      create: { cohortId: application.cohort.id, userId: order.userId, role: "LEARNER", status: "ACTIVE", joinedAt: paidAt },
-      update: { role: "LEARNER", status: "ACTIVE", joinedAt: paidAt },
+    await activateCohortLearnerMembership(tx, {
+      cohortId: application.cohort.id,
+      userId: order.userId,
+      joinedAt: paidAt,
     });
     return updatedPayment;
   });

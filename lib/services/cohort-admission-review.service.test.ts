@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => ({
   applicationFindUnique: vi.fn(),
   applicationUpdateMany: vi.fn(),
   membershipUpsert: vi.fn(),
+  programCourseFindMany: vi.fn(),
+  enrollmentUpsert: vi.fn(),
   notification: vi.fn(),
   audit: vi.fn(),
 }));
@@ -14,6 +16,8 @@ vi.mock("@/lib/db", () => ({
     $transaction: vi.fn(async (callback) => callback({
       cohortApplication: { updateMany: mocks.applicationUpdateMany },
       cohortMembership: { upsert: mocks.membershipUpsert },
+      programCourse: { findMany: mocks.programCourseFindMany },
+      enrollment: { upsert: mocks.enrollmentUpsert },
     })),
   },
 }));
@@ -49,6 +53,8 @@ describe("cohort application review service", () => {
     vi.clearAllMocks();
     mocks.applicationUpdateMany.mockResolvedValue({ count: 1 });
     mocks.membershipUpsert.mockResolvedValue({ id: "membership-1" });
+    mocks.programCourseFindMany.mockResolvedValue([{ courseId: "course-1" }]);
+    mocks.enrollmentUpsert.mockResolvedValue({ id: "enrollment-1" });
     mocks.notification.mockResolvedValue({ id: "notification-1" });
     mocks.audit.mockResolvedValue({ id: "audit-1" });
   });
@@ -71,6 +77,10 @@ describe("cohort application review service", () => {
       where: { cohortId_userId: { cohortId: "cohort-1", userId: "learner-1" } },
       create: expect.objectContaining({ status: "ACTIVE" }),
       update: expect.objectContaining({ status: "ACTIVE" }),
+    }));
+    expect(mocks.enrollmentUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId_courseId: { userId: "learner-1", courseId: "course-1" } },
+      create: expect.objectContaining({ status: "ACTIVE" }),
     }));
   });
 

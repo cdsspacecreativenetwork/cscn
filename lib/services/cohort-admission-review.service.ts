@@ -8,6 +8,7 @@ import {
   validateReviewNote,
 } from "@/lib/cohort-admission-decisions";
 import { db } from "@/lib/db";
+import { activateCohortLearnerMembership } from "@/lib/services/cohort-membership.service";
 
 type Reviewer = { id: string; name?: string | null; email?: string | null };
 
@@ -82,16 +83,10 @@ export async function reviewCohortApplication(
     if (updated.count !== 1) return { conflict: true as const, membershipCreated: false };
 
     if (decision === "ACCEPTED" && price <= 0) {
-      await tx.cohortMembership.upsert({
-        where: { cohortId_userId: { cohortId: application.cohort.id, userId: application.userId } },
-        create: {
-          cohortId: application.cohort.id,
-          userId: application.userId,
-          role: "LEARNER",
-          status: "ACTIVE",
-          joinedAt: now,
-        },
-        update: { role: "LEARNER", status: "ACTIVE", joinedAt: now },
+      await activateCohortLearnerMembership(tx, {
+        cohortId: application.cohort.id,
+        userId: application.userId,
+        joinedAt: now,
       });
       return { conflict: false as const, membershipCreated: true };
     }

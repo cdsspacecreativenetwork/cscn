@@ -71,6 +71,7 @@ const adminOperationItems: NavItem[] = [
 
 const adminPersonalItems: NavItem[] = [
   { name: 'My Learning', href: '/dashboard/courses', Icon: BookOpen },
+  { name: 'My Cohorts', href: '/dashboard/cohorts', Icon: GraduationCap },
   { name: 'Instructor Studio', href: '/dashboard/instructor/courses', Icon: BookPlus },
   { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
   { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },
@@ -94,6 +95,7 @@ const instructorItems: NavItem[] = [
 
 const instructorPersonalItems: NavItem[] = [
   { name: 'My Learning', href: '/dashboard/courses', Icon: BookOpen },
+  { name: 'My Cohorts', href: '/dashboard/cohorts', Icon: GraduationCap },
   { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
   { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },
   { name: 'Resources', href: '/dashboard/resources', Icon: Library },
@@ -107,6 +109,7 @@ const instructorAccountItems: NavItem[] = [
 
 const learnerItems: NavItem[] = [
   { name: 'Overview', href: '/dashboard', Icon: LayoutDashboard },
+  { name: 'My Cohorts', href: '/dashboard/cohorts', Icon: GraduationCap },
   { name: 'My Learning', href: '/dashboard/courses', Icon: BookOpen },
   { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
   { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },

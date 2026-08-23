@@ -388,6 +388,8 @@ model Cohort {
   leadInstructor      User?               @relation("CohortLeadInstructor", fields: [leadInstructorId], references: [id], onDelete: SetNull)
   applications        CohortApplication[]
   memberships         CohortMembership[]
+  announcements       Announcement[]
+  scheduleEvents      ScheduleEvent[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
@@ -1356,11 +1358,15 @@ model Announcement {
   publishedAt DateTime? // null = draft; future date = scheduled
   expiresAt   DateTime?
   authorId    String
+  cohortId    String?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
+  cohort Cohort? @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+
   @@index([status])
   @@index([audience, publishedAt])
+  @@index([cohortId, status, publishedAt])
 }
 
 model PlatformSetting {
@@ -1449,6 +1455,7 @@ model ScheduleEvent {
   endedAt         DateTime?               @db.Timestamptz(3)
   endedById       String?
   courseId        String?
+  cohortId        String?
   lessonId        String?
   examId          String?
   createdAt       DateTime                @default(now())
@@ -1458,6 +1465,7 @@ model ScheduleEvent {
   startedBy          User?                          @relation("ScheduleEventStarter", fields: [startedById], references: [id], onDelete: SetNull)
   endedBy            User?                          @relation("ScheduleEventEnder", fields: [endedById], references: [id], onDelete: SetNull)
   course             Course?                        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  cohort             Cohort?                        @relation(fields: [cohortId], references: [id], onDelete: Cascade)
   lesson             Lesson?                        @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   exam               Exam?                          @relation(fields: [examId], references: [id], onDelete: SetNull)
   attendees          ScheduleEventAttendee[]
@@ -1469,6 +1477,7 @@ model ScheduleEvent {
   @@index([audience])
   @@index([startsAt])
   @@index([courseId, startsAt])
+  @@index([cohortId, startsAt])
   @@index([createdById])
   @@index([startedById])
   @@index([endedById])
@@ -1678,6 +1687,7 @@ enum ScheduleEventAudience {
   SELECTED_USERS
   INSTRUCTORS
   ADMINS
+  COHORT_MEMBERS
 }
 
 enum ScheduleAttendanceStatus {
