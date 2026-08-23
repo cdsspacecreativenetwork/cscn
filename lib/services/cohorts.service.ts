@@ -56,5 +56,6 @@ export async function getPublicCohort(slug: string) {
 export async function getUserCohortApplication(cohortId: string, userId: string) {
   return db.cohortApplication.findUnique({
     where: { cohortId_userId: { cohortId, userId } },
+    include: { purchaseOrder: { select: { status: true, paidAt: true } } },
   });
 }

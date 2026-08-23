@@ -111,6 +111,18 @@ async function main() {
     update: { password, emailVerified: new Date(), role: "USER" },
   });
 
+  await db.user.upsert({
+    where: { email: "admin@local.cscn.test" },
+    create: {
+      email: "admin@local.cscn.test",
+      name: "Local QA Admissions Admin",
+      password,
+      emailVerified: new Date(),
+      role: "SUPER_ADMIN",
+    },
+    update: { password, emailVerified: new Date(), role: "SUPER_ADMIN" },
+  });
+
   await db.learnerInterestProfile.upsert({
     where: { userId: learner.id },
     create: {
@@ -330,6 +342,7 @@ async function main() {
 
   console.log("Local QA fixtures are ready.");
   console.log("Learner: learner@local.cscn.test / LocalReviewOnly!2026");
+  console.log("Admin: admin@local.cscn.test / LocalReviewOnly!2026");
 }
 
 main()

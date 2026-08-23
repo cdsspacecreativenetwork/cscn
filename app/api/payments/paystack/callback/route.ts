@@ -26,6 +26,7 @@ export async function GET(request: Request) {
     const mentorBookingId = "mentorBookingId" in fulfilled ? fulfilled.mentorBookingId : undefined;
     const courseSlug = "courseSlug" in fulfilled ? fulfilled.courseSlug : undefined;
     const resourceSlug = "resourceSlug" in fulfilled ? fulfilled.resourceSlug : undefined;
+    const cohortSlug = "cohortSlug" in fulfilled ? fulfilled.cohortSlug : undefined;
 
     if (!fulfilled.success) {
       if (mentorBookingId) {
@@ -33,6 +34,9 @@ export async function GET(request: Request) {
       }
       if (resourceSlug) {
         return NextResponse.redirect(`${baseUrl}/resources/${resourceSlug}?payment=failed`);
+      }
+      if (cohortSlug) {
+        return NextResponse.redirect(`${baseUrl}/cohorts/${cohortSlug}/apply?payment=failed`);
       }
       return NextResponse.redirect(`${baseUrl}/dashboard/courses?payment=pending`);
     }
@@ -43,6 +47,10 @@ export async function GET(request: Request) {
 
     if (resourceSlug) {
       return NextResponse.redirect(`${baseUrl}/resources/${resourceSlug}?purchase=success`);
+    }
+
+    if (cohortSlug) {
+      return NextResponse.redirect(`${baseUrl}/cohorts/${cohortSlug}/apply?payment=success`);
     }
 
     if (courseSlug) {
