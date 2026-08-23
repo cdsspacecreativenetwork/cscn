@@ -6,11 +6,32 @@ import { db } from "@/lib/db";
 import { SettingsSchema } from "@/schemas";
 import { currentUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { deleteAvatar } from "@/actions/upload";
+import { removeOwnedAvatar } from "@/lib/avatar-storage";
 import { sendPasswordChangeOTPEmail } from "@/lib/mail";
 import { verifyTOTP, generateBase32Secret } from "@/lib/totp";
 import { createPaystackTransferRecipient } from "@/lib/payments/paystack";
 import { normalizeScheduleTimeZone } from "@/lib/schedule-time";
+import type { Prisma } from "@prisma/client";
+
+type SettingsSession = {
+  id: string;
+  device: string;
+  ip: string;
+  active: boolean;
+  createdAt: string;
+};
+
+type NotificationPreferences = Record<string, boolean>;
+
+type SettingsDetails = Record<string, Prisma.JsonValue | undefined> & {
+  _sessions?: SettingsSession[];
+  _notifications?: NotificationPreferences;
+};
+
+function getSettingsDetails(value: Prisma.JsonValue | null): SettingsDetails {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return { ...value } as SettingsDetails;
+}
 
 export const settings = async (values: z.infer<typeof SettingsSchema>) => {
   const user = await currentUser();
@@ -27,11 +48,9 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
     return { error: "Unauthorized" };
   }
 
-  if (values.image && dbUser.image && values.image !== dbUser.image) {
-    if (dbUser.image.includes("supabase.co") && dbUser.image.includes("/avatars/")) {
-      await deleteAvatar(dbUser.image);
-    }
-  }
+  const previousAvatar = values.image && dbUser.image && values.image !== dbUser.image
+    ? dbUser.image
+    : null;
 
   // Update user in database
   await db.user.update({
@@ -43,6 +62,13 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
         : dbUser.timezone ?? "Africa/Lagos",
     },
   });
+
+  if (previousAvatar) {
+    const removed = await removeOwnedAvatar(previousAvatar, dbUser.id);
+    if (!removed.success && removed.error !== "Avatar storage is not configured.") {
+      console.error("Failed to remove replaced avatar:", removed.error);
+    }
+  }
 
   revalidatePath("/dashboard/profile");
   revalidatePath("/dashboard");
@@ -78,7 +104,7 @@ export const verifyNuban = async (bankCode: string, accountNumber: string) => {
 
 export const updatePayoutSettings = async (data: {
   payoutMethod: string;
-  payoutDetails: any;
+  payoutDetails: Record<string, string | number | boolean | null>;
 }) => {
   const user = await currentUser();
   if (!user) return { error: "Unauthorized" };
@@ -94,7 +120,7 @@ export const updatePayoutSettings = async (data: {
     return { error: "Forbidden: You are not authorized to configure payouts" };
   }
 
-  const existingDetails = (dbUser.payoutDetails as any) || {};
+  const existingDetails = getSettingsDetails(dbUser.payoutDetails);
   const payoutCountry = String(data.payoutDetails?.payoutCountry ?? existingDetails.payoutCountry ?? "NG");
   const preferredCurrency = String(data.payoutDetails?.preferredCurrency ?? existingDetails.preferredCurrency ?? "NGN");
   const bankChanged =
@@ -104,7 +130,7 @@ export const updatePayoutSettings = async (data: {
       String(data.payoutDetails?.accountNumber ?? "") !== String(existingDetails.accountNumber ?? "") ||
       String(data.payoutDetails?.accountName ?? "") !== String(existingDetails.accountName ?? "")
     );
-  const nextDetails = {
+  const nextDetails: SettingsDetails = {
     ...existingDetails,
     ...data.payoutDetails,
     payoutCountry,
@@ -227,7 +253,11 @@ export const sendPasswordChangeOTP = async () => {
   return { success: "Verification code sent to your email!" };
 };
 
-export const changePassword = async (values: any) => {
+export const changePassword = async (values: {
+  currentPassword: string;
+  newPassword: string;
+  otpCode: string;
+}) => {
   const user = await currentUser();
   if (!user) return { error: "Unauthorized" };
 
@@ -397,7 +427,7 @@ export const getUserSecurityDetails = async () => {
 
   if (!dbUser) return null;
 
-  const details = (dbUser.payoutDetails as any) || {};
+  const details = getSettingsDetails(dbUser.payoutDetails);
   let sessions = details._sessions;
   if (!sessions) {
     sessions = [
@@ -440,14 +470,14 @@ export const revokeActiveSession = async (sessionId: string) => {
 
   if (!dbUser) return { error: "User not found" };
 
-  const details = (dbUser.payoutDetails as any) || {};
+  const details = getSettingsDetails(dbUser.payoutDetails);
   let sessions = details._sessions || [
     { id: "sess_1", device: "Chrome on Windows (Lagos, NG)", ip: "102.89.34.12", active: true, createdAt: new Date(Date.now() - 3600000).toISOString() },
     { id: "sess_2", device: "Safari on iPhone (Abuja, NG)", ip: "197.210.64.9", active: false, createdAt: new Date(Date.now() - 86400000).toISOString() }
   ];
 
   // Filter out the revoked session
-  sessions = sessions.filter((s: any) => s.id !== sessionId);
+  sessions = sessions.filter((session) => session.id !== sessionId);
   details._sessions = sessions;
 
   await db.user.update({
@@ -489,7 +519,7 @@ export const deleteUserAccount = async (emailConfirmation: string) => {
   return { success: "Account deleted" };
 };
 
-export const updateNotificationPreferences = async (prefs: any) => {
+export const updateNotificationPreferences = async (prefs: NotificationPreferences) => {
   const user = await currentUser();
   if (!user) return { error: "Unauthorized" };
 
@@ -499,7 +529,7 @@ export const updateNotificationPreferences = async (prefs: any) => {
 
   if (!dbUser) return { error: "User not found" };
 
-  const details = (dbUser.payoutDetails as any) || {};
+  const details = getSettingsDetails(dbUser.payoutDetails);
   details._notifications = {
     ...(details._notifications || {}),
     ...prefs

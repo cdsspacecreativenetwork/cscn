@@ -1,11 +1,19 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeonHttp } from "@prisma/adapter-neon";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createClient() {
   const url = (process.env.DATABASE_URL ?? "").replace(/^['"]|['"]$/g, "");
-  const adapter = new PrismaNeonHttp(url, {});
+  if (!url) {
+    throw new Error("DATABASE_URL is required to initialize Prisma.");
+  }
+
+  const adapter = process.env.DATABASE_ADAPTER === "pg"
+    ? new PrismaPg({ connectionString: url })
+    : new PrismaNeonHttp(url, {});
+
   return new PrismaClient({ adapter });
 }
 

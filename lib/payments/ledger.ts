@@ -9,6 +9,7 @@ import {
 } from "@/lib/payments/paystack";
 import { createAuditLog } from "@/data/audit-logs";
 import { createNotification } from "@/data/notifications";
+import { grantPaidCourseAccess } from "@/lib/services/enrollment-access.service";
 
 const INSTRUCTOR_SHARE_PERCENT = 80;
 const EARNING_HOLD_DAYS = 14;
@@ -306,11 +307,10 @@ export async function fulfillPaidCourseOrder(input: {
     },
   });
 
-  await db.enrollment.upsert({
-    where: { userId_courseId: { userId: order.userId, courseId: order.courseId } },
-    create: { userId: order.userId, courseId: order.courseId },
-    update: { status: "ACTIVE", completedAt: null },
-  });
+  const access = await grantPaidCourseAccess(order.id, { revalidate: false });
+  if (!access.success) {
+    return { error: access.error, courseSlug: order.course.slug };
+  }
 
   await createInvoiceIfMissing(order.id, {
     userId: order.userId,

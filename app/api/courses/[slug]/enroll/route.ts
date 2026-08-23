@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { enrollUser } from "@/lib/services/courses.service";
+import { enrollInPublishedFreeCourse } from "@/lib/services/enrollment-access.service";
 
 export async function POST(
   _request: NextRequest,
@@ -12,10 +12,15 @@ export async function POST(
   }
 
   const { slug } = await params;
-  const result = await enrollUser(session.user.id, slug);
+  const result = await enrollInPublishedFreeCourse(session.user.id, slug);
 
-  if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 404 });
+  if (!result.success) {
+    const status = result.code === "COURSE_NOT_FOUND"
+      ? 404
+      : result.code === "PAYMENT_REQUIRED"
+        ? 402
+        : 400;
+    return NextResponse.json({ error: result.error, code: result.code }, { status });
   }
 
   return NextResponse.json(result);

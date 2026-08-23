@@ -59,6 +59,9 @@ export async function startCourseCheckoutAction(courseSlug: string) {
   if (currency !== "NGN") {
     return { error: "Paystack checkout currently supports NGN courses only. Stripe support will handle other currencies later." };
   }
+  if (!process.env.PAYSTACK_SECRET_KEY) {
+    return { error: "Checkout is unavailable in this local preview because Paystack is not configured." };
+  }
 
   const reference = generatePaymentReference("cscn_course");
   const order = await db.purchaseOrder.create({
@@ -80,7 +83,7 @@ export async function startCourseCheckoutAction(courseSlug: string) {
     select: { id: true },
   });
 
-  await db.payment.create({
+  const payment = await db.payment.create({
     data: {
       orderId: order.id,
       userId: user.id,
@@ -90,26 +93,41 @@ export async function startCourseCheckoutAction(courseSlug: string) {
       currency,
       providerReference: reference,
     },
+    select: { id: true },
   });
 
   const baseUrl = await getAppBaseUrl();
   const callbackUrl = `${baseUrl}/api/payments/paystack/callback?reference=${encodeURIComponent(reference)}`;
-  const initialized = await initializePaystackTransaction({
-    email: user.email,
-    amount,
-    currency,
-    reference,
-    callbackUrl,
-    metadata: {
-      orderId: order.id,
-      courseId: course.id,
-      courseSlug: course.slug,
-      userId: user.id,
-      type: "COURSE",
-    },
-  });
+  let initialized;
+  try {
+    initialized = await initializePaystackTransaction({
+      email: user.email,
+      amount,
+      currency,
+      reference,
+      callbackUrl,
+      metadata: {
+        orderId: order.id,
+        courseId: course.id,
+        courseSlug: course.slug,
+        userId: user.id,
+        type: "COURSE",
+      },
+    });
+  } catch (error: unknown) {
+    await Promise.all([
+      db.purchaseOrder.update({ where: { id: order.id }, data: { status: "CANCELLED" } }),
+      db.payment.update({ where: { id: payment.id }, data: { status: "FAILED" } }),
+    ]);
+    console.error("Course checkout initialization failed:", error);
+    return { error: "Checkout is temporarily unavailable. Please try again later." };
+  }
 
   if (!initialized.status || !initialized.data?.authorization_url) {
+    await Promise.all([
+      db.purchaseOrder.update({ where: { id: order.id }, data: { status: "CANCELLED" } }),
+      db.payment.update({ where: { id: payment.id }, data: { status: "FAILED" } }),
+    ]);
     return { error: initialized.message || "Unable to initialize Paystack checkout." };
   }
 
