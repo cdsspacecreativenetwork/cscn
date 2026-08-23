@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react';
 import Button from '../ui/Button';
 
 const navLinks = [
+  { name: 'Cohorts', path: '/cohorts' },
   { name: 'Courses', path: '/courses' },
   { name: 'Community', path: '/community' },
   { name: 'Certificate', path: '/certificate' },

@@ -24,6 +24,7 @@ async function upsertQaCourse(input: {
   price: number;
   instructorId: string;
   categoryId: string;
+  shortDesc?: string;
 }) {
   const course = await db.course.upsert({
     where: { slug: input.slug },
@@ -31,7 +32,7 @@ async function upsertQaCourse(input: {
       slug: input.slug,
       title: input.title,
       description: "Local review fixture for validating CSCN enrollment access. This record is never used outside the local development database.",
-      shortDesc: "Local-only enrollment security review fixture.",
+      shortDesc: input.shortDesc ?? "Local-only enrollment security review fixture.",
       price: input.price,
       baseCurrency: "NGN",
       status: "PUBLISHED",
@@ -47,6 +48,7 @@ async function upsertQaCourse(input: {
       instructorId: input.instructorId,
       categoryId: input.categoryId,
       thumbnail: "/assets/courses/Frame 2147228498-1.png",
+      shortDesc: input.shortDesc ?? "Local-only enrollment security review fixture.",
     },
   });
 
@@ -79,6 +81,8 @@ async function upsertQaCourse(input: {
       },
     });
   }
+
+  return course;
 }
 
 async function main() {
@@ -140,6 +144,189 @@ async function main() {
     instructorId: instructor.id,
     categoryId: category.id,
   });
+
+  const cohortCourses = await Promise.all([
+    upsertQaCourse({
+      slug: "preview-product-design-studio",
+      title: "[Preview] Product design studio",
+      price: 0,
+      instructorId: instructor.id,
+      categoryId: category.id,
+      shortDesc: "A local preview course used to review the cohort admissions journey.",
+    }),
+    upsertQaCourse({
+      slug: "preview-ai-workflow-builder",
+      title: "[Preview] AI workflow builder",
+      price: 0,
+      instructorId: instructor.id,
+      categoryId: category.id,
+      shortDesc: "A local preview course used to review the cohort admissions journey.",
+    }),
+    upsertQaCourse({
+      slug: "preview-frontend-product-engineering",
+      title: "[Preview] Frontend product engineering",
+      price: 0,
+      instructorId: instructor.id,
+      categoryId: category.id,
+      shortDesc: "A local preview course used to review the cohort admissions journey.",
+    }),
+  ]);
+
+  const school = await db.school.upsert({
+    where: { slug: "preview-digital-practice" },
+    create: {
+      name: "[Preview] School of Digital Practice",
+      slug: "preview-digital-practice",
+      description: "Local-only school used to review CSCN program and cohort interfaces.",
+      status: "PUBLISHED",
+      featuredOrder: 1,
+    },
+    update: { status: "PUBLISHED", featuredOrder: 1 },
+  });
+
+  const previewPrograms = [
+    {
+      slug: "preview-product-design-launchpad",
+      title: "[Preview] Product design launchpad",
+      shortDescription: "Turn a product problem into a tested interface and a portfolio-ready case study.",
+      description: "A guided product design pathway covering problem framing, user research, interface systems, prototyping, testing, and case-study communication.",
+      weeks: 10,
+      hours: 8,
+      outcomes: ["Frame a useful product problem", "Build and test an interactive prototype", "Present a clear design case study"],
+      requirements: ["A laptop with reliable internet", "Comfort using web applications", "Eight hours each week for live and project work"],
+      skills: ["Product thinking", "User research", "Interface design", "Prototyping"],
+      courseId: cohortCourses[0].id,
+      cohort: {
+        slug: "preview-product-design-october-2026",
+        title: "[Preview] October 2026 cohort",
+        opens: "2026-08-23T00:00:00.000Z",
+        closes: "2026-09-20T22:59:59.000Z",
+        starts: "2026-10-05T17:00:00.000Z",
+        ends: "2026-12-18T17:00:00.000Z",
+        capacity: 28,
+        price: 85000,
+        schedule: "Tuesdays and Thursdays, 6:00–7:30 PM WAT, with a Saturday project clinic twice monthly.",
+        weekly: ["Live studio: Tue & Thu", "Peer pod: one flexible hour", "Project clinic: alternate Saturdays"],
+      },
+    },
+    {
+      slug: "preview-ai-workflows-for-creatives",
+      title: "[Preview] AI workflows for creatives",
+      shortDescription: "Build reliable AI-assisted research, content, and delivery workflows without losing creative judgment.",
+      description: "A project-led pathway for creatives who want to use generative AI deliberately, evaluate outputs, automate repeatable work, and document responsible workflows.",
+      weeks: 8,
+      hours: 6,
+      outcomes: ["Design a repeatable AI-assisted workflow", "Evaluate and improve generated outputs", "Ship a documented automation project"],
+      requirements: ["A laptop with reliable internet", "Experience in any creative discipline", "Six hours each week for practice and live sessions"],
+      skills: ["Prompt systems", "Workflow design", "Output evaluation", "Creative automation"],
+      courseId: cohortCourses[1].id,
+      cohort: {
+        slug: "preview-ai-workflows-october-2026",
+        title: "[Preview] October 2026 cohort",
+        opens: "2026-08-23T00:00:00.000Z",
+        closes: "2026-10-04T22:59:59.000Z",
+        starts: "2026-10-19T17:00:00.000Z",
+        ends: "2026-12-11T17:00:00.000Z",
+        capacity: 36,
+        price: 65000,
+        schedule: "Mondays, 6:00–7:30 PM WAT, plus a Wednesday feedback room and flexible peer practice.",
+        weekly: ["Live workshop: Monday", "Feedback room: Wednesday", "Independent build: 3–4 hours"],
+      },
+    },
+    {
+      slug: "preview-frontend-product-engineering",
+      title: "[Preview] Frontend product engineering",
+      shortDescription: "Build accessible, production-minded web interfaces from product brief to deployed project.",
+      description: "A structured frontend pathway combining modern React, interface architecture, accessibility, testing, code review, and a team capstone.",
+      weeks: 16,
+      hours: 12,
+      outcomes: ["Build accessible React interfaces", "Work through review and revision", "Ship a team-based product capstone"],
+      requirements: ["Basic HTML, CSS, and JavaScript", "A laptop able to run a local development environment", "Twelve hours each week for classes and project work"],
+      skills: ["React", "TypeScript", "Accessibility", "Testing", "Team delivery"],
+      courseId: cohortCourses[2].id,
+      cohort: {
+        slug: "preview-frontend-november-2026",
+        title: "[Preview] November 2026 cohort",
+        opens: "2026-08-23T00:00:00.000Z",
+        closes: "2026-10-25T22:59:59.000Z",
+        starts: "2026-11-09T17:00:00.000Z",
+        ends: "2027-02-26T17:00:00.000Z",
+        capacity: 24,
+        price: 145000,
+        schedule: "Mondays and Wednesdays, 6:00–8:00 PM WAT, plus a Friday code review and team build time.",
+        weekly: ["Live class: Mon & Wed", "Code review: Friday", "Team build: 5–6 flexible hours"],
+      },
+    },
+  ];
+
+  for (const preview of previewPrograms) {
+    const program = await db.program.upsert({
+      where: { slug: preview.slug },
+      create: {
+        schoolId: school.id,
+        title: preview.title,
+        slug: preview.slug,
+        shortDescription: preview.shortDescription,
+        description: preview.description,
+        estimatedDurationWeeks: preview.weeks,
+        weeklyCommitmentHours: preview.hours,
+        outcomes: preview.outcomes,
+        requirements: preview.requirements,
+        skills: preview.skills,
+        status: "PUBLISHED",
+      },
+      update: {
+        title: preview.title,
+        shortDescription: preview.shortDescription,
+        description: preview.description,
+        estimatedDurationWeeks: preview.weeks,
+        weeklyCommitmentHours: preview.hours,
+        outcomes: preview.outcomes,
+        requirements: preview.requirements,
+        skills: preview.skills,
+        status: "PUBLISHED",
+      },
+    });
+
+    await db.programCourse.upsert({
+      where: { programId_courseId: { programId: program.id, courseId: preview.courseId } },
+      create: { programId: program.id, courseId: preview.courseId, position: 1 },
+      update: { position: 1, required: true },
+    });
+
+    await db.cohort.upsert({
+      where: { slug: preview.cohort.slug },
+      create: {
+        programId: program.id,
+        leadInstructorId: instructor.id,
+        title: preview.cohort.title,
+        slug: preview.cohort.slug,
+        status: "APPLICATIONS_OPEN",
+        applicationOpenAt: new Date(preview.cohort.opens),
+        applicationCloseAt: new Date(preview.cohort.closes),
+        startsAt: new Date(preview.cohort.starts),
+        endsAt: new Date(preview.cohort.ends),
+        capacity: preview.cohort.capacity,
+        price: preview.cohort.price,
+        scheduleSummary: preview.cohort.schedule,
+        weeklySchedule: preview.cohort.weekly,
+        graduationRules: ["Complete at least 80% of required learning", "Submit the final project", "Address required feedback before completion"],
+      },
+      update: {
+        programId: program.id,
+        leadInstructorId: instructor.id,
+        status: "APPLICATIONS_OPEN",
+        applicationOpenAt: new Date(preview.cohort.opens),
+        applicationCloseAt: new Date(preview.cohort.closes),
+        startsAt: new Date(preview.cohort.starts),
+        endsAt: new Date(preview.cohort.ends),
+        capacity: preview.cohort.capacity,
+        price: preview.cohort.price,
+        scheduleSummary: preview.cohort.schedule,
+        weeklySchedule: preview.cohort.weekly,
+      },
+    });
+  }
 
   console.log("Local QA fixtures are ready.");
   console.log("Learner: learner@local.cscn.test / LocalReviewOnly!2026");

@@ -17,10 +17,12 @@ export default auth((req) => {
     /^\/courses\/[^/]+$/.test(nextUrl.pathname) ||
     /^\/courses\/[^/]+\/watch\/[^/]+$/.test(nextUrl.pathname);
   const isProjectPublicRoute = /^\/projects\/[^/]+$/.test(nextUrl.pathname);
+  const isCohortPublicRoute = /^\/cohorts\/[^/]+$/.test(nextUrl.pathname);
   const isInstructorPublicRoute = /^\/instructor\/[^/]+$/.test(nextUrl.pathname);
   const isPublicRoute =
     publicRoutes.includes(nextUrl.pathname) ||
     isCoursePublicRoute ||
+    isCohortPublicRoute ||
     isProjectPublicRoute ||
     isInstructorPublicRoute;
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);

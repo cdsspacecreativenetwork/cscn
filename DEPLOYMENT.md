@@ -30,7 +30,7 @@ Required production secrets vary by enabled feature and include Auth.js, Neon, S
 For a schema change:
 
 1. Update `prisma/schema.prisma` locally.
-2. Create a named migration with `pnpm db:migrate:dev -- --name descriptive_change` against `cscn_dev`.
+2. Create a named migration with `pnpm db:migrate:dev --name descriptive_change` against `cscn_dev`.
 3. Inspect the generated SQL for locks, destructive operations, backfills, and required application ordering.
 4. Rebuild `cscn_test` with `pnpm db:reset:test`, then run all release gates.
 5. Test backup restoration and a forward-fix or rollback procedure in a non-production environment.

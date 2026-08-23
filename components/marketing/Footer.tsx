@@ -6,6 +6,7 @@ import Image from 'next/image';
 
 const FOOTER_LINKS = {
   menu: [
+    { name: 'Cohorts', href: '/cohorts' },
     { name: 'Courses', href: '/courses' },
     { name: 'Community', href: '/community' },
     { name: 'Certificate', href: '/certificate' },
