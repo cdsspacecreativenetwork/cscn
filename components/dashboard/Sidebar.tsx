@@ -56,6 +56,7 @@ const adminOperationItems: NavItem[] = [
   { name: 'Courses', href: '/dashboard/admin/courses', Icon: Layers, permissions: ['canManageCourses', 'canReviewCourses', 'canPublishCourses'] },
   { name: 'Students', href: '/dashboard/admin/students', Icon: GraduationCap, permissions: ['canManageLearners', 'canManageUsers'] },
   { name: 'Admissions', href: '/dashboard/admin/admissions', Icon: ClipboardCheck, permissions: ['canManageLearners', 'canManageUsers'] },
+  { name: 'Project Reviews', href: '/dashboard/admin/project-reviews', Icon: ClipboardList, permissions: ['canManageLearners', 'canManageUsers'] },
   { name: 'Learner Insights', href: '/dashboard/admin/learner-insights', Icon: BarChart2, permissions: ['canManageLearners', 'canManageMarketing', 'canViewAnalytics'] },
   { name: 'Instructors', href: '/dashboard/admin/instructors', Icon: UserCheck, permissions: ['canManageInstructors', 'canVerifyInstructors'] },
   { name: 'Invites', href: '/dashboard/admin/invites', Icon: Link2, permissions: ['canManageInvites', 'canManageUsers'] },

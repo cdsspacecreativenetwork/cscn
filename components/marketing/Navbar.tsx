@@ -11,8 +11,8 @@ import Button from '../ui/Button';
 const navLinks = [
   { name: 'Cohorts', path: '/cohorts' },
   { name: 'Courses', path: '/courses' },
+  { name: 'Showcase', path: '/showcase' },
   { name: 'Community', path: '/community' },
-  { name: 'Certificate', path: '/certificate' },
   { name: 'Resources', path: '/resources' },
   { name: 'Mentorship', path: '/mentorship' },
 ];

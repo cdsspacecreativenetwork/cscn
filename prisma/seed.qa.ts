@@ -373,6 +373,11 @@ async function main() {
     create: { cohortId: learningCohort.id, userId: learner.id, role: "LEARNER", status: "ACTIVE", joinedAt: new Date("2026-08-23T13:00:00.000Z") },
     update: { role: "LEARNER", status: "ACTIVE", joinedAt: new Date("2026-08-23T13:00:00.000Z") },
   });
+  await db.cohortMembership.upsert({
+    where: { cohortId_userId: { cohortId: learningCohort.id, userId: admin.id } },
+    create: { cohortId: learningCohort.id, userId: admin.id, role: "LEARNER", status: "ACTIVE", joinedAt: new Date("2026-08-23T13:05:00.000Z") },
+    update: { role: "LEARNER", status: "ACTIVE" },
+  });
   const learningCourses = await db.programCourse.findMany({ where: { programId: learningCohort.programId }, select: { courseId: true } });
   for (const { courseId } of learningCourses) {
     await db.enrollment.upsert({
@@ -393,6 +398,70 @@ async function main() {
   const orientationData = { cohortId: learningCohort.id, createdById: admin.id, type: "LIVE_SESSION" as const, audience: "COHORT_MEMBERS" as const, status: "SCHEDULED" as const, title: "[Preview] Cohort orientation", description: "Local QA event for reviewing cohort schedule visibility. No real meeting is represented.", startsAt: new Date("2026-09-28T17:00:00.000Z"), endsAt: new Date("2026-09-28T18:00:00.000Z"), timezone: "Africa/Lagos" };
   if (orientation) await db.scheduleEvent.update({ where: { id: orientation.id }, data: orientationData });
   else await db.scheduleEvent.create({ data: orientationData });
+
+  const project = await db.cohortProject.upsert({
+    where: { cohortId_slug: { cohortId: learningCohort.id, slug: "responsible-creative-workflow-case-study" } },
+    create: {
+      cohortId: learningCohort.id,
+      createdById: admin.id,
+      slug: "responsible-creative-workflow-case-study",
+      title: "[Preview] Responsible creative workflow case study",
+      brief: "Design and document a repeatable AI-assisted workflow for a real creative task. Show where human judgment enters the process, how you evaluate outputs, and what you changed after testing.",
+      deliverables: ["A working workflow artifact or demonstration", "A case study explaining the problem, process, and decisions", "Evidence of evaluation, iteration, and responsible-use safeguards"],
+      dueAt: new Date("2026-11-30T22:59:59.000Z"),
+      status: "PUBLISHED",
+      showcaseEligible: true,
+      credentialTitle: "Applied AI Workflow Project",
+    },
+    update: { status: "PUBLISHED", showcaseEligible: true, dueAt: new Date("2026-11-30T22:59:59.000Z") },
+  });
+  const rubric = [
+    { key: "workflow-design", title: "Workflow design", description: "The workflow is coherent, repeatable, and appropriate for the stated creative problem.", maxScore: 5, position: 1 },
+    { key: "judgment-evaluation", title: "Judgment and evaluation", description: "The learner defines quality, tests outputs, and documents meaningful human decisions.", maxScore: 5, position: 2 },
+    { key: "documentation", title: "Documentation", description: "The case study communicates the process, iterations, constraints, and outcome clearly.", maxScore: 5, position: 3 },
+  ];
+  for (const criterion of rubric) {
+    await db.projectRubricCriterion.upsert({
+      where: { projectId_key: { projectId: project.id, key: criterion.key } },
+      create: { projectId: project.id, ...criterion },
+      update: criterion,
+    });
+  }
+  const learnerSubmission = await db.projectSubmission.upsert({
+    where: { projectId_userId: { projectId: project.id, userId: learner.id } },
+    create: {
+      projectId: project.id,
+      userId: learner.id,
+      status: "SUBMITTED",
+      title: "[Preview] A quality-controlled campaign workflow",
+      summary: "Local QA evidence for reviewing the end-to-end project workflow. The case study frames a campaign-production problem, defines quality checks, records human approval gates, and explains how test feedback changed the final sequence. It is deliberately labelled preview content and makes no claim about a real learner achievement.",
+      artifactUrl: "https://example.test/cscn-local-qa/artifact",
+      repositoryUrl: "https://example.test/cscn-local-qa/repository",
+      demoUrl: "https://example.test/cscn-local-qa/demo",
+      showcaseConsent: true,
+      currentVersion: 1,
+      submittedAt: new Date("2026-08-23T15:00:00.000Z"),
+    },
+    update: {},
+  });
+  if (learnerSubmission.currentVersion === 0) {
+    await db.projectSubmission.update({ where: { id: learnerSubmission.id }, data: { status: "SUBMITTED", currentVersion: 1, submittedAt: new Date("2026-08-23T15:00:00.000Z") } });
+  }
+  await db.projectSubmissionVersion.upsert({
+    where: { submissionId_version: { submissionId: learnerSubmission.id, version: 1 } },
+    create: {
+      submissionId: learnerSubmission.id,
+      version: 1,
+      title: learnerSubmission.title,
+      summary: learnerSubmission.summary,
+      artifactUrl: learnerSubmission.artifactUrl,
+      repositoryUrl: learnerSubmission.repositoryUrl,
+      demoUrl: learnerSubmission.demoUrl,
+      coverImageUrl: learnerSubmission.coverImageUrl,
+      submittedAt: learnerSubmission.submittedAt ?? new Date("2026-08-23T15:00:00.000Z"),
+    },
+    update: {},
+  });
 
   console.log("Local QA fixtures are ready.");
   console.log("Learner: learner@local.cscn.test / LocalReviewOnly!2026");

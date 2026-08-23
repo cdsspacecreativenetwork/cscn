@@ -18,11 +18,15 @@ export default auth((req) => {
     /^\/courses\/[^/]+\/watch\/[^/]+$/.test(nextUrl.pathname);
   const isProjectPublicRoute = /^\/projects\/[^/]+$/.test(nextUrl.pathname);
   const isCohortPublicRoute = /^\/cohorts\/[^/]+$/.test(nextUrl.pathname);
+  const isShowcasePublicRoute = /^\/showcase\/[^/]+$/.test(nextUrl.pathname);
+  const isCredentialPublicRoute = /^\/credentials\/[^/]+$/.test(nextUrl.pathname);
   const isInstructorPublicRoute = /^\/instructor\/[^/]+$/.test(nextUrl.pathname);
   const isPublicRoute =
     publicRoutes.includes(nextUrl.pathname) ||
     isCoursePublicRoute ||
     isCohortPublicRoute ||
+    isShowcasePublicRoute ||
+    isCredentialPublicRoute ||
     isProjectPublicRoute ||
     isInstructorPublicRoute;
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);

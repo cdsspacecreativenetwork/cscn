@@ -61,6 +61,22 @@ export async function getCohortLearningDashboard(userId: string, cohortSlug: str
           scheduleSummary: true,
           weeklySchedule: true,
           graduationRules: true,
+          projects: {
+            where: { status: "PUBLISHED" },
+            orderBy: [{ dueAt: "asc" }, { createdAt: "asc" }],
+            select: {
+              id: true,
+              title: true,
+              brief: true,
+              dueAt: true,
+              submissions: {
+                where: { userId },
+                select: { status: true, currentVersion: true },
+                take: 1,
+              },
+              _count: { select: { rubricCriteria: true } },
+            },
+          },
           leadInstructor: { select: { name: true, image: true, headline: true } },
           program: {
             select: {
