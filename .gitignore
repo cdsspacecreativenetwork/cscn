@@ -35,6 +35,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local quality reports
+.eslint-report.json
+
 # vercel
 .vercel
 
