@@ -2,9 +2,9 @@
 
 import { FormEvent, startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
 
 import { CustomSelect } from "@/components/ui/CustomSelect";
+import SearchField from "@/components/ui/SearchField";
 
 type Option = {
   value: string;
@@ -59,19 +59,21 @@ export function AdminDirectoryFilters({
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <form onSubmit={submitSearch} className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" size={17} />
-        <input
+      <form onSubmit={submitSearch}>
+        <SearchField
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder={searchPlaceholder}
-          className="h-14 w-full rounded-[10px] border border-[#E3E8F4] bg-[#F8FAFF] pl-10 pr-3 text-[14px] font-medium text-[#040B37] outline-none transition focus:border-[#1C4ED1] sm:w-[320px]"
+          aria-label={searchPlaceholder}
+          compact
+          containerClassName="sm:w-[320px]"
         />
       </form>
 
       <div className="flex flex-col gap-3 sm:flex-row">
         {statusOptions && (
           <CustomSelect
+            size="compact"
             value={statusValue || "all"}
             options={statusOptions}
             onChange={(next) => {
@@ -82,6 +84,7 @@ export function AdminDirectoryFilters({
           />
         )}
         <CustomSelect
+          size="compact"
           value={sortValue}
           options={sortOptions}
           onChange={(next) => {

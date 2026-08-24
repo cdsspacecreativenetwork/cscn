@@ -162,10 +162,11 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className={`w-full flex items-center justify-between px-4 h-[48px] rounded-[10px] border text-[14px] font-semibold text-left outline-none transition-all cursor-pointer ${
+        data-state={isOpen ? 'open' : 'closed'}
+        className={`cscn-form-control cscn-select-trigger w-full flex items-center justify-between text-left cursor-pointer ${
           isOpen
-            ? 'border-[#1C4ED1] ring-4 ring-[#1C4ED1]/8 bg-white'
-            : 'border-[#E3E8F4] bg-white hover:border-[#1C4ED1]/40'
+            ? ''
+            : 'hover:border-[#1C4ED1]/40'
         }`}
       >
         <span className={selectedOpt ? 'text-[#040B37]' : 'text-gray-400'}>

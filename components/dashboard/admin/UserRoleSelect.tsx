@@ -63,6 +63,7 @@ export function UserRoleSelect({
   return (
     <div className="flex min-w-[180px] items-center gap-3 whitespace-nowrap">
       <CustomSelect
+        size="compact"
         options={options}
         value={role}
         onChange={handleChange}

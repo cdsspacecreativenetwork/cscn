@@ -12,8 +12,28 @@ interface AuthLayoutProps {
   subtitle: string;
   sidebarTitle: string;
   sidebarSubtitle: string;
+  benefits?: readonly AuthBenefit[];
   showBackToHome?: boolean;
 }
+
+export interface AuthBenefit {
+  title: string;
+  description: string;
+  iconSrc: string;
+}
+
+const defaultBenefits: readonly AuthBenefit[] = [
+  {
+    title: '20+ expert-led courses',
+    description: 'Curated content from industry practitioners',
+    iconSrc: '/assets/dashboard/motorboard-02.svg',
+  },
+  {
+    title: 'Verified certifications',
+    description: 'Credentials recognised by top employers',
+    iconSrc: '/assets/dashboard/certificate-01.svg',
+  },
+];
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
   children,
@@ -21,6 +41,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   subtitle,
   sidebarTitle,
   sidebarSubtitle,
+  benefits = defaultBenefits,
   showBackToHome = true
 }) => {
   return (
@@ -81,33 +102,21 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
             {/* Bottom: Benefits - Precise 1728px Proportions */}
             <div className="space-y-[clamp(16px,1.38vw,24px)] mt-auto">
-              <div className="flex items-start gap-[clamp(12px,0.92vw,16px)]">
-                <div className="w-[clamp(32px,2.31vw,40px)] h-[clamp(32px,2.31vw,40px)] rounded-md bg-white flex items-center justify-center flex-shrink-0">
-                  <Image src="/assets/dashboard/motorboard-02.svg" alt="Icon" width={24} height={24} className="w-1/2 h-1/2" />
+              {benefits.map((benefit) => (
+                <div key={benefit.title} className="flex items-start gap-[clamp(12px,0.92vw,16px)]">
+                  <div className="w-[clamp(32px,2.31vw,40px)] h-[clamp(32px,2.31vw,40px)] rounded-md bg-white flex items-center justify-center flex-shrink-0">
+                    <Image src={benefit.iconSrc} alt="" width={24} height={24} className="w-1/2 h-1/2" />
+                  </div>
+                  <div>
+                    <h3 className="text-[clamp(14px,0.92vw,16px)] font-medium text-white leading-normal">
+                      {benefit.title}
+                    </h3>
+                    <p className="text-[clamp(11px,0.69vw,12px)] text-white/70 leading-normal">
+                      {benefit.description}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-[clamp(14px,0.92vw,16px)] font-medium text-white leading-normal">
-                    20+ expert-led courses
-                  </h3>
-                  <p className="text-[clamp(11px,0.69vw,12px)] text-white/70 leading-normal">
-                    Curated content from industry practitioners
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-[clamp(12px,0.92vw,16px)]">
-                <div className="w-[clamp(32px,2.31vw,40px)] h-[clamp(32px,2.31vw,40px)] rounded-md bg-white flex items-center justify-center flex-shrink-0">
-                  <Image src="/assets/dashboard/certificate-01.svg" alt="Icon" width={24} height={24} className="w-1/2 h-1/2" />
-                </div>
-                <div>
-                  <h3 className="text-[clamp(14px,0.92vw,16px)] font-medium text-white leading-normal">
-                    Verified certifications
-                  </h3>
-                  <p className="text-[clamp(11px,0.69vw,12px)] text-white/70 leading-normal">
-                    Credentials recognised by top employers
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>

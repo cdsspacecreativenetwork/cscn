@@ -259,7 +259,7 @@ export function LiveSessionList({ sessions }: { sessions: InstructorLiveSession[
                           searchable
                           searchPlaceholder="Search timezones"
                           className="mt-2 w-full"
-                          triggerClassName="!h-18 !border-[#D8E0EF]"
+                          size="default"
                         />
                       </label>
                       <label className="block">

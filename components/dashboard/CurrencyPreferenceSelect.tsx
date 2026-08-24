@@ -32,6 +32,7 @@ export function CurrencyPreferenceSelect({ value, className, onPendingChange }: 
   return (
     <div className={className}>
       <CustomSelect
+        size="compact"
         value={value}
         disabled={pending}
         options={CURRENCY_OPTIONS}
