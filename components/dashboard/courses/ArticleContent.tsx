@@ -1,5 +1,7 @@
 'use client';
 
+import { sanitizeArticleHtml } from '@/lib/article-html';
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, '&amp;')
@@ -24,11 +26,7 @@ export function normalizeArticleHtml(value: string | null) {
   const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(trimmed);
   const html = looksLikeHtml ? trimmed : textToHtml(trimmed);
 
-  return html
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
-    .replace(/\son[a-z]+\s*=\s*(['"]).*?\1/gi, '')
-    .replace(/\s(href|src)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, '');
+  return sanitizeArticleHtml(html);
 }
 
 export function ArticleContent({ body }: { body: string | null }) {

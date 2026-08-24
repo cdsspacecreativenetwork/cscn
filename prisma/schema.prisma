@@ -1756,6 +1756,26 @@ model WebhookEvent {
   @@index([createdAt])
 }
 
+model MuxWebhookEvent {
+  id          String    @id @default(cuid())
+  eventId     String    @unique
+  eventType   String
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
 model Refund {
   id                String       @id @default(cuid())
   orderId           String

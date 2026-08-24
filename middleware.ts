@@ -45,6 +45,10 @@ export default auth((req) => {
     return;
   }
 
+  if (!isLoggedIn && nextUrl.pathname.startsWith("/api/")) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   if (!isLoggedIn && !isPublicRoute) {
     return Response.redirect(new URL("/signin", nextUrl));
   }

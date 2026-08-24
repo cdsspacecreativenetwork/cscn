@@ -3,6 +3,7 @@ import { mux } from '@/lib/mux';
 import { db } from '@/lib/db';
 import type Mux from '@mux/mux-node';
 import { signMuxToken } from '@/lib/mux-jwt';
+import { readTextBody, RequestBodyTooLargeError } from '@/lib/http-security';
 
 function cleanVTT(vttText: string): string {
   const lines = vttText
@@ -39,23 +40,50 @@ async function handleTextTrack(playbackId: string, trackId: string, duration: nu
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.text();
+  if (!process.env.MUX_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: 'Mux webhook authentication is not configured.' }, { status: 503 });
+  }
+
+  let body: string;
+  try {
+    body = await readTextBody(req, 1_000_000);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
+    throw error;
+  }
   const sig = req.headers.get('mux-signature') ?? '';
 
   try {
     mux.webhooks.verifySignature(
       body,
       { 'mux-signature': sig },
-      process.env.MUX_WEBHOOK_SECRET!
+      process.env.MUX_WEBHOOK_SECRET
     );
   } catch {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  const event = JSON.parse(body) as { type: string; data: Record<string, any> };
-  console.log("🚀 ~ POST ~ event:", {event: event.data.playback_ids})
-  console.log("🚀 ~ POST ~ event:", event)
-  
+  let event: { id: string; type: string; data: Record<string, unknown> };
+  try {
+    event = JSON.parse(body) as typeof event;
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+  }
+  if (!event.id || !event.type || !event.data) {
+    return NextResponse.json({ error: 'Invalid Mux event' }, { status: 400 });
+  }
+
+  try {
+    await db.muxWebhookEvent.create({
+      data: { eventId: event.id, eventType: event.type },
+    });
+  } catch {
+    return NextResponse.json({ ok: true, duplicate: true });
+  }
+
+  try {
 
   if (event.type === 'video.upload.asset_created') {
     const { upload_id, asset_id } = event.data as { upload_id: string; asset_id: string };
@@ -78,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     // COALESCE keeps the existing duration if Mux doesn't provide one.
     // The OR handles the race where asset.ready arrives before upload.asset_created is processed.
-    const result = await db.$executeRaw`
+    await db.$executeRaw`
       UPDATE "Lesson"
       SET "muxAssetId"    = ${data.id},
           "muxPlaybackId" = ${playbackId},
@@ -88,11 +116,10 @@ export async function POST(req: NextRequest) {
       WHERE "muxAssetId"  = ${data.id}
          OR "muxUploadId" = ${uploadId}
     `;
-    console.log("🚀 ~ POST ~ result:", result)
 
     // Sync subtitles if already present in ready event
     if (playbackId) {
-      const textTrack = data.tracks?.find((t: any) => t.type === 'text' && t.status === 'ready');
+      const textTrack = data.tracks?.find((track) => track.type === 'text' && track.status === 'ready');
       if (textTrack) {
         const lesson = await db.lesson.findFirst({
           where: { muxAssetId: data.id! },
@@ -128,5 +155,14 @@ export async function POST(req: NextRequest) {
     `;
   }
 
-  return NextResponse.json({ ok: true });
+    await db.muxWebhookEvent.update({
+      where: { eventId: event.id },
+      data: { processedAt: new Date() },
+    });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    await db.muxWebhookEvent.delete({ where: { eventId: event.id } }).catch(() => undefined);
+    console.error('Mux webhook processing failed:', { eventId: event.id, eventType: event.type, error });
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+  }
 }

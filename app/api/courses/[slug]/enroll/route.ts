@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { enrollInPublishedFreeCourse } from "@/lib/services/enrollment-access.service";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(
   _request: NextRequest,
@@ -12,6 +13,13 @@ export async function POST(
   }
 
   const { slug } = await params;
+  const rateLimit = await enforceRateLimit("course-enrollment", session.user.id, RATE_LIMITS.enrollment);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many enrollment attempts. Please try again shortly.", code: "RATE_LIMITED" },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+    );
+  }
   const result = await enrollInPublishedFreeCourse(session.user.id, slug);
 
   if (!result.success) {

@@ -1,5 +1,5 @@
 {
-  "maxErrors": 143,
-  "maxWarnings": 108,
-  "recordedAtCommit": "409431df"
+  "maxErrors": 120,
+  "maxWarnings": 99,
+  "recordedAtCommit": "working-tree-release-safety"
 }

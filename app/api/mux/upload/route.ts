@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { mux } from "@/lib/mux";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 async function getLessonWithAccess(
   lessonId: string,
@@ -57,13 +58,26 @@ export async function POST(req: NextRequest) {
       { status: 404 },
     );
 
+  const rateLimit = await enforceRateLimit("mux-upload", session.user.id, RATE_LIMITS.upload);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many upload attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+    );
+  }
+
+  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "");
+  if (!appOrigin) {
+    return NextResponse.json({ error: "Application origin is not configured." }, { status: 503 });
+  }
+
   try {
     const upload = await mux.video.uploads.create({
-      cors_origin: process.env.NEXT_PUBLIC_APP_URL ?? "*",
+      cors_origin: appOrigin,
       new_asset_settings: {
-        playback_policy: ["signed"],
-        generated_subtitles: [{ language_code: "en", name: "English" }],
-      } as any,
+        playback_policies: ["signed"],
+        inputs: [{ generated_subtitles: [{ language_code: "en", name: "English" }] }],
+      },
     });
 
     await db.lesson.update({
@@ -72,13 +86,12 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ uploadUrl: upload.url, uploadId: upload.id });
-  } catch (err: any) {
-    // console.log("🚀 ~ POST ~ err:", err)
+  } catch (err: unknown) {
     console.error("Mux upload creation failed:", err);
     return NextResponse.json(
       {
         error:
-          err.message ||
+          (err instanceof Error ? err.message : null) ||
           "Failed to create Mux upload. Please check Mux environment variables.",
       },
       { status: 500 },

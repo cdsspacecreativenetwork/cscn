@@ -13,6 +13,7 @@ import { generatePaymentReference } from "@/lib/payments/ledger";
 import { initializePaystackTransaction } from "@/lib/payments/paystack";
 import { getAppBaseUrl } from "@/lib/payments/url";
 import { formatScheduleDateTime, parseLocalDateTimeInZone } from "@/lib/schedule-time";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 function parseSlotKey(slotKey: string) {
   const parts = slotKey.split("-");
@@ -346,6 +347,10 @@ export async function createMentorBookingAction(formData: FormData) {
 
   if (!user?.id || !user.email) {
     redirect(`/signin?callbackUrl=${encodeURIComponent(returnTo)}`);
+  }
+  const rateLimit = await enforceRateLimit("mentor-booking", user.id, RATE_LIMITS.mentorBooking);
+  if (!rateLimit.allowed) {
+    redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}bookingError=${encodeURIComponent("Too many booking attempts. Please try again shortly.")}`);
   }
 
   if (projectSubmissionId && !cohortId) {

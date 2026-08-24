@@ -9,6 +9,7 @@ import {
   removeOwnedAvatar,
   validateAvatarFile,
 } from "@/lib/avatar-storage";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export const uploadAvatar = async (formData: FormData) => {
   try {
@@ -16,6 +17,8 @@ export const uploadAvatar = async (formData: FormData) => {
     if (!session?.user?.id) {
       return { error: "Unauthorized" };
     }
+    const rateLimit = await enforceRateLimit("avatar-upload", session.user.id, RATE_LIMITS.upload);
+    if (!rateLimit.allowed) return { error: "Too many upload attempts. Please try again later." };
 
     const file = formData.get("file");
     if (!(file instanceof File)) {
@@ -33,6 +36,10 @@ export const uploadAvatar = async (formData: FormData) => {
       uuidv4(),
       validation.extension
     );
+    const currentUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { image: true },
+    });
 
     const { error } = await supabase.storage
       .from("avatars")
@@ -49,6 +56,16 @@ export const uploadAvatar = async (formData: FormData) => {
     const { data: publicUrlData } = supabase.storage
       .from("avatars")
       .getPublicUrl(fileName);
+
+    await db.user.update({
+      where: { id: session.user.id },
+      data: { image: publicUrlData.publicUrl },
+    });
+
+    if (currentUser?.image && currentUser.image !== publicUrlData.publicUrl) {
+      const cleanup = await removeOwnedAvatar(currentUser.image, session.user.id);
+      if (!cleanup.success) console.warn("Old avatar cleanup failed:", cleanup.error);
+    }
 
     return { success: true, url: publicUrlData.publicUrl };
   } catch (error) {
@@ -68,13 +85,13 @@ export const deleteAvatar = async () => {
     });
     if (!user?.image) return { success: true };
 
-    const removed = await removeOwnedAvatar(user.image, session.user.id);
-    if (!removed.success) return { error: removed.error };
-
     await db.user.update({
       where: { id: session.user.id },
       data: { image: null },
     });
+
+    const removed = await removeOwnedAvatar(user.image, session.user.id);
+    if (!removed.success) console.warn("Old avatar cleanup failed:", removed.error);
     return { success: true };
   } catch (error) {
     console.error("Failed to delete avatar:", error);

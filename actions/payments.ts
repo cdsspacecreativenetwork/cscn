@@ -9,12 +9,15 @@ import { enrollUser, getFirstPlayableLessonForCourseSlug } from "@/lib/services/
 import { generatePaymentReference } from "@/lib/payments/ledger";
 import { initializePaystackTransaction } from "@/lib/payments/paystack";
 import { getAppBaseUrl } from "@/lib/payments/url";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function startCourseCheckoutAction(courseSlug: string) {
   const user = await currentUser();
   if (!user?.id || !user.email) {
     return { error: "Sign in before enrolling in this course." };
   }
+  const rateLimit = await enforceRateLimit("course-checkout", user.id, RATE_LIMITS.checkout);
+  if (!rateLimit.allowed) return { error: `Too many checkout attempts. Try again in ${rateLimit.retryAfterSeconds} seconds.` };
 
   const course = await db.course.findUnique({
     where: { slug: courseSlug, status: "PUBLISHED" },

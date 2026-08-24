@@ -8,10 +8,13 @@ import { db } from "@/lib/db";
 import { generatePaymentReference } from "@/lib/payments/ledger";
 import { initializePaystackTransaction } from "@/lib/payments/paystack";
 import { getAppBaseUrl } from "@/lib/payments/url";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function startCohortCheckoutAction(applicationId: string) {
   const session = await auth();
   if (!session?.user?.id || !session.user.email) return { error: "Sign in to accept this offer." };
+  const rateLimit = await enforceRateLimit("cohort-checkout", session.user.id, RATE_LIMITS.checkout);
+  if (!rateLimit.allowed) return { error: `Too many checkout attempts. Try again in ${rateLimit.retryAfterSeconds} seconds.` };
 
   const application = await db.cohortApplication.findFirst({
     where: { id: applicationId, userId: session.user.id },

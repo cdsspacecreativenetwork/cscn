@@ -25,6 +25,12 @@ The initial migration in `prisma/migrations/20260823171716_baseline` represents 
 
 Required production secrets vary by enabled feature and include Auth.js, Neon, Supabase Storage, Paystack, Mux, email/OAuth, cron authorization, setup protection, and calendar token encryption. Missing third-party credentials must produce an explicit unavailable state rather than silently using test data.
 
+## Authentication trust model
+
+CSCN does not automatically link OAuth identities to an existing account solely because the provider returns the same email address. Automatic cross-provider linking is disabled for Google and LinkedIn. A learner must sign in to the existing account before intentionally connecting another provider. This avoids treating an unverified or recycled provider email as proof of account ownership.
+
+Production must use an unpredictable `AUTH_SECRET` of at least 32 bytes, HTTPS, and an explicit canonical `NEXT_PUBLIC_APP_URL`. OAuth callback URLs must match that canonical origin. Do not enable `allowDangerousEmailAccountLinking` without a separate, reviewed proof-of-ownership flow.
+
 ## Migration procedure
 
 For a schema change:
@@ -54,6 +60,7 @@ Authorization: Bearer YOUR_CRON_SECRET
 ```
 
 Do not enable operational cron routes until fail-closed secret validation has been reviewed in the target environment.
+In production, a missing `CRON_SECRET` returns `503` and no job work runs. In local development only, an omitted secret is allowed so isolated QA databases remain usable.
 
 ## Supabase Storage migration
 
