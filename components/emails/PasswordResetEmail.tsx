@@ -29,7 +29,7 @@ export const PasswordResetEmail = ({ resetLink, userName = "Learner" }: Props) =
         <span className="text-brand break-all">{resetLink}</span>
       </Text>
       <Text className="text-[#4B5563] text-[16px] leading-[26px] mt-[32px]">
-        If you didn't request a password reset, you can safely ignore this email.
+        If you did not request a password reset, you can safely ignore this email.
       </Text>
     </Section>
   </BaseLayout>

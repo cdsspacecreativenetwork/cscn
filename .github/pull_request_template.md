@@ -7,7 +7,7 @@ Describe the user-visible and technical changes in this batch.
 - [ ] Prisma generation and relevant migrations pass
 - [ ] Focused tests pass
 - [ ] Typecheck passes
-- [ ] Changed files lint clean; full lint baseline does not increase
+- [ ] ESLint reports zero errors; the tracked warning baseline does not increase
 - [ ] Production build passes
 - [ ] Desktop and mobile states reviewed locally
 

@@ -56,7 +56,7 @@ export default auth((req) => {
   return;
 });
 
-// Optionally, don't invoke Middleware on some paths
+// Avoid invoking Proxy for static assets and Auth.js internals.
 export const config = {
   matcher: ["/((?!api/auth|.+\\.[\\w]+$|_next).*)", "/"],
 };

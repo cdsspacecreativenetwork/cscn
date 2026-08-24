@@ -18,7 +18,6 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { slug: courseId } = await params;
   const userId = session.user.id;
-  // @ts-ignore
   const userRole = session.user.role as string | undefined;
   const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 

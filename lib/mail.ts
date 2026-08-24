@@ -10,7 +10,7 @@ function getAppUrl() {
     process.env.AUTH_URL ||
     process.env.NEXTAUTH_URL ||
     process.env.VERCEL_URL ||
-    "http://localhost:3000";
+    "http://localhost:3001";
   const withProtocol = raw.startsWith("http") ? raw : `https://${raw}`;
   return withProtocol.replace(/\/$/, "");
 }

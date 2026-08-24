@@ -141,7 +141,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
               Welcome to the CSCN Instructor Portal!
             </h2>
             <p className="text-[15px] font-medium text-[#4B5563] leading-relaxed">
-              Let's launch your teaching presence. Complete these quick steps to set up your profile and publish your first course. Once published, your students will see your courses here.
+              {"Let's launch your teaching presence. Complete these quick steps to set up your profile and publish your first course. Once published, your students will see your courses here."}
             </p>
             
             {/* Checklist items */}
@@ -583,7 +583,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
           <div className="bg-white border border-[#E3E8F4] rounded-[12px] p-8 text-center flex flex-col items-center justify-center gap-2 shadow-sm min-h-[200px]">
             <p className="text-[16px] font-semibold text-[#040B37]">All caught up!</p>
             <p className="text-[14px] font-medium text-[#9CA3AF] max-w-[320px]">
-              You have reviewed all course recommendations. Click "Explore Courses" above to find more.
+              {'You have reviewed all course recommendations. Click "Explore Courses" above to find more.'}
             </p>
           </div>
         )}

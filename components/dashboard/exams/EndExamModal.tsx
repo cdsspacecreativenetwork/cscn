@@ -23,7 +23,7 @@ export const EndExamModal = ({ isOpen, onClose, onConfirm, stats }: EndExamModal
             Are you sure you want to end exam?
           </h3>
           <p className="text-[14px] md:text-[16px] font-medium text-[#9CA3AF] leading-relaxed px-2">
-            You have answered {stats.answered} out of {stats.total} questions. You won't be able to change your answers after submitting.
+            You have answered {stats.answered} out of {stats.total} questions. You will not be able to change your answers after submitting.
           </p>
         </div>
 

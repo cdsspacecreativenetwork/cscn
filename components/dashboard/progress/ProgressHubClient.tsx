@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AreaChart,
@@ -1034,12 +1035,12 @@ export function ProgressHubClient({
               {coursesProgress.length === 0 ? (
                 <div className="p-8 bg-white border border-[#E3E8F4] rounded-2xl text-center space-y-3">
                   <p className="text-gray-400 font-medium">You are not currently enrolled in any courses.</p>
-                  <a
+                  <Link
                     href="/courses"
                     className="inline-block bg-[#1C4ED1] text-white font-bold text-[14px] px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors"
                   >
                     Browse Courses
-                  </a>
+                  </Link>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

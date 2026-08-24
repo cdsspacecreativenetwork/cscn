@@ -4,16 +4,19 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { X } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Button from '../ui/Button';
 
-const navLinks = [
-  { name: 'Cohorts', path: '/cohorts' },
+const exploreLinks = [
   { name: 'Courses', path: '/courses' },
+  { name: 'Cohorts', path: '/cohorts' },
   { name: 'Showcase', path: '/showcase' },
-  { name: 'Community', path: '/community' },
   { name: 'Career Hub', path: '/career' },
+];
+
+const navLinks = [
+  { name: 'Community', path: '/community' },
   { name: 'For Teams', path: '/teams' },
   { name: 'Resources', path: '/resources' },
   { name: 'Mentorship', path: '/mentorship' },
@@ -21,9 +24,11 @@ const navLinks = [
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExploreOpen, setIsExploreOpen] = useState(false);
   const { status } = useSession();
   const pathname = usePathname();
   const isLoggedIn = status === "authenticated";
+  const isExploreActive = exploreLinks.some((link) => pathname === link.path || pathname.startsWith(`${link.path}/`));
 
   return (
     <>
@@ -43,8 +48,53 @@ export default function Navbar() {
             </Link>
 
             <div className="hidden lg:flex items-center gap-0.5 xl:gap-1">
+              <div
+                className="relative"
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node)) setIsExploreOpen(false);
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsExploreOpen((open) => !open)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') setIsExploreOpen(false);
+                  }}
+                  aria-expanded={isExploreOpen}
+                  aria-controls="explore-navigation"
+                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[14px] font-medium tracking-tight transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 xl:px-3.5 ${
+                    isExploreActive ? 'text-primary' : 'text-text-body'
+                  }`}
+                >
+                  Explore
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isExploreOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                </button>
+
+                {isExploreOpen && (
+                  <div id="explore-navigation" className="absolute left-0 top-full pt-3">
+                    <div className="w-56 rounded-[18px] border border-stroke bg-white p-2 shadow-[0_18px_48px_rgba(4,11,55,0.12)]">
+                      {exploreLinks.map((link) => {
+                        const isActive = pathname === link.path || pathname.startsWith(`${link.path}/`);
+                        return (
+                          <Link
+                            key={link.name}
+                            href={link.path}
+                            onClick={() => setIsExploreOpen(false)}
+                            className={`flex rounded-xl px-4 py-3 text-sm font-medium transition-colors hover:bg-background hover:text-primary ${
+                              isActive ? 'bg-primary/5 text-primary' : 'text-text-body'
+                            }`}
+                          >
+                            {link.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {navLinks.map((link) => {
-                const isActive = pathname === link.path;
+                const isActive = pathname === link.path || pathname.startsWith(`${link.path}/`);
                 return (
                   <Link 
                     key={link.name} 
@@ -110,6 +160,37 @@ export default function Navbar() {
       {/* Mobile Drawer */}
       {isOpen && (
         <div className="fixed inset-0 bg-white z-[90] pt-[6.25rem] px-6 pb-6 flex flex-col gap-6 lg:hidden">
+          <div>
+            <button
+              type="button"
+              onClick={() => setIsExploreOpen((open) => !open)}
+              aria-expanded={isExploreOpen}
+              aria-controls="mobile-explore-navigation"
+              className={`flex w-full items-center justify-between rounded-xl px-2 py-1 text-2xl font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 ${isExploreActive ? 'text-primary' : 'text-navy'}`}
+            >
+              Explore
+              <ChevronDown className={`h-6 w-6 transition-transform duration-200 ${isExploreOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+            </button>
+            {isExploreOpen && (
+              <div id="mobile-explore-navigation" className="mt-4 grid gap-1 border-l-2 border-primary/15 pl-4">
+                {exploreLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    href={link.path}
+                    onClick={() => {
+                      setIsExploreOpen(false);
+                      setIsOpen(false);
+                    }}
+                    className={`rounded-xl px-3 py-2.5 text-lg font-medium transition-colors hover:bg-background hover:text-primary ${
+                      pathname === link.path || pathname.startsWith(`${link.path}/`) ? 'text-primary' : 'text-text-body'
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
           {navLinks.map((link) => (
             <Link 
               key={link.name} 

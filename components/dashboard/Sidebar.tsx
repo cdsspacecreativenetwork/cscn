@@ -122,7 +122,6 @@ const instructorAccountItems: NavItem[] = [
 const learnerItems: NavItem[] = [
   { name: 'Overview', href: '/dashboard', Icon: LayoutDashboard },
   { name: 'My Cohorts', href: '/dashboard/cohorts', Icon: GraduationCap },
-  { name: 'Community', href: '/community', Icon: UsersRound },
   { name: 'Career Hub', href: '/dashboard/career', Icon: BriefcaseBusiness },
   { name: 'Organizations', href: '/dashboard/organizations', Icon: Building2 },
   { name: 'My Learning', href: '/dashboard/courses', Icon: BookOpen },

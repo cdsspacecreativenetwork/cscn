@@ -2,6 +2,11 @@
 
 CSCN is the CDS Space Creative Network learning platform. The existing product includes courses, progress tracking, payments, mentorship, scheduling, and administration. New work must extend those systems instead of replacing them.
 
+## Implementation documentation
+
+- [`docs/IMPLEMENTATION_AND_REVIEW_GUIDE.md`](docs/IMPLEMENTATION_AND_REVIEW_GUIDE.md) — complete feature inventory, route map, data migrations, access boundaries, QA workflow, verification checklist, production configuration, and known limitations.
+- [`DEPLOYMENT.md`](DEPLOYMENT.md) — deployment, migration, scheduler, authentication, and storage-transfer runbook.
+
 ## Local requirements
 
 - Node.js 20+
@@ -25,9 +30,9 @@ DATABASE_ADAPTER="pg"
 DATABASE_URL="postgresql://YOUR_USER@localhost:5432/cscn_dev?schema=public"
 DIRECT_URL="postgresql://YOUR_USER@localhost:5432/cscn_dev?schema=public"
 TEST_DATABASE_URL="postgresql://YOUR_USER@localhost:5432/cscn_test?schema=public"
-APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-AUTH_URL="http://localhost:3000"
+APP_URL="http://localhost:3001"
+NEXT_PUBLIC_APP_URL="http://localhost:3001"
+AUTH_URL="http://localhost:3001"
 AUTH_SECRET="a-local-secret-at-least-32-characters-long"
 ```
 
@@ -36,7 +41,7 @@ Then initialize the development database and run the app:
 ```bash
 pnpm db:generate
 pnpm db:migrate:deploy
-pnpm dev
+pnpm dev -- -p 3001
 ```
 
 Production uses the Neon adapter. Local development and CI use the PostgreSQL driver adapter. Never place production credentials in `.env.local`, run local fixtures against a remote database, or apply an unreviewed migration to production.
@@ -61,7 +66,7 @@ pnpm lint:baseline
 pnpm build
 ```
 
-The full ESLint backlog is tracked in `eslint-baseline.json`. The baseline gate permits the recorded legacy debt but fails when either errors or warnings increase. Files changed in a review batch must still lint cleanly.
+ESLint errors block CI. Remaining migration warnings are tracked in `eslint-baseline.json`; the baseline gate fails if either errors or warnings increase. Files changed in a review batch must not introduce new warnings.
 
 ## Database commands
 

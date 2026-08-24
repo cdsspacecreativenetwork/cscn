@@ -244,7 +244,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({ isOpen
                 <Search size={22} />
               </div>
               <p className="text-[15px] font-bold text-[#040B37]">No matching features found</p>
-              <p className="text-[13px] text-[#9CA3AF] mt-0.5">Try searching for "courses", "earnings", or "settings"</p>
+              <p className="text-[13px] text-[#9CA3AF] mt-0.5">{'Try searching for "courses", "earnings", or "settings"'}</p>
             </div>
           )}
         </div>

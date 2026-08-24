@@ -30,7 +30,7 @@ export const CourseInviteEmail = ({
         <Text className="text-dark text-[16px] leading-[26px]">Hi there,</Text>
         <Text className="text-[#4B5563] text-[16px] leading-[26px] mt-[16px]">
           {inviterName ? `${inviterName} has` : "You have been"} invited you to join{" "}
-          <strong>"{courseTitle}"</strong> on CSCN Academy as a {roleLabel}.
+          <strong>&ldquo;{courseTitle}&rdquo;</strong> on CSCN Academy as a {roleLabel}.
         </Text>
         <Section className="text-center mt-[32px] mb-[32px]">
           <Button
@@ -46,7 +46,7 @@ export const CourseInviteEmail = ({
           <span className="text-brand break-all">{inviteLink}</span>
         </Text>
         <Text className="text-[#4B5563] text-[14px] leading-[24px] mt-[24px]">
-          This invite link expires in 7 days. If you didn't expect this, you can ignore it.
+          This invite link expires in 7 days. If you did not expect this, you can ignore it.
         </Text>
       </Section>
     </BaseLayout>

@@ -480,3 +480,99 @@ body {
     display: none;
   }
 }
+
+/* Shared public-page language. Keep new CSCN surfaces aligned with the homepage. */
+.cscn-marketing-page {
+  min-height: 100vh;
+  background: #F4F6FB;
+  color: #040B37;
+  font-family: var(--font-inter), Inter, sans-serif;
+}
+
+.cscn-marketing-shell {
+  width: min(calc(100% - 2rem), 83rem);
+  margin-inline: auto;
+}
+
+.cscn-marketing-eyebrow {
+  color: #1C4ED1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.cscn-marketing-display {
+  color: #040B37;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.cscn-marketing-heading {
+  color: #040B37;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: -0.02em;
+}
+
+.cscn-marketing-copy {
+  color: #4B5563;
+  line-height: 1.75;
+}
+
+.cscn-marketing-card {
+  border: 1px solid #E3E8F4;
+  border-radius: 1.125rem;
+  background: #FFFFFF;
+  box-shadow: 0 12px 32px rgba(4, 11, 55, 0.05);
+}
+
+.cscn-button-primary,
+.cscn-button-secondary {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.cscn-button-primary {
+  border: 1px solid var(--special-btn-border);
+  background: var(--cds-w-grad-2);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(28, 78, 209, 0.15);
+}
+
+.cscn-button-primary:hover { border-color: #7B9FFD; box-shadow: 0 6px 16px rgba(28, 78, 209, 0.25); transform: scale(1.03); }
+.cscn-button-secondary { border: 1px solid #C8D1E0; background: #FFFFFF; color: #040B37; }
+.cscn-button-secondary:hover { border-color: #1C4ED1; color: #1C4ED1; background: #F8FAFF; }
+.cscn-button-primary:active,
+.cscn-button-secondary:active { transform: scale(0.98); }
+
+.cscn-form-field {
+  width: 100%;
+  border: 1px solid #C8D1E0;
+  border-radius: 0.5rem;
+  background: #FFFFFF;
+  color: #040B37;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.cscn-form-field:focus {
+  border-color: #1C4ED1;
+  box-shadow: 0 0 0 3px rgba(28, 78, 209, 0.12);
+}
+
+@media (min-width: 768px) {
+  .cscn-marketing-shell { width: min(calc(100% - 4rem), 83rem); }
+}

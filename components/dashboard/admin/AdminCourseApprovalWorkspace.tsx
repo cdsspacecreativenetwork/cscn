@@ -242,45 +242,45 @@ function buildChangeItems(
     });
   }
 
-  for (const module of draft?.modules ?? []) {
-    if (!liveModules.has(module.id)) {
+  for (const courseModule of draft?.modules ?? []) {
+    if (!liveModules.has(courseModule.id)) {
       items.push({
-        id: `module-added-${module.id}`,
+        id: `module-added-${courseModule.id}`,
         type: "added",
         area: "Modules",
-        title: module.title,
-        targetId: module.id,
-        detail: `${module.lessons.length} lesson${module.lessons.length === 1 ? "" : "s"} included`,
+        title: courseModule.title,
+        targetId: courseModule.id,
+        detail: `${courseModule.lessons.length} lesson${courseModule.lessons.length === 1 ? "" : "s"} included`,
       });
     } else {
-      const liveModule = liveModules.get(module.id);
+      const liveModule = liveModules.get(courseModule.id);
       if (
         liveModule &&
-        (liveModule.title !== module.title ||
-          liveModule.isPublished !== module.isPublished ||
-          liveModule.position !== module.position)
+        (liveModule.title !== courseModule.title ||
+          liveModule.isPublished !== courseModule.isPublished ||
+          liveModule.position !== courseModule.position)
       ) {
         items.push({
-          id: `module-edited-${module.id}`,
+          id: `module-edited-${courseModule.id}`,
           type: "edited",
           area: "Modules",
-          title: module.title,
-          targetId: module.id,
+          title: courseModule.title,
+          targetId: courseModule.id,
           before: liveModule.title,
-          after: module.title,
+          after: courseModule.title,
         });
       }
     }
   }
 
-  for (const module of live?.modules ?? []) {
-    if (!draftModules.has(module.id)) {
+  for (const courseModule of live?.modules ?? []) {
+    if (!draftModules.has(courseModule.id)) {
       items.push({
-        id: `module-removed-${module.id}`,
+        id: `module-removed-${courseModule.id}`,
         type: "removed",
         area: "Modules",
-        title: module.title,
-        targetId: module.id,
+        title: courseModule.title,
+        targetId: courseModule.id,
         detail: "This live module will be hidden after approval.",
       });
     }
