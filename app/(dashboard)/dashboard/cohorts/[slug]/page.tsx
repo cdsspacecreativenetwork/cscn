@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, CheckCircle2, ClipboardC
 import { notFound, redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { CohortMentorshipSection } from "@/components/cohorts/CohortMentorshipSection";
 import { getCohortLearningDashboard } from "@/lib/services/cohort-learning.service";
 
 export const metadata = { title: "Cohort dashboard | CSCN" };
@@ -24,7 +25,7 @@ export default async function CohortLearningPage({ params }: Props) {
   const data = await getCohortLearningDashboard(session.user.id, slug);
   if (!data) notFound();
 
-  const { membership, courses, announcements, schedule, overallProgress, startsInFuture } = data;
+  const { membership, courses, announcements, schedule, overallProgress, startsInFuture, mentorship } = data;
   const cohort = membership.cohort;
   const weeklySchedule = stringList(cohort.weeklySchedule);
   const graduationRules = stringList(cohort.graduationRules);
@@ -39,6 +40,8 @@ export default async function CohortLearningPage({ params }: Props) {
       {startsInFuture && <section className="flex items-start gap-3 rounded-[16px] border border-[#BDD0FF] bg-[#F2F6FF] p-5"><Clock3 className="mt-0.5 shrink-0 text-[#1C4ED1]" size={20} /><div><h2 className="font-black text-[#040B37]">Your place is confirmed</h2><p className="mt-1 text-sm leading-6 text-[#526078]">The cohort begins {cohort.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}. Course access is ready now for orientation; live links only appear when a session is active.</p></div></section>}
 
       <section className="grid gap-5 md:grid-cols-3"><div className="rounded-[16px] border border-[#E3E8F4] bg-white p-5"><CalendarDays className="text-[#1C4ED1]" size={20} /><p className="mt-4 text-xs font-black uppercase tracking-[0.1em] text-[#77839A]">Dates</p><p className="mt-2 text-sm font-bold leading-6 text-[#040B37]">{cohort.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {cohort.endsAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p></div><div className="rounded-[16px] border border-[#E3E8F4] bg-white p-5"><Users className="text-[#1C4ED1]" size={20} /><p className="mt-4 text-xs font-black uppercase tracking-[0.1em] text-[#77839A]">Lead instructor</p><p className="mt-2 text-sm font-bold text-[#040B37]">{cohort.leadInstructor?.name ?? "To be announced"}</p></div><div className="rounded-[16px] border border-[#E3E8F4] bg-white p-5"><BookOpen className="text-[#1C4ED1]" size={20} /><p className="mt-4 text-xs font-black uppercase tracking-[0.1em] text-[#77839A]">Learning plan</p><p className="mt-2 text-sm font-bold text-[#040B37]">{courses.length} course{courses.length === 1 ? "" : "s"} · {cohort.program.estimatedDurationWeeks} weeks</p></div></section>
+
+      <CohortMentorshipSection mentorship={mentorship} cohort={{ id: cohort.id, slug: cohort.slug, title: cohort.title, programTitle: cohort.program.title }} />
 
       <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-8"><div className="space-y-5"><div><h2 className="text-2xl font-black tracking-[-0.035em] text-[#040B37]">Program courses</h2><p className="mt-1 text-sm text-[#77839A]">Work through the required learning in sequence.</p></div>{courses.map((course) => (

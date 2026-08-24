@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { db } from '@/lib/db';
-import { MENTORS, MENTORSHIP_BENEFITS } from '@/lib/mentorship';
+import { MENTORSHIP_BENEFITS } from '@/lib/mentorship';
 import MentorCard from '@/components/ui/MentorCard';
 import FAQSection, { type FAQEntry } from '@/components/marketing/FAQSection';
 import { generateTapbackAvatar } from '@/lib/avatar';
@@ -46,6 +46,8 @@ export default async function MentorshipPage({
   const mentors = await db.user.findMany({
     where: {
       mentorshipEligible: true,
+      mentorshipEnabled: true,
+      publicProfileStatus: 'PUBLIC',
     },
     select: {
       id: true,
@@ -113,11 +115,7 @@ export default async function MentorshipPage({
     };
   });
 
-  const mentorCardIds = new Set(mentorCards.map((mentor) => mentor.id));
-  const displayMentors = [
-    ...mentorCards,
-    ...MENTORS.filter((mentor) => !mentorCardIds.has(mentor.id)),
-  ].slice(0, Math.max(4, mentorCards.length));
+  const displayMentors = mentorCards;
 
   const stats = [
     { label: 'Available mentors', value: displayMentors.length.toLocaleString() },
@@ -165,7 +163,7 @@ export default async function MentorshipPage({
 
         <div className="flex flex-col gap-4 md:gap-[16px]">
           <h2 className="text-[24px] font-semibold text-[#040B37] tracking-[-0.02em] font-inter">
-            What You'll Get
+            What You&apos;ll Get
           </h2>
           <div className="flex flex-wrap gap-2.5 md:gap-[10px]">
             {MENTORSHIP_BENEFITS.map((benefit) => (

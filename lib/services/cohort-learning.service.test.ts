@@ -14,6 +14,10 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+vi.mock("@/lib/services/cohort-mentorship.service", () => ({
+  getCohortMentorshipForLearner: vi.fn().mockResolvedValue(null),
+}));
+
 import { getCohortLearningDashboard } from "./cohort-learning.service";
 
 describe("cohort learning service", () => {

@@ -344,6 +344,32 @@ async function main() {
     where: { slug: "preview-ai-workflows-october-2026" },
     select: { id: true, programId: true },
   });
+  await db.user.update({
+    where: { id: instructor.id },
+    data: {
+      headline: "[Preview] Creative workflow mentor",
+      publicProfileSlug: "local-qa-workflow-mentor",
+      publicProfileStatus: "PUBLIC",
+      instructorProfileEnabled: true,
+      instructorVerificationStatus: "VERIFIED",
+      instructorVerifiedAt: new Date("2026-08-23T11:00:00.000Z"),
+      mentorshipEligible: true,
+      mentorshipEnabled: true,
+      mentorshipApprovedAt: new Date("2026-08-23T11:30:00.000Z"),
+      mentorshipFree: true,
+      mentorshipBio: "Local-only mentor profile for reviewing cohort project feedback and booking context.",
+      mentorshipTopics: ["Project feedback", "Workflow design", "Portfolio review"],
+      mentorshipInstructions: "Bring one specific decision or draft you want to improve. This is a local QA fixture, not a real mentor listing.",
+    },
+  });
+  let mentorAvailability = await db.mentorAvailability.findFirst({ where: { mentorId: instructor.id, type: "WEEKLY", weekday: 2, startTime: "14:00", status: { not: "ARCHIVED" } } });
+  mentorAvailability ??= await db.mentorAvailability.create({ data: { mentorId: instructor.id, type: "WEEKLY", weekday: 2, startTime: "14:00", endTime: "16:00", timezone: "Africa/Lagos", sessionDuration: 45, bufferMinutes: 15, maxBookings: 2, status: "ACTIVE" } });
+  if (mentorAvailability.status !== "ACTIVE") await db.mentorAvailability.update({ where: { id: mentorAvailability.id }, data: { status: "ACTIVE" } });
+  await db.cohortMentorAssignment.upsert({
+    where: { cohortId_mentorId: { cohortId: learningCohort.id, mentorId: instructor.id } },
+    create: { cohortId: learningCohort.id, mentorId: instructor.id, role: "Applied project mentor", focusAreas: ["Project feedback", "Workflow design", "Portfolio review"], status: "ACTIVE" },
+    update: { role: "Applied project mentor", focusAreas: ["Project feedback", "Workflow design", "Portfolio review"], status: "ACTIVE" },
+  });
   await db.cohort.update({ where: { id: learningCohort.id }, data: { price: 0 } });
   await db.cohortApplication.upsert({
     where: { cohortId_userId: { cohortId: learningCohort.id, userId: learner.id } },

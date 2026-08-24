@@ -108,6 +108,7 @@ model User {
   mentorshipBookings             MentorBooking[]           @relation("MentorshipBookings")
   mentorshipApplications         MentorshipApplication[]   @relation("MentorshipApplications")
   reviewedMentorshipApplications MentorshipApplication[]   @relation("MentorshipApplicationReviewer")
+  cohortMentorAssignments        CohortMentorAssignment[]  @relation("CohortMentorAssignments")
   calendarConnections            CalendarConnection[]
   notifications                  Notification[]
   emailOutbox                    EmailOutbox[]
@@ -371,34 +372,36 @@ model ProgramCourse {
 }
 
 model Cohort {
-  id                  String              @id @default(cuid())
+  id                  String                   @id @default(cuid())
   programId           String
   title               String
-  slug                String              @unique
-  status              CohortStatus        @default(DRAFT)
+  slug                String                   @unique
+  status              CohortStatus             @default(DRAFT)
   applicationOpenAt   DateTime
   applicationCloseAt  DateTime
   startsAt            DateTime
   endsAt              DateTime
-  timezone            String              @default("Africa/Lagos")
+  timezone            String                   @default("Africa/Lagos")
   capacity            Int
-  price               Decimal?            @db.Decimal(10, 2)
-  currency            String              @default("NGN")
-  applicationRequired Boolean             @default(true)
+  price               Decimal?                 @db.Decimal(10, 2)
+  currency            String                   @default("NGN")
+  applicationRequired Boolean                  @default(true)
   graduationRules     Json
   scheduleSummary     String
   weeklySchedule      Json?
   leadInstructorId    String?
-  program             Program             @relation(fields: [programId], references: [id], onDelete: Restrict)
-  leadInstructor      User?               @relation("CohortLeadInstructor", fields: [leadInstructorId], references: [id], onDelete: SetNull)
+  program             Program                  @relation(fields: [programId], references: [id], onDelete: Restrict)
+  leadInstructor      User?                    @relation("CohortLeadInstructor", fields: [leadInstructorId], references: [id], onDelete: SetNull)
   applications        CohortApplication[]
   memberships         CohortMembership[]
   announcements       Announcement[]
   scheduleEvents      ScheduleEvent[]
   projects            CohortProject[]
   credentials         Credential[]
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  mentorAssignments   CohortMentorAssignment[]
+  mentorBookings      MentorBooking[]
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
   @@index([programId, status, startsAt])
   @@index([applicationOpenAt, applicationCloseAt])
@@ -447,6 +450,24 @@ model CohortMembership {
 
   @@unique([cohortId, userId])
   @@index([userId, status])
+}
+
+model CohortMentorAssignment {
+  id         String                       @id @default(cuid())
+  cohortId   String
+  mentorId   String
+  role       String                       @default("Cohort mentor")
+  focusAreas Json
+  status     CohortMentorAssignmentStatus @default(ACTIVE)
+  assignedAt DateTime                     @default(now())
+  cohort     Cohort                       @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  mentor     User                         @relation("CohortMentorAssignments", fields: [mentorId], references: [id], onDelete: Restrict)
+  createdAt  DateTime                     @default(now())
+  updatedAt  DateTime                     @updatedAt
+
+  @@unique([cohortId, mentorId])
+  @@index([cohortId, status])
+  @@index([mentorId, status])
 }
 
 // --- Applied projects, review, showcase, and credentials ---------------------
@@ -516,6 +537,7 @@ model ProjectSubmission {
   versions            ProjectSubmissionVersion[]
   reviews             ProjectSubmissionReview[]
   credential          Credential?
+  mentorBookings      MentorBooking[]
   createdAt           DateTime                   @default(now())
   updatedAt           DateTime                   @updatedAt
 
@@ -1742,6 +1764,8 @@ model MentorBooking {
   mentorId                String
   studentId               String?
   availabilityId          String?
+  cohortId                String?
+  projectSubmissionId     String?
   status                  MentorBookingStatus @default(PENDING)
   startsAt                DateTime            @db.Timestamptz(3)
   endsAt                  DateTime            @db.Timestamptz(3)
@@ -1764,16 +1788,20 @@ model MentorBooking {
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 
-  mentor        User                @relation("MentorBookings", fields: [mentorId], references: [id], onDelete: Cascade)
-  student       User?               @relation("MentorshipBookings", fields: [studentId], references: [id], onDelete: SetNull)
-  availability  MentorAvailability? @relation(fields: [availabilityId], references: [id], onDelete: SetNull)
-  purchaseOrder PurchaseOrder?
+  mentor            User                @relation("MentorBookings", fields: [mentorId], references: [id], onDelete: Cascade)
+  student           User?               @relation("MentorshipBookings", fields: [studentId], references: [id], onDelete: SetNull)
+  availability      MentorAvailability? @relation(fields: [availabilityId], references: [id], onDelete: SetNull)
+  cohort            Cohort?             @relation(fields: [cohortId], references: [id], onDelete: SetNull)
+  projectSubmission ProjectSubmission?  @relation(fields: [projectSubmissionId], references: [id], onDelete: SetNull)
+  purchaseOrder     PurchaseOrder?
 
   @@unique([availabilityId, startsAt])
   @@index([mentorId])
   @@index([studentId])
   @@index([status])
   @@index([startsAt])
+  @@index([cohortId, startsAt])
+  @@index([projectSubmissionId])
 }
 
 model MentorshipApplication {
@@ -1936,6 +1964,11 @@ enum MentorAvailabilityStatus {
   ACTIVE
   PAUSED
   ARCHIVED
+}
+
+enum CohortMentorAssignmentStatus {
+  ACTIVE
+  PAUSED
 }
 
 enum MentorBookingStatus {

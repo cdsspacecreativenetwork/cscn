@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -116,7 +117,7 @@ function ReadinessPill({ label, ok }: { label: string; ok: boolean }) {
 
 function ApplicationAvatar({ application }: { application: MentorshipApplication }) {
   return application.instructor.image ? (
-    <img src={application.instructor.image} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+    <Image src={application.instructor.image} alt="" width={48} height={48} unoptimized className="h-12 w-12 shrink-0 rounded-full object-cover" />
   ) : (
     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1C4ED1]/10 text-[13px] font-black text-[#1C4ED1]">
       {initials(application.instructor)}
@@ -131,8 +132,6 @@ function ApplicationRow({
   application: MentorshipApplication;
   onReview: (application: MentorshipApplication) => void;
 }) {
-  const topics = application.topics.slice(0, 3);
-
   return (
     <article className="rounded-[18px] border border-[#E3E8F4] bg-white p-4 shadow-sm transition hover:border-[#BFD0FF] hover:shadow-[0px_12px_28px_rgba(4,11,55,0.06)]">
       <div className="grid gap-4 xl:grid-cols-[minmax(260px,340px)_minmax(0,1fr)_auto] xl:items-center">
@@ -595,6 +594,7 @@ export function AdminMentorshipConsole({ data, canManageMentorship }: Props) {
                       <p className="mt-1 text-[12px] font-semibold text-[#9CA3AF]">
                         {displayName(booking.student ?? { name: null, email: "Learner" })} with {displayName(booking.mentor)}
                       </p>
+                      {booking.cohort && <p className="mt-1 text-[11px] font-bold text-[#1C4ED1]">{booking.cohort.program.title} · {booking.cohort.title}{booking.projectSubmission ? ` · ${booking.projectSubmission.title}` : ""}</p>}
                     </div>
                     <span className="rounded-full bg-[#1C4ED1]/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#1C4ED1]">
                       {booking.status}

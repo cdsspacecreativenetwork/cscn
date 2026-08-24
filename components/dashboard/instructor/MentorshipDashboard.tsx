@@ -3,12 +3,12 @@
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   CalendarDays,
   CheckCircle2,
   Clock3,
   ExternalLink,
-  GraduationCap,
   Mail,
   MessageSquareText,
   PauseCircle,
@@ -98,6 +98,8 @@ type Booking = {
   currency: string;
   meetingUrl: string | null;
   scheduleEventId: string | null;
+  cohort: { title: string; program: { title: string } } | null;
+  projectSubmission: { title: string } | null;
   student: {
     name: string | null;
     email: string;
@@ -852,9 +854,12 @@ export function MentorshipDashboard({
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
                         {booking.student?.image ? (
-                          <img
+                          <Image
                             src={booking.student.image}
                             alt=""
+                            width={44}
+                            height={44}
+                            unoptimized
                             className="h-11 w-11 shrink-0 rounded-full border-2 border-white object-cover shadow-sm"
                           />
                         ) : (
@@ -876,6 +881,7 @@ export function MentorshipDashboard({
 
                     <div className="mt-4 rounded-[14px] border border-[#E3E8F4] bg-white p-3">
                       <p className="text-[14px] font-black text-[#040B37]">{booking.topic || "Mentorship session"}</p>
+                      {booking.cohort && <p className="mt-1 text-[11px] font-bold text-[#1C4ED1]">{booking.cohort.program.title} · {booking.cohort.title}{booking.projectSubmission ? ` · ${booking.projectSubmission.title}` : ""}</p>}
                       <div className="mt-2 grid gap-2 text-[12px] font-semibold text-[#4B5563] sm:grid-cols-2">
                         <span className="inline-flex items-center gap-2">
                           <CalendarDays size={14} strokeWidth={1.9} className="text-[#1C4ED1]" />
@@ -981,9 +987,12 @@ export function MentorshipDashboard({
               <div className="rounded-[16px] border border-[#E3E8F4] bg-[#F8FAFC] p-4">
                 <div className="flex items-center gap-3">
                   {selectedBooking.student?.image ? (
-                    <img
+                    <Image
                       src={selectedBooking.student.image}
                       alt=""
+                      width={48}
+                      height={48}
+                      unoptimized
                       className="h-12 w-12 rounded-full border-2 border-white object-cover shadow-sm"
                     />
                   ) : (

@@ -94,6 +94,8 @@ export type AdminMentorshipConsoleData = {
     timezone: string;
     price: string | null;
     currency: string;
+    cohort: { title: string; program: { title: string } } | null;
+    projectSubmission: { title: string } | null;
     mentor: {
       id: string;
       name: string | null;

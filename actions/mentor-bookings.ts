@@ -6,7 +6,9 @@ import { redirect } from "next/navigation";
 import { createConfirmedMentorshipSchedule } from "@/data/mentor-bookings";
 import { createNotification } from "@/data/notifications";
 import { currentUser } from "@/lib/auth";
+import { safeMentorshipReturnPath } from "@/lib/cohort-mentorship";
 import { db } from "@/lib/db";
+import { validateCohortMentorshipBookingContext } from "@/lib/services/cohort-mentorship.service";
 import { generatePaymentReference } from "@/lib/payments/ledger";
 import { initializePaystackTransaction } from "@/lib/payments/paystack";
 import { getAppBaseUrl } from "@/lib/payments/url";
@@ -338,10 +340,20 @@ export async function createMentorBookingAction(formData: FormData) {
   const slotKey = String(formData.get("slotKey") ?? "");
   const topic = String(formData.get("topic") ?? "").trim().slice(0, 120) || null;
   const studentNote = String(formData.get("studentNote") ?? "").trim().slice(0, 1000) || null;
-  const returnTo = String(formData.get("returnTo") ?? "/mentorship");
+  const returnTo = safeMentorshipReturnPath(formData.get("returnTo"));
+  const cohortId = String(formData.get("cohortId") ?? "").trim() || null;
+  const projectSubmissionId = String(formData.get("projectSubmissionId") ?? "").trim() || null;
 
   if (!user?.id || !user.email) {
     redirect(`/signin?callbackUrl=${encodeURIComponent(returnTo)}`);
+  }
+
+  if (projectSubmissionId && !cohortId) {
+    redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}bookingError=${encodeURIComponent("Project context requires an active cohort assignment.")}`);
+  }
+  if (cohortId) {
+    const context = await validateCohortMentorshipBookingContext({ cohortId, mentorId, studentId: user.id, projectSubmissionId });
+    if (!context.success) redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}bookingError=${encodeURIComponent(context.error)}`);
   }
 
   const slot = await getValidatedBookingSlot({ mentorId, slotKey, studentId: user.id });
@@ -356,6 +368,8 @@ export async function createMentorBookingAction(formData: FormData) {
         mentorId: slot.mentor.id,
         studentId: user.id,
         availabilityId: slot.availability.id,
+        cohortId,
+        projectSubmissionId,
         status: slot.amount > 0 ? "PENDING" : "CONFIRMED",
         startsAt: slot.startsAt,
         endsAt: slot.endsAt,
@@ -387,7 +401,7 @@ export async function createMentorBookingAction(formData: FormData) {
       "SYSTEM",
       "Mentorship booked",
       `Your session with ${slot.mentor.name ?? "your mentor"} has been confirmed.`,
-      { kind: "MENTORSHIP", mentorBookingId: bookingId, area: "schedule" },
+      { kind: "MENTORSHIP", mentorBookingId: bookingId, cohortId, projectSubmissionId, area: "schedule" },
       { actionRequired: true, actionLabel: "View schedule", actionUrl: "/dashboard/schedule" }
     );
     await createNotification(
@@ -395,13 +409,14 @@ export async function createMentorBookingAction(formData: FormData) {
       "SYSTEM",
       "New mentorship booking",
       `${user.name ?? user.email} booked a mentorship session.`,
-      { kind: "MENTORSHIP", mentorBookingId: bookingId, area: "mentorship" },
+      { kind: "MENTORSHIP", mentorBookingId: bookingId, cohortId, projectSubmissionId, area: "mentorship" },
       { actionRequired: true, actionLabel: "View bookings", actionUrl: "/dashboard/instructor/mentorship" }
     );
 
     revalidatePath("/dashboard/schedule");
     revalidatePath("/dashboard/instructor/mentorship");
-    redirect("/dashboard/schedule?booking=confirmed");
+    if (cohortId) revalidatePath(returnTo);
+    redirect(cohortId ? `${returnTo}${returnTo.includes("?") ? "&" : "?"}booking=confirmed` : "/dashboard/schedule?booking=confirmed");
   }
 
   if (slot.currency !== "NGN") {
@@ -425,6 +440,8 @@ export async function createMentorBookingAction(formData: FormData) {
         mentorBookingId: bookingId,
         slotKey,
         topic,
+        cohortId,
+        projectSubmissionId,
       },
     },
     select: { id: true },
@@ -456,6 +473,8 @@ export async function createMentorBookingAction(formData: FormData) {
       mentorId: slot.mentor.id,
       userId: user.id,
       type: "MENTORSHIP",
+      cohortId,
+      projectSubmissionId,
     },
   }).catch((error) => ({
     status: false,

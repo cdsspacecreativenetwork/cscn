@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getCohortMentorshipForLearner } from "@/lib/services/cohort-mentorship.service";
 
 const membershipStatuses = ["ACTIVE", "COMPLETED"] as const;
 
@@ -133,7 +134,7 @@ export async function getCohortLearningDashboard(userId: string, cohortSlug: str
   if (!membership) return null;
 
   const now = new Date();
-  const [announcements, schedule] = await Promise.all([
+  const [announcements, schedule, mentorship] = await Promise.all([
     db.announcement.findMany({
       where: {
         cohortId: membership.cohort.id,
@@ -156,6 +157,7 @@ export async function getCohortLearningDashboard(userId: string, cohortSlug: str
       take: 5,
       select: { id: true, type: true, status: true, title: true, description: true, startsAt: true, endsAt: true, timezone: true, meetingUrl: true },
     }),
+    getCohortMentorshipForLearner(membership.cohort.id, userId),
   ]);
 
   const courses = membership.cohort.program.courses.map((item) => {
@@ -193,5 +195,6 @@ export async function getCohortLearningDashboard(userId: string, cohortSlug: str
     courses,
     overallProgress,
     startsInFuture: membership.cohort.startsAt.getTime() > now.getTime(),
+    mentorship,
   };
 }
