@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { config } from "dotenv";
+import { createHash } from "node:crypto";
 
 config({ path: ".env.local" });
 
@@ -557,6 +558,78 @@ async function main() {
     where: { userId: learner.id },
     create: { userId: learner.id, discoverable: true, targetRoles: ["Junior product designer"], skills: ["Figma", "Workflow design"], availability: "From January 2027", preferredWorkplace: "HYBRID", cvUrl: "https://example.test/cscn-local-qa/cv", statement: "Local QA talent-profile copy. This is not a real candidate endorsement." },
     update: { discoverable: true, targetRoles: ["Junior product designer"], skills: ["Figma", "Workflow design"], availability: "From January 2027", preferredWorkplace: "HYBRID", cvUrl: "https://example.test/cscn-local-qa/cv", statement: "Local QA talent-profile copy. This is not a real candidate endorsement." },
+  });
+
+  const organization = await db.organization.upsert({
+    where: { slug: "preview-northstar-learning-studio" },
+    create: {
+      name: "[Preview] Northstar Learning Studio",
+      slug: "preview-northstar-learning-studio",
+      type: "AGENCY",
+      status: "ACTIVE",
+      description: "Local-only organization fixture for reviewing CSCN seats, invitations, assignments, invoices, and aggregate learning reports.",
+      websiteUrl: "https://example.test/cscn-local-qa/organization",
+      officialDomain: "local.cscn.test",
+      country: "Nigeria",
+      requestedById: admin.id,
+      approvedById: admin.id,
+      approvedAt: new Date("2026-08-24T10:00:00.000Z"),
+    },
+    update: { status: "ACTIVE", approvedById: admin.id, approvedAt: new Date("2026-08-24T10:00:00.000Z") },
+  });
+  const organizationOwner = await db.organizationMember.upsert({
+    where: { organizationId_userId: { organizationId: organization.id, userId: admin.id } },
+    create: { organizationId: organization.id, userId: admin.id, role: "OWNER", status: "ACTIVE", jobTitle: "[Preview] Learning operations lead", joinedAt: new Date("2026-08-24T10:00:00.000Z") },
+    update: { role: "OWNER", status: "ACTIVE" },
+  });
+  const organizationLearner = await db.organizationMember.upsert({
+    where: { organizationId_userId: { organizationId: organization.id, userId: learner.id } },
+    create: { organizationId: organization.id, userId: learner.id, role: "LEARNER", status: "ACTIVE", jobTitle: "[Preview] Creative associate", joinedAt: new Date("2026-08-24T10:15:00.000Z") },
+    update: { role: "LEARNER", status: "ACTIVE" },
+  });
+  const organizationManager = await db.organizationMember.upsert({
+    where: { organizationId_userId: { organizationId: organization.id, userId: instructor.id } },
+    create: { organizationId: organization.id, userId: instructor.id, role: "MANAGER", status: "ACTIVE", jobTitle: "[Preview] Team facilitator", joinedAt: new Date("2026-08-24T10:20:00.000Z") },
+    update: { role: "MANAGER", status: "ACTIVE" },
+  });
+  const creativeTeam = await db.organizationTeam.upsert({
+    where: { organizationId_name: { organizationId: organization.id, name: "[Preview] Creative operations" } },
+    create: { organizationId: organization.id, name: "[Preview] Creative operations", description: "Local QA team for validating learning assignment visibility." },
+    update: { description: "Local QA team for validating learning assignment visibility." },
+  });
+  for (const memberId of [organizationOwner.id, organizationLearner.id, organizationManager.id]) {
+    await db.organizationTeamMember.upsert({ where: { teamId_organizationMemberId: { teamId: creativeTeam.id, organizationMemberId: memberId } }, create: { teamId: creativeTeam.id, organizationMemberId: memberId }, update: {} });
+  }
+  const privateTeamCohort = await db.cohort.upsert({
+    where: { slug: "preview-northstar-ai-team-october-2026" },
+    create: { organizationId: organization.id, programId: learningCohort.programId, title: "[Preview] Northstar private AI cohort", slug: "preview-northstar-ai-team-october-2026", status: "APPLICATIONS_CLOSED", applicationOpenAt: new Date("2026-08-24T10:00:00.000Z"), applicationCloseAt: new Date("2026-08-24T10:00:00.000Z"), startsAt: new Date("2026-10-19T17:00:00.000Z"), endsAt: new Date("2026-12-11T17:00:00.000Z"), capacity: 5, price: 0, applicationRequired: false, graduationRules: ["Complete assigned learning", "Meet the program completion threshold"], scheduleSummary: "Private local QA cohort: Mondays at 6:00 PM WAT with a Wednesday feedback room.", weeklySchedule: ["Live workshop: Monday", "Feedback room: Wednesday"] },
+    update: { organizationId: organization.id, status: "APPLICATIONS_CLOSED", applicationRequired: false, capacity: 5, price: 0 },
+  });
+  await db.cohortMembership.upsert({ where: { cohortId_userId: { cohortId: privateTeamCohort.id, userId: learner.id } }, create: { cohortId: privateTeamCohort.id, userId: learner.id, role: "LEARNER", status: "ACTIVE", joinedAt: new Date("2026-08-24T11:15:00.000Z") }, update: { role: "LEARNER", status: "ACTIVE" } });
+  let teamSeatPackage = await db.organizationSeatPackage.findFirst({ where: { organizationId: organization.id, notes: { contains: "LOCAL_QA" } } });
+  const teamSeatData = { organizationId: organization.id, cohortId: privateTeamCohort.id, programId: null, quantity: 5, pricePerSeat: 45000, currency: "NGN", status: "ACTIVE" as const, startsAt: new Date("2026-08-24T11:00:00.000Z"), expiresAt: new Date("2027-03-31T22:59:59.000Z"), createdById: admin.id, notes: "LOCAL_QA: active preview seat package; no real purchase or organization is represented." };
+  if (teamSeatPackage) teamSeatPackage = await db.organizationSeatPackage.update({ where: { id: teamSeatPackage.id }, data: teamSeatData });
+  else teamSeatPackage = await db.organizationSeatPackage.create({ data: teamSeatData });
+  await db.organizationInvoice.upsert({
+    where: { seatPackageId: teamSeatPackage.id },
+    create: { organizationId: organization.id, seatPackageId: teamSeatPackage.id, number: "QA-ORG-2026-0001", amount: 225000, currency: "NGN", status: "PAID", issuedById: admin.id, issuedAt: new Date("2026-08-24T10:30:00.000Z"), dueAt: new Date("2026-09-07T22:59:59.000Z"), paidAt: new Date("2026-08-24T11:00:00.000Z"), metadata: { fixture: "LOCAL_QA", payment: "No real funds represented" } },
+    update: { status: "PAID", paidAt: new Date("2026-08-24T11:00:00.000Z"), amount: 225000 },
+  });
+  await db.organizationSeatAllocation.upsert({
+    where: { seatPackageId_organizationMemberId: { seatPackageId: teamSeatPackage.id, organizationMemberId: organizationLearner.id } },
+    create: { seatPackageId: teamSeatPackage.id, organizationMemberId: organizationLearner.id, allocatedById: admin.id, status: "ACTIVE", assignedAt: new Date("2026-08-24T11:15:00.000Z") },
+    update: { status: "ACTIVE", revokedAt: null },
+  });
+  let teamAssignment = await db.organizationLearningAssignment.findFirst({ where: { organizationId: organization.id, seatPackageId: teamSeatPackage.id, title: "[Preview] Responsible AI workflow practice" } });
+  const teamAssignmentData = { organizationId: organization.id, teamId: creativeTeam.id, seatPackageId: teamSeatPackage.id, programId: null, cohortId: privateTeamCohort.id, title: "[Preview] Responsible AI workflow practice", description: "Complete the local preview cohort project and bring one documented quality decision to the team review.", dueAt: new Date("2026-11-30T22:59:59.000Z"), status: "ACTIVE" as const, createdById: admin.id };
+  if (teamAssignment) teamAssignment = await db.organizationLearningAssignment.update({ where: { id: teamAssignment.id }, data: teamAssignmentData });
+  else teamAssignment = await db.organizationLearningAssignment.create({ data: teamAssignmentData });
+  const inviteToken = "local-qa-team-invite-2026";
+  const inviteHash = createHash("sha256").update(inviteToken).digest("hex");
+  await db.organizationInvitation.upsert({
+    where: { tokenHash: inviteHash },
+    create: { organizationId: organization.id, teamId: creativeTeam.id, email: "team-invite@local.cscn.test", role: "LEARNER", status: "PENDING", tokenHash: inviteHash, invitedById: admin.id, expiresAt: new Date("2027-01-31T22:59:59.000Z") },
+    update: { status: "PENDING", acceptedAt: null, expiresAt: new Date("2027-01-31T22:59:59.000Z") },
   });
 
   console.log("Local QA fixtures are ready.");

@@ -8,6 +8,7 @@ const publicProgramWhere = {
 export async function listUpcomingCohorts(limit?: number) {
   return db.cohort.findMany({
     where: {
+      organizationId: null,
       status: { in: ["APPLICATIONS_OPEN", "APPLICATIONS_CLOSED"] },
       endsAt: { gte: new Date() },
       program: publicProgramWhere,
@@ -29,6 +30,7 @@ export async function getPublicCohort(slug: string) {
   return db.cohort.findFirst({
     where: {
       slug,
+      organizationId: null,
       status: { notIn: ["DRAFT", "CANCELLED"] },
       program: publicProgramWhere,
     },

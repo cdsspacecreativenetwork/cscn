@@ -14,6 +14,7 @@ const navLinks = [
   { name: 'Showcase', path: '/showcase' },
   { name: 'Community', path: '/community' },
   { name: 'Career Hub', path: '/career' },
+  { name: 'For Teams', path: '/teams' },
   { name: 'Resources', path: '/resources' },
   { name: 'Mentorship', path: '/mentorship' },
 ];

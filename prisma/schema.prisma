@@ -79,72 +79,80 @@ model User {
   pioneerJoinedAt  DateTime?
 
   // Course relations
-  taughtCourses                  Course[]                    @relation("InstructorCourses")
-  createdResources               MarketplaceResource[]       @relation("MarketplaceResourceOwner")
-  resourceAccesses               ResourceAccess[]
-  resourceReviews                ResourceReview[]            @relation("ResourceReviewer")
-  enrollments                    Enrollment[]
-  purchaseOrders                 PurchaseOrder[]             @relation("StudentOrders")
-  payments                       Payment[]
-  instructorEarnings             InstructorEarning[]         @relation("InstructorEarnings")
-  payoutRequests                 PayoutRequest[]             @relation("InstructorPayoutRequests")
-  reviewedPayoutRequests         PayoutRequest[]             @relation("PayoutRequestReviewer")
-  payouts                        Payout[]                    @relation("InstructorPayouts")
-  refundsRequested               Refund[]                    @relation("RefundRequester")
-  refundsReviewed                Refund[]                    @relation("RefundReviewer")
-  invoices                       Invoice[]
-  subscriptions                  UserSubscription[]
-  progress                       LessonProgress[]
-  lessonNotes                    LessonNote[]
-  watchSegments                  LessonWatchSegment[]
-  quizAttempts                   QuizAttempt[]
-  courseInstructors              CourseInstructor[]
-  createdScheduleEvents          ScheduleEvent[]             @relation("ScheduleEventCreator")
-  startedScheduleEvents          ScheduleEvent[]             @relation("ScheduleEventStarter")
-  endedScheduleEvents            ScheduleEvent[]             @relation("ScheduleEventEnder")
-  scheduleAttendances            ScheduleEventAttendee[]     @relation("ScheduleEventAttendees")
-  mentorAvailabilities           MentorAvailability[]        @relation("MentorAvailabilities")
-  mentorBookings                 MentorBooking[]             @relation("MentorBookings")
-  mentorshipBookings             MentorBooking[]             @relation("MentorshipBookings")
-  mentorshipApplications         MentorshipApplication[]     @relation("MentorshipApplications")
-  reviewedMentorshipApplications MentorshipApplication[]     @relation("MentorshipApplicationReviewer")
-  cohortMentorAssignments        CohortMentorAssignment[]    @relation("CohortMentorAssignments")
-  calendarConnections            CalendarConnection[]
-  notifications                  Notification[]
-  emailOutbox                    EmailOutbox[]
-  auditLogs                      AuditLog[]                  @relation("AuditActor")
-  courseReviews                  CourseReview[]
-  courseFeedback                 CourseFeedbackItem[]        @relation("FeedbackAuthor")
-  dailyActivities                DailyActivity[]
-  ratings                        CourseRating[]
-  ledCohorts                     Cohort[]                    @relation("CohortLeadInstructor")
-  cohortApplications             CohortApplication[]         @relation("CohortApplicant")
-  reviewedCohortApplications     CohortApplication[]         @relation("CohortApplicationReviewer")
-  cohortMemberships              CohortMembership[]
-  createdCohortProjects          CohortProject[]             @relation("CohortProjectCreator")
-  projectSubmissions             ProjectSubmission[]         @relation("ProjectSubmitter")
-  reviewedProjectSubmissions     ProjectSubmission[]         @relation("ProjectSubmissionReviewer")
-  projectSubmissionReviews       ProjectSubmissionReview[]   @relation("ProjectReviewAuthor")
-  issuedCredentials              Credential[]
-  communitySpacesCreated         CommunitySpace[]            @relation("CommunitySpaceCreator")
-  communityMemberships           CommunityMembership[]
-  communityPosts                 CommunityPost[]             @relation("CommunityPostAuthor")
-  communityReports               CommunityPostReport[]       @relation("CommunityReportReporter")
-  communityReportsReviewed       CommunityPostReport[]       @relation("CommunityReportReviewer")
-  savedCareerOpportunities       SavedCareerOpportunity[]
-  careerOpportunityInterests     CareerOpportunityInterest[]
-  careerTalentProfile            CareerTalentProfile?
-  careerOpportunitiesCreated     CareerOpportunity[]         @relation("CareerOpportunityCreator")
-  learnerInterestProfile         LearnerInterestProfile?
-  examAttempts                   ExamAttempt[]
-  pricingProposals               CoursePricingProposal[]     @relation("PricingProposalSubmitter")
-  reviewedPricingProposals       CoursePricingProposal[]     @relation("PricingProposalReviewer")
+  taughtCourses                   Course[]                         @relation("InstructorCourses")
+  createdResources                MarketplaceResource[]            @relation("MarketplaceResourceOwner")
+  resourceAccesses                ResourceAccess[]
+  resourceReviews                 ResourceReview[]                 @relation("ResourceReviewer")
+  enrollments                     Enrollment[]
+  purchaseOrders                  PurchaseOrder[]                  @relation("StudentOrders")
+  payments                        Payment[]
+  instructorEarnings              InstructorEarning[]              @relation("InstructorEarnings")
+  payoutRequests                  PayoutRequest[]                  @relation("InstructorPayoutRequests")
+  reviewedPayoutRequests          PayoutRequest[]                  @relation("PayoutRequestReviewer")
+  payouts                         Payout[]                         @relation("InstructorPayouts")
+  refundsRequested                Refund[]                         @relation("RefundRequester")
+  refundsReviewed                 Refund[]                         @relation("RefundReviewer")
+  invoices                        Invoice[]
+  subscriptions                   UserSubscription[]
+  progress                        LessonProgress[]
+  lessonNotes                     LessonNote[]
+  watchSegments                   LessonWatchSegment[]
+  quizAttempts                    QuizAttempt[]
+  courseInstructors               CourseInstructor[]
+  createdScheduleEvents           ScheduleEvent[]                  @relation("ScheduleEventCreator")
+  startedScheduleEvents           ScheduleEvent[]                  @relation("ScheduleEventStarter")
+  endedScheduleEvents             ScheduleEvent[]                  @relation("ScheduleEventEnder")
+  scheduleAttendances             ScheduleEventAttendee[]          @relation("ScheduleEventAttendees")
+  mentorAvailabilities            MentorAvailability[]             @relation("MentorAvailabilities")
+  mentorBookings                  MentorBooking[]                  @relation("MentorBookings")
+  mentorshipBookings              MentorBooking[]                  @relation("MentorshipBookings")
+  mentorshipApplications          MentorshipApplication[]          @relation("MentorshipApplications")
+  reviewedMentorshipApplications  MentorshipApplication[]          @relation("MentorshipApplicationReviewer")
+  cohortMentorAssignments         CohortMentorAssignment[]         @relation("CohortMentorAssignments")
+  calendarConnections             CalendarConnection[]
+  notifications                   Notification[]
+  emailOutbox                     EmailOutbox[]
+  auditLogs                       AuditLog[]                       @relation("AuditActor")
+  courseReviews                   CourseReview[]
+  courseFeedback                  CourseFeedbackItem[]             @relation("FeedbackAuthor")
+  dailyActivities                 DailyActivity[]
+  ratings                         CourseRating[]
+  ledCohorts                      Cohort[]                         @relation("CohortLeadInstructor")
+  cohortApplications              CohortApplication[]              @relation("CohortApplicant")
+  reviewedCohortApplications      CohortApplication[]              @relation("CohortApplicationReviewer")
+  cohortMemberships               CohortMembership[]
+  createdCohortProjects           CohortProject[]                  @relation("CohortProjectCreator")
+  projectSubmissions              ProjectSubmission[]              @relation("ProjectSubmitter")
+  reviewedProjectSubmissions      ProjectSubmission[]              @relation("ProjectSubmissionReviewer")
+  projectSubmissionReviews        ProjectSubmissionReview[]        @relation("ProjectReviewAuthor")
+  issuedCredentials               Credential[]
+  communitySpacesCreated          CommunitySpace[]                 @relation("CommunitySpaceCreator")
+  communityMemberships            CommunityMembership[]
+  communityPosts                  CommunityPost[]                  @relation("CommunityPostAuthor")
+  communityReports                CommunityPostReport[]            @relation("CommunityReportReporter")
+  communityReportsReviewed        CommunityPostReport[]            @relation("CommunityReportReviewer")
+  savedCareerOpportunities        SavedCareerOpportunity[]
+  careerOpportunityInterests      CareerOpportunityInterest[]
+  careerTalentProfile             CareerTalentProfile?
+  careerOpportunitiesCreated      CareerOpportunity[]              @relation("CareerOpportunityCreator")
+  organizationsRequested          Organization[]                   @relation("OrganizationRequester")
+  organizationsApproved           Organization[]                   @relation("OrganizationApprover")
+  organizationMemberships         OrganizationMember[]
+  organizationInvitationsSent     OrganizationInvitation[]         @relation("OrganizationInvitationSender")
+  organizationSeatPackagesCreated OrganizationSeatPackage[]        @relation("OrganizationSeatPackageCreator")
+  organizationSeatAllocationsMade OrganizationSeatAllocation[]     @relation("OrganizationSeatAllocator")
+  organizationAssignmentsCreated  OrganizationLearningAssignment[] @relation("OrganizationAssignmentCreator")
+  organizationInvoicesIssued      OrganizationInvoice[]            @relation("OrganizationInvoiceIssuer")
+  learnerInterestProfile          LearnerInterestProfile?
+  examAttempts                    ExamAttempt[]
+  pricingProposals                CoursePricingProposal[]          @relation("PricingProposalSubmitter")
+  reviewedPricingProposals        CoursePricingProposal[]          @relation("PricingProposalReviewer")
   // Streak & Gamification relations
-  currentStreak                  Int                         @default(0)
-  longestStreak                  Int                         @default(0)
-  achievements                   UserAchievement[]
-  questProgress                  UserQuestProgress[]
-  leaderboardRecord              LeaderboardCache?
+  currentStreak                   Int                              @default(0)
+  longestStreak                   Int                              @default(0)
+  achievements                    UserAchievement[]
+  questProgress                   UserQuestProgress[]
+  leaderboardRecord               LeaderboardCache?
 
   // Payout Configuration
   payoutSetup   Boolean @default(false)
@@ -323,6 +331,73 @@ enum CareerOpportunityInterestStatus {
   WITHDRAWN
 }
 
+enum OrganizationType {
+  COMPANY
+  NONPROFIT
+  SCHOOL
+  AGENCY
+  COMMUNITY
+  OTHER
+}
+
+enum OrganizationStatus {
+  PENDING_REVIEW
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum OrganizationMemberRole {
+  OWNER
+  ADMIN
+  MANAGER
+  BILLING
+  LEARNER
+}
+
+enum OrganizationMemberStatus {
+  ACTIVE
+  SUSPENDED
+  LEFT
+}
+
+enum OrganizationInvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum OrganizationSeatPackageStatus {
+  REQUESTED
+  INVOICED
+  PAID
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum OrganizationSeatAllocationStatus {
+  ACTIVE
+  REVOKED
+  COMPLETED
+}
+
+enum OrganizationAssignmentStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum OrganizationInvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  OVERDUE
+  VOID
+}
+
 model PasswordResetToken {
   id        String   @id @default(cuid())
   email     String
@@ -426,29 +501,31 @@ model School {
 }
 
 model Program {
-  id                     String              @id @default(cuid())
-  schoolId               String
-  title                  String
-  slug                   String              @unique
-  shortDescription       String
-  description            String              @db.Text
-  level                  ProgramLevel        @default(BEGINNER)
-  estimatedDurationWeeks Int
-  weeklyCommitmentHours  Int?
-  deliveryMode           ProgramDeliveryMode @default(ONLINE_LIVE)
-  status                 ProgramStatus       @default(DRAFT)
-  outcomes               Json
-  requirements           Json
-  skills                 Json
-  thumbnail              String?
-  metaTitle              String?
-  metaDescription        String?
-  school                 School              @relation(fields: [schoolId], references: [id])
-  courses                ProgramCourse[]
-  cohorts                Cohort[]
-  communitySpaces        CommunitySpace[]
-  createdAt              DateTime            @default(now())
-  updatedAt              DateTime            @updatedAt
+  id                       String                           @id @default(cuid())
+  schoolId                 String
+  title                    String
+  slug                     String                           @unique
+  shortDescription         String
+  description              String                           @db.Text
+  level                    ProgramLevel                     @default(BEGINNER)
+  estimatedDurationWeeks   Int
+  weeklyCommitmentHours    Int?
+  deliveryMode             ProgramDeliveryMode              @default(ONLINE_LIVE)
+  status                   ProgramStatus                    @default(DRAFT)
+  outcomes                 Json
+  requirements             Json
+  skills                   Json
+  thumbnail                String?
+  metaTitle                String?
+  metaDescription          String?
+  school                   School                           @relation(fields: [schoolId], references: [id])
+  courses                  ProgramCourse[]
+  cohorts                  Cohort[]
+  communitySpaces          CommunitySpace[]
+  organizationSeatPackages OrganizationSeatPackage[]
+  organizationAssignments  OrganizationLearningAssignment[]
+  createdAt                DateTime                         @default(now())
+  updatedAt                DateTime                         @updatedAt
 
   @@index([schoolId, status])
 }
@@ -467,40 +544,45 @@ model ProgramCourse {
 }
 
 model Cohort {
-  id                  String                   @id @default(cuid())
-  programId           String
-  title               String
-  slug                String                   @unique
-  status              CohortStatus             @default(DRAFT)
-  applicationOpenAt   DateTime
-  applicationCloseAt  DateTime
-  startsAt            DateTime
-  endsAt              DateTime
-  timezone            String                   @default("Africa/Lagos")
-  capacity            Int
-  price               Decimal?                 @db.Decimal(10, 2)
-  currency            String                   @default("NGN")
-  applicationRequired Boolean                  @default(true)
-  graduationRules     Json
-  scheduleSummary     String
-  weeklySchedule      Json?
-  leadInstructorId    String?
-  program             Program                  @relation(fields: [programId], references: [id], onDelete: Restrict)
-  leadInstructor      User?                    @relation("CohortLeadInstructor", fields: [leadInstructorId], references: [id], onDelete: SetNull)
-  applications        CohortApplication[]
-  memberships         CohortMembership[]
-  announcements       Announcement[]
-  scheduleEvents      ScheduleEvent[]
-  projects            CohortProject[]
-  credentials         Credential[]
-  mentorAssignments   CohortMentorAssignment[]
-  mentorBookings      MentorBooking[]
-  communitySpaces     CommunitySpace[]
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
+  id                       String                           @id @default(cuid())
+  programId                String
+  title                    String
+  slug                     String                           @unique
+  status                   CohortStatus                     @default(DRAFT)
+  applicationOpenAt        DateTime
+  applicationCloseAt       DateTime
+  startsAt                 DateTime
+  endsAt                   DateTime
+  timezone                 String                           @default("Africa/Lagos")
+  capacity                 Int
+  price                    Decimal?                         @db.Decimal(10, 2)
+  currency                 String                           @default("NGN")
+  applicationRequired      Boolean                          @default(true)
+  graduationRules          Json
+  scheduleSummary          String
+  weeklySchedule           Json?
+  leadInstructorId         String?
+  organizationId           String?
+  program                  Program                          @relation(fields: [programId], references: [id], onDelete: Restrict)
+  leadInstructor           User?                            @relation("CohortLeadInstructor", fields: [leadInstructorId], references: [id], onDelete: SetNull)
+  applications             CohortApplication[]
+  memberships              CohortMembership[]
+  announcements            Announcement[]
+  scheduleEvents           ScheduleEvent[]
+  projects                 CohortProject[]
+  credentials              Credential[]
+  mentorAssignments        CohortMentorAssignment[]
+  mentorBookings           MentorBooking[]
+  communitySpaces          CommunitySpace[]
+  organization             Organization?                    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  organizationSeatPackages OrganizationSeatPackage[]
+  organizationAssignments  OrganizationLearningAssignment[]
+  createdAt                DateTime                         @default(now())
+  updatedAt                DateTime                         @updatedAt
 
   @@index([programId, status, startsAt])
   @@index([applicationOpenAt, applicationCloseAt])
+  @@index([organizationId, status])
 }
 
 // --- Learning community and career hub -------------------------------------
@@ -665,6 +747,212 @@ model CareerTalentProfile {
   updatedAt          DateTime             @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// --- Organizations and team learning ---------------------------------------
+
+model Organization {
+  id             String             @id @default(cuid())
+  name           String
+  slug           String             @unique
+  type           OrganizationType
+  status         OrganizationStatus @default(PENDING_REVIEW)
+  description    String?            @db.Text
+  websiteUrl     String?
+  officialDomain String?
+  country        String?
+  logoUrl        String?
+  requestedById  String?
+  approvedById   String?
+  approvedAt     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  requestedBy  User?                            @relation("OrganizationRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  approvedBy   User?                            @relation("OrganizationApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  members      OrganizationMember[]
+  teams        OrganizationTeam[]
+  invitations  OrganizationInvitation[]
+  seatPackages OrganizationSeatPackage[]
+  assignments  OrganizationLearningAssignment[]
+  invoices     OrganizationInvoice[]
+  cohorts      Cohort[]
+
+  @@index([status, createdAt])
+  @@index([officialDomain])
+}
+
+model OrganizationTeam {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization                     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      OrganizationTeamMember[]
+  invitations  OrganizationInvitation[]
+  assignments  OrganizationLearningAssignment[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model OrganizationMember {
+  id             String                   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationMemberRole   @default(LEARNER)
+  status         OrganizationMemberStatus @default(ACTIVE)
+  jobTitle       String?
+  joinedAt       DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organization    Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teams           OrganizationTeamMember[]
+  seatAllocations OrganizationSeatAllocation[]
+
+  @@unique([organizationId, userId])
+  @@index([userId, status])
+  @@index([organizationId, role, status])
+}
+
+model OrganizationTeamMember {
+  id                   String   @id @default(cuid())
+  teamId               String
+  organizationMemberId String
+  addedAt              DateTime @default(now())
+
+  team               OrganizationTeam   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  organizationMember OrganizationMember @relation(fields: [organizationMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, organizationMemberId])
+  @@index([organizationMemberId])
+}
+
+model OrganizationInvitation {
+  id             String                       @id @default(cuid())
+  organizationId String
+  teamId         String?
+  email          String
+  role           OrganizationMemberRole       @default(LEARNER)
+  status         OrganizationInvitationStatus @default(PENDING)
+  tokenHash      String                       @unique
+  invitedById    String
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         OrganizationTeam? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  invitedBy    User              @relation("OrganizationInvitationSender", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, status, createdAt])
+  @@index([email, status])
+}
+
+model OrganizationSeatPackage {
+  id             String                        @id @default(cuid())
+  organizationId String
+  programId      String?
+  cohortId       String?
+  quantity       Int
+  pricePerSeat   Decimal                       @db.Decimal(12, 2)
+  currency       String                        @default("NGN")
+  status         OrganizationSeatPackageStatus @default(REQUESTED)
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  createdById    String
+  notes          String?                       @db.Text
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+
+  organization Organization                     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  program      Program?                         @relation(fields: [programId], references: [id], onDelete: Restrict)
+  cohort       Cohort?                          @relation(fields: [cohortId], references: [id], onDelete: Restrict)
+  createdBy    User                             @relation("OrganizationSeatPackageCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  allocations  OrganizationSeatAllocation[]
+  assignments  OrganizationLearningAssignment[]
+  invoice      OrganizationInvoice?
+
+  @@index([organizationId, status])
+  @@index([programId])
+  @@index([cohortId])
+}
+
+model OrganizationSeatAllocation {
+  id                   String                           @id @default(cuid())
+  seatPackageId        String
+  organizationMemberId String
+  allocatedById        String
+  status               OrganizationSeatAllocationStatus @default(ACTIVE)
+  assignedAt           DateTime                         @default(now())
+  revokedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
+
+  seatPackage        OrganizationSeatPackage @relation(fields: [seatPackageId], references: [id], onDelete: Cascade)
+  organizationMember OrganizationMember      @relation(fields: [organizationMemberId], references: [id], onDelete: Cascade)
+  allocatedBy        User                    @relation("OrganizationSeatAllocator", fields: [allocatedById], references: [id], onDelete: Restrict)
+
+  @@unique([seatPackageId, organizationMemberId])
+  @@index([organizationMemberId, status])
+  @@index([seatPackageId, status])
+}
+
+model OrganizationLearningAssignment {
+  id             String                       @id @default(cuid())
+  organizationId String
+  teamId         String?
+  seatPackageId  String
+  programId      String?
+  cohortId       String?
+  title          String
+  description    String?                      @db.Text
+  dueAt          DateTime?
+  status         OrganizationAssignmentStatus @default(ACTIVE)
+  createdById    String
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         OrganizationTeam?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  seatPackage  OrganizationSeatPackage @relation(fields: [seatPackageId], references: [id], onDelete: Restrict)
+  program      Program?                @relation(fields: [programId], references: [id], onDelete: Restrict)
+  cohort       Cohort?                 @relation(fields: [cohortId], references: [id], onDelete: Restrict)
+  createdBy    User                    @relation("OrganizationAssignmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, status, dueAt])
+  @@index([teamId, status])
+  @@index([seatPackageId])
+}
+
+model OrganizationInvoice {
+  id             String                    @id @default(cuid())
+  organizationId String
+  seatPackageId  String                    @unique
+  number         String                    @unique
+  amount         Decimal                   @db.Decimal(12, 2)
+  currency       String                    @default("NGN")
+  status         OrganizationInvoiceStatus @default(ISSUED)
+  issuedById     String
+  issuedAt       DateTime                  @default(now())
+  dueAt          DateTime?
+  paidAt         DateTime?
+  metadata       Json?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  seatPackage  OrganizationSeatPackage @relation(fields: [seatPackageId], references: [id], onDelete: Restrict)
+  issuedBy     User                    @relation("OrganizationInvoiceIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, status, issuedAt])
 }
 
 model CohortApplication {

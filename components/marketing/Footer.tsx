@@ -11,6 +11,7 @@ const FOOTER_LINKS = {
     { name: 'Showcase', href: '/showcase' },
     { name: 'Community', href: '/community' },
     { name: 'Career Hub', href: '/career' },
+    { name: 'For Teams', href: '/teams' },
     { name: 'Certificate', href: '/certificate' },
     { name: 'Verify credential', href: '/credentials' },
     { name: 'Resources', href: '/resources' },
