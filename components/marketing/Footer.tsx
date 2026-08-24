@@ -10,6 +10,7 @@ const FOOTER_LINKS = {
     { name: 'Courses', href: '/courses' },
     { name: 'Showcase', href: '/showcase' },
     { name: 'Community', href: '/community' },
+    { name: 'Career Hub', href: '/career' },
     { name: 'Certificate', href: '/certificate' },
     { name: 'Verify credential', href: '/credentials' },
     { name: 'Resources', href: '/resources' },

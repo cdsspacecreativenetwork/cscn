@@ -489,6 +489,76 @@ async function main() {
     update: {},
   });
 
+  const critiqueSpace = await db.communitySpace.upsert({
+    where: { slug: "preview-project-critique" },
+    create: {
+      slug: "preview-project-critique",
+      title: "[Preview] Project critique room",
+      description: "A local QA space for practicing specific, constructive feedback on work in progress.",
+      kind: "PROJECT_CRITIQUE",
+      visibility: "PUBLIC",
+      status: "PUBLISHED",
+      createdById: admin.id,
+      guidelines: ["Describe the decision you want help with", "Critique the work, never the person", "Do not share private client material"],
+    },
+    update: { status: "PUBLISHED", visibility: "PUBLIC", createdById: admin.id },
+  });
+  const cohortSpace = await db.communitySpace.upsert({
+    where: { slug: "preview-ai-workflows-cohort-room" },
+    create: {
+      slug: "preview-ai-workflows-cohort-room",
+      title: "[Preview] AI workflows cohort room",
+      description: "The local-only member room for cohort questions, peer practice, and learning updates.",
+      kind: "COHORT",
+      visibility: "MEMBERS_ONLY",
+      status: "PUBLISHED",
+      cohortId: learningCohort.id,
+      programId: learningCohort.programId,
+      createdById: admin.id,
+      guidelines: ["Keep discussion connected to the learning journey", "Share feedback with care and useful context", "Report unsafe or misleading content"],
+    },
+    update: { status: "PUBLISHED", visibility: "MEMBERS_ONLY", cohortId: learningCohort.id, programId: learningCohort.programId, createdById: admin.id },
+  });
+  for (const membership of [
+    { spaceId: critiqueSpace.id, userId: admin.id, role: "MODERATOR" as const },
+    { spaceId: critiqueSpace.id, userId: learner.id, role: "MEMBER" as const },
+    { spaceId: cohortSpace.id, userId: admin.id, role: "MODERATOR" as const },
+    { spaceId: cohortSpace.id, userId: learner.id, role: "MEMBER" as const },
+  ]) {
+    await db.communityMembership.upsert({
+      where: { spaceId_userId: { spaceId: membership.spaceId, userId: membership.userId } },
+      create: { ...membership, status: "ACTIVE" },
+      update: { role: membership.role, status: "ACTIVE" },
+    });
+  }
+  let critiquePost = await db.communityPost.findFirst({ where: { spaceId: critiqueSpace.id, authorId: learner.id, title: "[Preview] Help me test this project story" } });
+  critiquePost ??= await db.communityPost.create({ data: { spaceId: critiqueSpace.id, authorId: learner.id, title: "[Preview] Help me test this project story", body: "Local QA discussion: Is the problem and human approval step clear enough in this workflow case-study outline? I am looking for one specific suggestion about the sequence.", status: "PUBLISHED", isPinned: true } });
+  const critiqueReply = await db.communityPost.findFirst({ where: { parentId: critiquePost.id, authorId: admin.id } });
+  if (!critiqueReply) await db.communityPost.create({ data: { spaceId: critiqueSpace.id, authorId: admin.id, parentId: critiquePost.id, body: "The approval step is visible. For the next revision, name the quality signal that causes a human reviewer to reject an output.", status: "PUBLISHED" } });
+  const cohortWelcome = await db.communityPost.findFirst({ where: { spaceId: cohortSpace.id, title: "[Preview] Start here: how this room supports learning" } });
+  if (!cohortWelcome) await db.communityPost.create({ data: { spaceId: cohortSpace.id, authorId: admin.id, title: "[Preview] Start here: how this room supports learning", body: "Use this room for cohort questions, study-group coordination, and project feedback. Schedule and official announcements remain in your cohort dashboard.", status: "PUBLISHED", isPinned: true } });
+
+  const careerFixtures = [
+    { slug: "preview-junior-product-designer", company: "[Preview] Northstar Studio", role: "[Preview] Junior product designer", summary: "Local QA opportunity for reviewing discovery, filters, saving, and external-application tracking.", description: "This fictional local fixture describes an entry-level product design role focused on research synthesis, interface iteration, and documented collaboration. It is not a real vacancy.", location: "Lagos, Nigeria", workplaceType: "HYBRID" as const, employmentType: "FULL_TIME" as const, level: "ENTRY" as const, skills: ["Figma", "User research", "Prototyping"], salaryText: "Not supplied — preview fixture", featured: true },
+    { slug: "preview-frontend-intern", company: "[Preview] Build Lab", role: "[Preview] Frontend engineering intern", summary: "Local QA opportunity for testing the Career Hub without representing a real employer or vacancy.", description: "This fictional local fixture covers accessible interface implementation, code review, and guided React project work. It is not open for real applications.", location: "Remote · Nigeria", workplaceType: "REMOTE" as const, employmentType: "INTERNSHIP" as const, level: "ENTRY" as const, skills: ["React", "TypeScript", "Accessibility"], salaryText: "Not supplied — preview fixture", featured: false },
+  ];
+  for (const fixture of careerFixtures) {
+    await db.careerOpportunity.upsert({
+      where: { slug: fixture.slug },
+      create: { ...fixture, applicationUrl: `https://example.test/cscn-local-qa/${fixture.slug}`, source: "Local QA fixture", applicationDeadline: new Date("2026-11-30T22:59:59.000Z"), postedAt: new Date("2026-08-24T09:00:00.000Z"), status: "PUBLISHED", createdById: admin.id },
+      update: { ...fixture, applicationUrl: `https://example.test/cscn-local-qa/${fixture.slug}`, source: "Local QA fixture", applicationDeadline: new Date("2026-11-30T22:59:59.000Z"), status: "PUBLISHED", createdById: admin.id },
+    });
+  }
+  const workshop = await db.scheduleEvent.findFirst({ where: { title: "[Preview] Portfolio evidence clinic", createdById: admin.id }, select: { id: true } });
+  const workshopData = { createdById: admin.id, type: "PLATFORM_EVENT" as const, audience: "ALL_STUDENTS" as const, status: "SCHEDULED" as const, title: "[Preview] Portfolio evidence clinic", description: "Local QA workshop copy for practicing how to explain project decisions and evidence. No live event or meeting is promised.", startsAt: new Date("2026-10-08T17:00:00.000Z"), endsAt: new Date("2026-10-08T18:00:00.000Z"), timezone: "Africa/Lagos", metadata: { kind: "CAREER_WORKSHOP", fixture: "LOCAL_QA" } };
+  if (workshop) await db.scheduleEvent.update({ where: { id: workshop.id }, data: workshopData });
+  else await db.scheduleEvent.create({ data: workshopData });
+  await db.careerTalentProfile.upsert({
+    where: { userId: learner.id },
+    create: { userId: learner.id, discoverable: true, targetRoles: ["Junior product designer"], skills: ["Figma", "Workflow design"], availability: "From January 2027", preferredWorkplace: "HYBRID", cvUrl: "https://example.test/cscn-local-qa/cv", statement: "Local QA talent-profile copy. This is not a real candidate endorsement." },
+    update: { discoverable: true, targetRoles: ["Junior product designer"], skills: ["Figma", "Workflow design"], availability: "From January 2027", preferredWorkplace: "HYBRID", cvUrl: "https://example.test/cscn-local-qa/cv", statement: "Local QA talent-profile copy. This is not a real candidate endorsement." },
+  });
+
   console.log("Local QA fixtures are ready.");
   console.log("Learner: learner@local.cscn.test / LocalReviewOnly!2026");
   console.log("Admin: admin@local.cscn.test / LocalReviewOnly!2026");

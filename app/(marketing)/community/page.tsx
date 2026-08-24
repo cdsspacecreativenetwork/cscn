@@ -1,23 +1,30 @@
-import { listFeaturedCourses } from '@/lib/services/courses.service';
-import CommunityClient, { type CommunityCourse } from './CommunityClient';
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight, BookOpenCheck, MessagesSquare, ShieldCheck, UsersRound } from "lucide-react";
+
+import { joinCommunitySpaceAction } from "@/actions/community";
+import { currentUser } from "@/lib/auth";
+import { getCommunityLanding } from "@/lib/services/community.service";
+
+export const metadata: Metadata = { title: "CSCN Learning Community | Learn, Build & Grow Together", description: "Join learning spaces built around cohorts, projects, study groups, critique and practical progress." };
+
+const kindLabels: Record<string, string> = { GENERAL: "Open community", PROGRAM: "Program channel", COHORT: "Cohort room", TOPIC: "Skill channel", PROJECT_CRITIQUE: "Project critique", STUDY_GROUP: "Study group", ALUMNI: "Alumni" };
 
 export default async function CommunityPage() {
-  const courses = await listFeaturedCourses(2);
+  const user = await currentUser();
+  const spaces = await getCommunityLanding(user?.id);
+  const memberCount = spaces.reduce((sum, space) => sum + space._count.memberships, 0);
+  const postCount = spaces.reduce((sum, space) => sum + space._count.posts, 0);
 
-  const communityCourses: CommunityCourse[] = courses.map((course) => {
-    const lessons = course.modules.reduce((sum, module) => sum + module._count.lessons, 0);
-    const author = course.instructor.name ?? 'CSCN Instructor';
-
-    return {
-      id: course.id,
-      slug: course.slug,
-      title: course.title,
-      meta: `${lessons} lesson${lessons === 1 ? '' : 's'}`,
-      author,
-      authorAvatar: course.instructor.image ?? '/assets/avatars/avatar1.png',
-      image: course.thumbnail ?? '/assets/courses/Frame 2147239560.svg',
-    };
-  });
-
-  return <CommunityClient courses={communityCourses} />;
+  return <main className="min-h-screen bg-[#F7F8FC] pb-28 pt-28 text-[#040B37]">
+    <section className="mx-auto max-w-[88rem] px-4 lg:px-6">
+      <div className="relative overflow-hidden rounded-[32px] border border-[#DCE2ED] bg-[#071535] px-6 py-12 text-white shadow-[0_28px_80px_rgba(4,11,55,.18)] md:px-12 md:py-16 lg:grid lg:grid-cols-[1.25fr_.75fr] lg:gap-16">
+        <div className="relative z-10"><span className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[.16em] text-[#AFC7FF]">CSCN learning community</span><h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.02] tracking-[-.055em] md:text-6xl">Learning is easier when you are not doing it alone.</h1><p className="mt-6 max-w-2xl text-base font-medium leading-7 text-[#C9D5EF] md:text-lg">Ask questions, share work, join study groups, exchange thoughtful critique, and grow alongside people building similar skills.</p><div className="mt-8 flex flex-wrap gap-3"><a href="#spaces" className="inline-flex items-center gap-2 rounded-full bg-[#FFD84D] px-6 py-3 text-sm font-black text-[#071535]">Explore spaces <ArrowRight size={17}/></a><Link href="/career" className="inline-flex items-center rounded-full border border-white/25 px-6 py-3 text-sm font-bold text-white">Career Hub is separate</Link></div></div>
+        <div className="relative mt-10 grid grid-cols-2 gap-3 lg:mt-0"><div className="rounded-[22px] border border-white/15 bg-white/8 p-5"><UsersRound className="text-[#FFD84D]"/><p className="mt-8 text-3xl font-black">{memberCount}</p><p className="mt-1 text-sm text-[#AFC0DF]">active memberships</p></div><div className="rounded-[22px] border border-white/15 bg-white/8 p-5"><MessagesSquare className="text-[#74E0B4]"/><p className="mt-8 text-3xl font-black">{postCount}</p><p className="mt-1 text-sm text-[#AFC0DF]">published discussions</p></div><div className="col-span-2 rounded-[22px] border border-white/15 bg-white/8 p-5"><p className="text-xs font-black uppercase tracking-[.12em] text-[#AFC0DF]">Built for learning</p><div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold"><span className="rounded-xl bg-white/10 px-2 py-3">Study groups</span><span className="rounded-xl bg-white/10 px-2 py-3">Project critique</span><span className="rounded-xl bg-white/10 px-2 py-3">Cohort rooms</span></div></div></div>
+      </div>
+    </section>
+    <section id="spaces" className="mx-auto mt-16 max-w-[88rem] px-4 lg:px-6"><div className="flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><p className="text-xs font-black uppercase tracking-[.14em] text-[#1C4ED1]">Spaces with a purpose</p><h2 className="mt-3 text-3xl font-black tracking-[-.045em] md:text-4xl">Learn in public. Practice with peers.</h2></div><p className="max-w-xl text-sm font-medium leading-6 text-[#65718A]">Every space is tied to a learning goal, program, cohort, topic, or project—not an undirected social feed.</p></div>
+      {spaces.length ? <div className="mt-8 grid gap-5 lg:grid-cols-2">{spaces.map((space) => <article key={space.id} className="group rounded-[24px] border border-[#DCE2ED] bg-white p-5 shadow-[0_8px_30px_rgba(4,11,55,.05)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(4,11,55,.09)] md:p-6"><div className="flex items-start justify-between gap-4"><div><span className="text-[11px] font-black uppercase tracking-[.12em] text-[#1C4ED1]">{kindLabels[space.kind]}</span><h3 className="mt-2 text-2xl font-black tracking-[-.035em]">{space.title}</h3></div><div className="rounded-2xl bg-[#EEF3FF] p-3 text-[#1C4ED1]">{space.kind === "PROJECT_CRITIQUE" ? <BookOpenCheck/> : <UsersRound/>}</div></div><p className="mt-3 text-sm font-medium leading-6 text-[#65718A]">{space.description}</p><div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-[#65718A]"><span className="rounded-full bg-[#F4F6FA] px-3 py-1.5">{space._count.memberships} members</span><span className="rounded-full bg-[#F4F6FA] px-3 py-1.5">{space._count.posts} discussions</span>{space.program && <span className="rounded-full bg-[#FFF7D6] px-3 py-1.5 text-[#735B00]">{space.program.title}</span>}</div>{space.posts[0] && <div className="mt-5 rounded-2xl border border-[#E7EAF1] bg-[#FAFBFD] p-4"><p className="text-sm font-black">{space.posts[0].title || "Latest discussion"}</p><p className="mt-1 line-clamp-2 text-sm leading-6 text-[#65718A]">{space.posts[0].body}</p></div>}<div className="mt-5 flex items-center justify-between gap-3"><Link href={`/community/${space.slug}`} className="inline-flex items-center gap-2 text-sm font-black text-[#1C4ED1]">Open space <ArrowRight size={16}/></Link>{!space.joined && <form action={joinCommunitySpaceAction}><input type="hidden" name="spaceId" value={space.id}/><input type="hidden" name="slug" value={space.slug}/><button className="rounded-full border border-[#CDD6E5] px-4 py-2 text-xs font-black hover:border-[#1C4ED1]">Join</button></form>}</div></article>)}</div> : <div className="mt-8 rounded-[24px] border border-dashed border-[#C8D1E0] bg-white p-12 text-center"><ShieldCheck className="mx-auto text-[#1C4ED1]"/><h3 className="mt-4 text-xl font-black">Community spaces are being prepared</h3><p className="mt-2 text-sm text-[#65718A]">Published, moderated learning spaces will appear here.</p></div>}
+    </section>
+  </main>;
 }
