@@ -10,6 +10,8 @@ import { generatePaymentReference } from "@/lib/payments/ledger";
 import { initializePaystackTransaction } from "@/lib/payments/paystack";
 import { getAppBaseUrl } from "@/lib/payments/url";
 import { getMarketplaceResourceBySlug } from "@/data/marketplace-resources";
+import { mkdir, writeFile } from "node:fs/promises";
+import nodePath from "node:path";
 
 const storage = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 const BUCKET = "marketplace-resources";
@@ -55,18 +57,14 @@ export async function createMarketplaceResourceAction(formData: FormData) {
       path = `${user.id}/${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
       const { error: uploadError } = await storage.storage.from(BUCKET).upload(path, file, { contentType: mimeType });
       if (uploadError) throw new Error(uploadError.message);
-    } catch (err: any) {
-      console.warn("Supabase upload failed, falling back to local file storage:", err.message);
-      const fs = require("fs");
-      const pathLib = require("path");
-      const localDir = pathLib.join(process.cwd(), "public", "uploads");
-      if (!fs.existsSync(localDir)) {
-        fs.mkdirSync(localDir, { recursive: true });
-      }
+    } catch (err: unknown) {
+      console.warn("Supabase upload failed, falling back to local file storage:", err instanceof Error ? err.message : err);
+      const localDir = nodePath.join(process.cwd(), "public", "uploads");
+      await mkdir(localDir, { recursive: true });
       const uniqueName = `${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-      const localPath = pathLib.join(localDir, uniqueName);
+      const localPath = nodePath.join(localDir, uniqueName);
       const buffer = Buffer.from(await file.arrayBuffer());
-      fs.writeFileSync(localPath, buffer);
+      await writeFile(localPath, buffer);
       path = `/uploads/${uniqueName}`;
     }
   }
@@ -84,18 +82,14 @@ export async function createMarketplaceResourceAction(formData: FormData) {
       const { error: thumbnailError } = await storage.storage.from(thumbnailBucket).upload(thumbnailPath, thumbnail, { contentType: thumbnail.type });
       if (thumbnailError) throw new Error(thumbnailError.message);
       thumbnailUrl = storage.storage.from(thumbnailBucket).getPublicUrl(thumbnailPath).data.publicUrl;
-    } catch (err: any) {
-      console.warn("Supabase thumbnail upload failed, falling back to local storage:", err.message);
-      const fs = require("fs");
-      const pathLib = require("path");
-      const localDir = pathLib.join(process.cwd(), "public", "uploads");
-      if (!fs.existsSync(localDir)) {
-        fs.mkdirSync(localDir, { recursive: true });
-      }
+    } catch (err: unknown) {
+      console.warn("Supabase thumbnail upload failed, falling back to local storage:", err instanceof Error ? err.message : err);
+      const localDir = nodePath.join(process.cwd(), "public", "uploads");
+      await mkdir(localDir, { recursive: true });
       const uniqueName = `${uuidv4()}-${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-      const localPath = pathLib.join(localDir, uniqueName);
+      const localPath = nodePath.join(localDir, uniqueName);
       const buffer = Buffer.from(await thumbnail.arrayBuffer());
-      fs.writeFileSync(localPath, buffer);
+      await writeFile(localPath, buffer);
       thumbnailUrl = `/uploads/${uniqueName}`;
     }
   }
@@ -190,18 +184,14 @@ export async function updateMarketplaceResourceAction(resourceId: string, formDa
       path = `${user.id}/${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
       const { error: uploadError } = await storage.storage.from(BUCKET).upload(path, file, { contentType: mimeType });
       if (uploadError) throw new Error(uploadError.message);
-    } catch (err: any) {
-      console.warn("Supabase file update failed, falling back to local storage:", err.message);
-      const fs = require("fs");
-      const pathLib = require("path");
-      const localDir = pathLib.join(process.cwd(), "public", "uploads");
-      if (!fs.existsSync(localDir)) {
-        fs.mkdirSync(localDir, { recursive: true });
-      }
+    } catch (err: unknown) {
+      console.warn("Supabase file update failed, falling back to local storage:", err instanceof Error ? err.message : err);
+      const localDir = nodePath.join(process.cwd(), "public", "uploads");
+      await mkdir(localDir, { recursive: true });
       const uniqueName = `${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-      const localPath = pathLib.join(localDir, uniqueName);
+      const localPath = nodePath.join(localDir, uniqueName);
       const buffer = Buffer.from(await file.arrayBuffer());
-      fs.writeFileSync(localPath, buffer);
+      await writeFile(localPath, buffer);
       path = `/uploads/${uniqueName}`;
     }
   }
@@ -219,18 +209,14 @@ export async function updateMarketplaceResourceAction(resourceId: string, formDa
       const { error: thumbnailError } = await storage.storage.from(thumbnailBucket).upload(thumbnailPath, thumbnail, { contentType: thumbnail.type });
       if (thumbnailError) throw new Error(thumbnailError.message);
       thumbnailUrl = storage.storage.from(thumbnailBucket).getPublicUrl(thumbnailPath).data.publicUrl;
-    } catch (err: any) {
-      console.warn("Supabase thumbnail update failed, falling back to local storage:", err.message);
-      const fs = require("fs");
-      const pathLib = require("path");
-      const localDir = pathLib.join(process.cwd(), "public", "uploads");
-      if (!fs.existsSync(localDir)) {
-        fs.mkdirSync(localDir, { recursive: true });
-      }
+    } catch (err: unknown) {
+      console.warn("Supabase thumbnail update failed, falling back to local storage:", err instanceof Error ? err.message : err);
+      const localDir = nodePath.join(process.cwd(), "public", "uploads");
+      await mkdir(localDir, { recursive: true });
       const uniqueName = `${uuidv4()}-${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-      const localPath = pathLib.join(localDir, uniqueName);
+      const localPath = nodePath.join(localDir, uniqueName);
       const buffer = Buffer.from(await thumbnail.arrayBuffer());
-      fs.writeFileSync(localPath, buffer);
+      await writeFile(localPath, buffer);
       thumbnailUrl = `/uploads/${uniqueName}`;
     }
   }

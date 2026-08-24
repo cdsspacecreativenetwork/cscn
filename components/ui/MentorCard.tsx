@@ -97,6 +97,8 @@ export default function MentorCard(mentor: Mentor) {
           topics: mentor.topics,
           availability: mentor.availability,
           slots,
+          focusAreas: mentor.focusAreas,
+          bookingContext: mentor.bookingContext,
         }}
         open={bookingOpen}
         onClose={() => setBookingOpen(false)}

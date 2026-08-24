@@ -1,13 +1,15 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
 import { v4 as uuidv4 } from "uuid";
 import { auth } from "@/auth";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { db } from "@/lib/db";
+import {
+  createAvatarObjectPath,
+  getAvatarStorageClient,
+  removeOwnedAvatar,
+  validateAvatarFile,
+} from "@/lib/avatar-storage";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export const uploadAvatar = async (formData: FormData) => {
   try {
@@ -15,16 +17,31 @@ export const uploadAvatar = async (formData: FormData) => {
     if (!session?.user?.id) {
       return { error: "Unauthorized" };
     }
+    const rateLimit = await enforceRateLimit("avatar-upload", session.user.id, RATE_LIMITS.upload);
+    if (!rateLimit.allowed) return { error: "Too many upload attempts. Please try again later." };
 
-    const file = formData.get("file") as File;
-    if (!file) {
+    const file = formData.get("file");
+    if (!(file instanceof File)) {
       return { error: "No file provided" };
     }
 
-    const fileExtension = file.name.split(".").pop() || "png";
-    const fileName = `${session.user.id}-${uuidv4()}.${fileExtension}`;
+    const validation = validateAvatarFile(file);
+    if (!validation.success) return { error: validation.error };
 
-    const { data, error } = await supabase.storage
+    const supabase = getAvatarStorageClient();
+    if (!supabase) return { error: "Avatar storage is not configured." };
+
+    const fileName = createAvatarObjectPath(
+      session.user.id,
+      uuidv4(),
+      validation.extension
+    );
+    const currentUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { image: true },
+    });
+
+    const { error } = await supabase.storage
       .from("avatars")
       .upload(fileName, file, {
         cacheControl: "3600",
@@ -40,6 +57,16 @@ export const uploadAvatar = async (formData: FormData) => {
       .from("avatars")
       .getPublicUrl(fileName);
 
+    await db.user.update({
+      where: { id: session.user.id },
+      data: { image: publicUrlData.publicUrl },
+    });
+
+    if (currentUser?.image && currentUser.image !== publicUrlData.publicUrl) {
+      const cleanup = await removeOwnedAvatar(currentUser.image, session.user.id);
+      if (!cleanup.success) console.warn("Old avatar cleanup failed:", cleanup.error);
+    }
+
     return { success: true, url: publicUrlData.publicUrl };
   } catch (error) {
     console.error("Server upload error:", error);
@@ -47,14 +74,24 @@ export const uploadAvatar = async (formData: FormData) => {
   }
 };
 
-export const deleteAvatar = async (url: string) => {
+export const deleteAvatar = async () => {
   try {
-    if (!url.includes("supabase.co") || !url.includes("/avatars/")) return { success: true };
-    const fileName = url.split("/").pop();
-    if (!fileName) return { error: "Invalid URL" };
-    
-    const { error } = await supabase.storage.from("avatars").remove([fileName]);
-    if (error) throw error;
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Unauthorized" };
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { image: true },
+    });
+    if (!user?.image) return { success: true };
+
+    await db.user.update({
+      where: { id: session.user.id },
+      data: { image: null },
+    });
+
+    const removed = await removeOwnedAvatar(user.image, session.user.id);
+    if (!removed.success) console.warn("Old avatar cleanup failed:", removed.error);
     return { success: true };
   } catch (error) {
     console.error("Failed to delete avatar:", error);

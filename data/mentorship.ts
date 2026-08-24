@@ -73,6 +73,8 @@ export async function getInstructorMentorshipDashboard(userId: string) {
         currency: true,
         meetingUrl: true,
         scheduleEventId: true,
+        cohort: { select: { title: true, program: { select: { title: true } } } },
+        projectSubmission: { select: { title: true } },
         student: {
           select: {
             name: true,

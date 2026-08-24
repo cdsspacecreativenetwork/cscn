@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Clock3, Banknote, X } from "lucide-react";
 
@@ -26,6 +26,13 @@ export type MentorBookingPanelData = {
   topics?: string[];
   availability?: MentorAvailabilityInput[];
   slots?: MentorBookingSlot[];
+  focusAreas?: string[];
+  bookingContext?: {
+    cohortId: string;
+    cohortTitle: string;
+    returnTo: string;
+    submissions: Array<{ id: string; title: string; projectTitle: string; status: string }>;
+  };
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -89,8 +96,8 @@ export function MentorBookingPanel({
   open: boolean;
   onClose: () => void;
 }) {
-  const slots = mentor.slots ?? [];
-  const availability = mentor.availability ?? [];
+  const slots = useMemo(() => mentor.slots ?? [], [mentor.slots]);
+  const availability = useMemo(() => mentor.availability ?? [], [mentor.availability]);
   const groupedSlots = useMemo(() => {
     const groups = new Map<string, MentorBookingSlot[]>();
     slots.forEach((slot) => {
@@ -105,15 +112,17 @@ export function MentorBookingPanel({
   const [selectedDate, setSelectedDate] = useState(firstDateKey);
   const [selectedSlotKey, setSelectedSlotKey] = useState("");
   const [studentNote, setStudentNote] = useState("");
+  const [projectSubmissionId, setProjectSubmissionId] = useState("");
   const [visibleMonth, setVisibleMonth] = useState(() => (firstDateKey ? parseDateKey(firstDateKey) : new Date()));
 
-  useEffect(() => {
-    if (!open) return;
+  function closePanel() {
     setSelectedDate(firstDateKey);
     setSelectedSlotKey("");
     setStudentNote("");
+    setProjectSubmissionId("");
     setVisibleMonth(firstDateKey ? parseDateKey(firstDateKey) : new Date());
-  }, [firstDateKey, open]);
+    onClose();
+  }
 
   const visibleSlots = useMemo(
     () => (selectedDate ? buildMentorBookingSlotsForDate(availability, parseDateKey(selectedDate)) : []),
@@ -127,16 +136,17 @@ export function MentorBookingPanel({
 
   if (!open) return null;
 
-  const isFreeSession = (mentor.priceLabel ?? "").toLowerCase().includes("free");
+  const normalizedPriceLabel = (mentor.priceLabel ?? "").toLowerCase();
+  const isFreeSession = normalizedPriceLabel.includes("free") || normalizedPriceLabel.includes("included");
 
   return (
     <div className="fixed inset-0 z-[9999] flex bg-[#F4F6FB] lg:bg-[#040B37]/45 lg:p-5 lg:backdrop-blur-sm">
-      <button type="button" aria-label="Close booking panel" className="absolute inset-0 hidden lg:block" onClick={onClose} />
+      <button type="button" aria-label="Close booking panel" className="absolute inset-0 hidden lg:block" onClick={closePanel} />
 
       <section className="relative z-10 flex h-full w-full flex-col overflow-hidden bg-white shadow-[0_28px_90px_rgba(4,11,55,0.24)] lg:m-auto lg:grid lg:h-[min(88vh,760px)] lg:max-w-[1180px] lg:grid-cols-[320px_minmax(420px,1fr)_280px] lg:rounded-[26px] lg:border lg:border-[#E3E8F4]">
         <button
           type="button"
-          onClick={onClose}
+          onClick={closePanel}
           className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-[#E3E8F4] bg-white text-[#4B5563] shadow-sm transition hover:border-[#1C4ED1] hover:text-[#1C4ED1]"
           aria-label="Close"
         >
@@ -152,6 +162,14 @@ export function MentorBookingPanel({
             <h2 className="mt-2 text-[24px] font-black tracking-[-0.04em] text-[#040B37]">{mentor.name}</h2>
             <p className="mt-1 text-[14px] font-semibold text-[#4B5563]">{mentor.role}</p>
           </div>
+
+          {mentor.bookingContext && (
+            <div className="mt-5 rounded-[14px] border border-[#BDD0FF] bg-[#F2F6FF] p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.1em] text-[#1C4ED1]">Cohort mentorship</p>
+              <p className="mt-1 text-[13px] font-bold text-[#040B37]">{mentor.bookingContext.cohortTitle}</p>
+              {mentor.focusAreas?.length ? <p className="mt-2 text-[12px] leading-5 text-[#526078]">Focus: {mentor.focusAreas.join(" · ")}</p> : null}
+            </div>
+          )}
 
           <div className="mt-5 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#E3E8F4] bg-white px-3 py-1.5 text-[12px] font-bold text-[#040B37]">
@@ -239,7 +257,7 @@ export function MentorBookingPanel({
                         setSelectedDate(key);
                         setSelectedSlotKey("");
                       }}
-                      className={`relative flex aspect-square items-center justify-center rounded-full font-black transition sm:text-[13px] text-[12px] h-16 w-16 ${
+                      className={`relative flex aspect-square min-w-0 items-center justify-center rounded-full text-[12px] font-black transition sm:text-[13px] ${
                         isSelected
                           ? "bg-[#1C4ED1] text-white"
                           : hasSlots
@@ -275,7 +293,9 @@ export function MentorBookingPanel({
                 {selectedSlot.dayLabel}, {selectedSlot.dateLabel} at {selectedSlot.timeLabel}
               </p>
               <p className="mt-1 text-[12px] font-semibold text-[#9CA3AF]">
-                Booking confirmation and payment will happen in the next step.
+                {isFreeSession
+                  ? "Your booking will be confirmed immediately."
+                  : "Booking confirmation and payment will happen in the next step."}
               </p>
               <label className="mt-4 block">
                 <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#9CA3AF]">What do you need help with?</span>
@@ -288,6 +308,15 @@ export function MentorBookingPanel({
                   className="mt-2 min-h-[110px] w-full rounded-[14px] border border-[#D8E0EF] bg-white px-4 py-3 text-[13px] font-semibold leading-relaxed text-[#040B37] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/10"
                 />
               </label>
+              {mentor.bookingContext?.submissions.length ? (
+                <label className="mt-4 block">
+                  <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#9CA3AF]">Project context (optional)</span>
+                  <select value={projectSubmissionId} onChange={(event) => setProjectSubmissionId(event.target.value)} className="mt-2 h-11 w-full rounded-[12px] border border-[#D8E0EF] bg-white px-3 text-[13px] font-semibold text-[#040B37]">
+                    <option value="">General cohort guidance</option>
+                    {mentor.bookingContext.submissions.map((submission) => <option key={submission.id} value={submission.id}>{submission.projectTitle} — {submission.title}</option>)}
+                  </select>
+                </label>
+              ) : null}
             </div>
           )}
         </main>
@@ -329,7 +358,8 @@ export function MentorBookingPanel({
             <input type="hidden" name="slotKey" value={selectedSlot?.key ?? ""} />
             <input type="hidden" name="studentNote" value={studentNote} />
             <input type="hidden" name="topic" value={mentor.topics?.[0] ?? "Mentorship session"} />
-            <input type="hidden" name="returnTo" value={mentor.profileUrl} />
+            <input type="hidden" name="returnTo" value={mentor.bookingContext?.returnTo ?? mentor.profileUrl} />
+            {mentor.bookingContext && <><input type="hidden" name="cohortId" value={mentor.bookingContext.cohortId} /><input type="hidden" name="projectSubmissionId" value={projectSubmissionId} /></>}
             <BookingSubmitButton disabled={!selectedSlot} isFree={isFreeSession} />
           </form>
         </aside>
@@ -363,21 +393,39 @@ export function MentorBookingPanel({
               )}
             </div>
             {selectedSlot && (
-              <textarea
-                value={studentNote}
-                onChange={(event) => setStudentNote(event.target.value)}
-                rows={2}
-                maxLength={1000}
-                placeholder="Optional note for the mentor"
-                className="mt-3 min-h-[72px] w-full rounded-[12px] border border-[#D8E0EF] bg-white px-4 py-3 text-[13px] font-semibold text-[#040B37] outline-none placeholder:text-[#9CA3AF] focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/10"
-              />
+              <>
+                <textarea
+                  value={studentNote}
+                  onChange={(event) => setStudentNote(event.target.value)}
+                  rows={2}
+                  maxLength={1000}
+                  placeholder="Optional note for the mentor"
+                  className="mt-3 min-h-[72px] w-full rounded-[12px] border border-[#D8E0EF] bg-white px-4 py-3 text-[13px] font-semibold text-[#040B37] outline-none placeholder:text-[#9CA3AF] focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/10"
+                />
+                {mentor.bookingContext?.submissions.length ? (
+                  <select
+                    aria-label="Project context"
+                    value={projectSubmissionId}
+                    onChange={(event) => setProjectSubmissionId(event.target.value)}
+                    className="mt-3 h-11 w-full rounded-[12px] border border-[#D8E0EF] bg-white px-3 text-[13px] font-semibold text-[#040B37]"
+                  >
+                    <option value="">General cohort guidance</option>
+                    {mentor.bookingContext.submissions.map((submission) => (
+                      <option key={submission.id} value={submission.id}>
+                        {submission.projectTitle} — {submission.title}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </>
             )}
             <form action={createMentorBookingAction} className="mt-3">
               <input type="hidden" name="mentorId" value={mentor.id} />
               <input type="hidden" name="slotKey" value={selectedSlot?.key ?? ""} />
               <input type="hidden" name="studentNote" value={studentNote} />
               <input type="hidden" name="topic" value={mentor.topics?.[0] ?? "Mentorship session"} />
-              <input type="hidden" name="returnTo" value={mentor.profileUrl} />
+              <input type="hidden" name="returnTo" value={mentor.bookingContext?.returnTo ?? mentor.profileUrl} />
+              {mentor.bookingContext && <><input type="hidden" name="cohortId" value={mentor.bookingContext.cohortId} /><input type="hidden" name="projectSubmissionId" value={projectSubmissionId} /></>}
               <BookingSubmitButton disabled={!selectedSlot} isFree={isFreeSession} />
             </form>
           </footer>

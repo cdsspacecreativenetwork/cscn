@@ -16,6 +16,7 @@ import { revalidatePath } from "next/cache";
 import { recordUserActivity } from "./streaks.service";
 import { checkAndAwardAchievements } from "./achievements.service";
 import { incrementQuestProgress } from "./quests.service";
+import { enrollInPublishedFreeCourse } from "./enrollment-access.service";
 
 export { COURSES_PAGE_SIZE };
 
@@ -172,27 +173,15 @@ export async function enrollUser(
   courseSlug: string,
   options: { revalidate?: boolean } = {}
 ): Promise<{ alreadyEnrolled?: boolean; courseSlug?: string; firstLessonId?: string | null; error?: string }> {
-  const course = await db.course.findUnique({
-    where: { slug: courseSlug, status: "PUBLISHED" },
-    select: { id: true, slug: true },
-  });
+  const result = await enrollInPublishedFreeCourse(userId, courseSlug, options);
+  if (!result.success) return { error: result.error };
 
-  if (!course) return { error: "Course not found" };
-  const firstLesson = await getFirstPlayableLessonForCourse(course.id);
-
-  const existing = await getUserEnrollment(userId, course.id);
-  if (existing) return { alreadyEnrolled: true, courseSlug: course.slug, firstLessonId: firstLesson?.id ?? null };
-
-  await db.enrollment.create({
-    data: { userId, courseId: course.id },
-  });
-
-  if (options.revalidate !== false) {
-    revalidatePath(`/courses/${course.slug}`);
-    revalidatePath("/dashboard/courses");
-  }
-
-  return { courseSlug: course.slug, firstLessonId: firstLesson?.id ?? null };
+  const firstLesson = await getFirstPlayableLessonForCourse(result.courseId);
+  return {
+    alreadyEnrolled: result.alreadyEnrolled,
+    courseSlug: result.courseSlug,
+    firstLessonId: firstLesson?.id ?? null,
+  };
 }
 
 // ── Lesson progress ───────────────────────────────────────────────────────────

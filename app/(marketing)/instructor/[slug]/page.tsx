@@ -15,7 +15,6 @@ import {
 
 import { generateTapbackAvatar } from "@/lib/avatar";
 import { db } from "@/lib/db";
-import { MENTORS } from "@/lib/mentorship";
 import { buildMentorBookingSlots } from "@/lib/mentor-booking-slots";
 import { MentorProfileBookingCard } from "@/components/marketing/MentorProfileBookingCard";
 
@@ -270,75 +269,6 @@ export default async function InstructorPage({
         return names.some((value) => slugify(value) === slug);
       })
         .sort((a, b) => profileMatchScore(b, slug) - profileMatchScore(a, slug))[0] ?? null;
-  }
-
-  const mockMentor = !instructor
-    ? MENTORS.find((mentor) => (mentor.slug ?? mentor.id) === slug || slugify(mentor.name) === slug)
-    : null;
-
-  if (!instructor && !mockMentor) notFound();
-
-  if (mockMentor) {
-    return (
-      <div className="min-h-screen bg-background pt-[112px]">
-        <div className="mx-auto w-full max-w-[88rem] px-4 lg:px-6 pb-24">
-          <Link
-            href="/mentorship"
-            className="inline-flex p-5 px-6 items-center gap-2 rounded-full border border-stroke-ii bg-transparent text-[16px] font-medium text-text-body transition-all duration-200 hover:border-primary hover:text-primary active:scale-95 shadow-[0px_1px_2px_rgba(16,24,40,0.05)]"
-          >
-            <ArrowLeft size={20} strokeWidth={1.75} />
-            Back
-          </Link>
-
-          <section className="mt-8 grid gap-6 lg:grid-cols-[290px_1fr] lg:gap-[24px]">
-            <aside className="h-fit overflow-hidden rounded-[16px] border border-stroke bg-white p-2 shadow-[0px_1px_3px_rgba(16,24,40,0.05)]">
-              <div className="relative h-[420px] w-full overflow-hidden rounded-[10px] bg-[#EAF2FF] sm:h-[520px] lg:h-[280px]">
-                <Image
-                  src={mockMentor.image}
-                  alt={mockMentor.name}
-                  fill
-                  priority
-                  className="object-cover object-[center_20%]"
-                  sizes="280px"
-                  unoptimized={mockMentor.image.endsWith(".svg")}
-                />
-              </div>
-              <div className="px-3 pt-5 pb-[18px] text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <h1 className="text-[24px] font-semibold tracking-tight text-text-title leading-snug">{mockMentor.name}</h1>
-                  <VerifiedCheck size={22} />
-                </div>
-                <p className="mt-2 text-[14px] font-medium text-text-body leading-normal">{mockMentor.role}</p>
-              </div>
-              <hr className="border-t border-dashed border-stroke mx-2" />
-              <div className="grid grid-cols-2 py-[18px] text-center">
-                <div className="flex flex-col items-center justify-center">
-                  <p className="text-[18px] font-semibold text-text-title leading-none">{mockMentor.courses}</p>
-                  <p className="mt-2 text-[14px] font-medium text-text-body leading-none">Courses</p>
-                </div>
-                <div className="flex flex-col items-center justify-center border-l border-stroke border-dashed">
-                  <p className="text-[18px] font-semibold text-text-title leading-none">{mockMentor.students}</p>
-                  <p className="mt-2 text-[14px] font-medium text-text-body leading-none">Students</p>
-                </div>
-              </div>
-            </aside>
-
-            <section className="flex flex-col gap-5 pt-1 lg:pl-6">
-              <div className="border-b border-stroke pb-4">
-                <h2 className="text-[20px] font-semibold tracking-tight text-text-title">About Me</h2>
-              </div>
-              <div className="max-w-[965px] whitespace-pre-line text-[16px] font-medium leading-[1.65] text-text-body">
-                This mentor profile is being prepared. You can still explore their mentorship card and check back soon for a full biography, links, courses, and availability.
-              </div>
-              <div className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-primary/5 px-3.5 py-1.5 text-[13px] font-semibold text-primary">
-                <VerifiedCheck size={18} />
-                Mentor profile
-              </div>
-            </section>
-          </section>
-        </div>
-      </div>
-    );
   }
 
   if (!instructor) notFound();

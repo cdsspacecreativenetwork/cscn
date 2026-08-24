@@ -8,6 +8,7 @@ import InstructorSection from '@/components/marketing/InstructorSection';
 import ReviewsSection from '@/components/marketing/ReviewsSection';
 import CommunitySection from '@/components/marketing/CommunitySection';
 import FAQSection from '@/components/marketing/FAQSection';
+import { UpcomingCohortsSection } from '@/components/marketing/UpcomingCohortsSection';
 import { getStats } from '@/lib/api';
 import { listFeaturedCourses } from '@/lib/services/courses.service';
 import { toCardProps } from '@/lib/course-adapter';
@@ -49,6 +50,10 @@ export default async function LandingPage() {
       {/* Interactive Courses Section */}
       <Reveal delay={0.3}>
         <CoursesSection initialCourses={dbCards} marketingSettings={marketingSettings} />
+      </Reveal>
+
+      <Reveal delay={0.3}>
+        <UpcomingCohortsSection />
       </Reveal>
 
       {/* High-Fidelity Features Section */}

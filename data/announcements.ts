@@ -65,6 +65,7 @@ export async function getActiveAnnouncementsForRole(
   return db.announcement.findMany({
     where: {
       status: AnnouncementStatus.PUBLISHED,
+      cohortId: null,
       audience: { in: getAnnouncementAudienceForRole(role) },
       OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
       AND: [

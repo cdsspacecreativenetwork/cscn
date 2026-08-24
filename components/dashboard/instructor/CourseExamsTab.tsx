@@ -797,7 +797,7 @@ export default function CourseExamsTab({
                 <div>
                   <h4 className="text-sm font-bold text-navy">No Exam Linked to Course</h4>
                   <p className="text-xs text-text-mute mt-1 max-w-sm">
-                    Select an existing exam from the left panel or click "+ New Exam" to start adding questions.
+                    {'Select an existing exam from the left panel or click "+ New Exam" to start adding questions.'}
                   </p>
                 </div>
                 <button

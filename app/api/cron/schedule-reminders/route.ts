@@ -5,15 +5,12 @@ import {
   expirePendingMentorshipPaymentHolds,
   processDueScheduleReminders,
 } from "@/data/schedule-reminders";
+import { authorizeCronRequest } from "@/lib/operational-auth";
 
 async function runScheduleMaintenance(request: Request) {
-  const expectedSecret = process.env.CRON_SECRET;
-  if (expectedSecret) {
-    const bearerSecret = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    const providedSecret = request.headers.get("x-cron-secret") || bearerSecret;
-    if (providedSecret !== expectedSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const authorization = authorizeCronRequest(request);
+  if (!authorization.authorized) {
+    return NextResponse.json({ error: authorization.error }, { status: authorization.status });
   }
 
   const reminders = await processDueScheduleReminders();

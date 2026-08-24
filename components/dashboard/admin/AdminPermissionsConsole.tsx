@@ -122,7 +122,7 @@ export function AdminPermissionsConsole({ data, currentUserRole }: Props) {
           <div className="border-b border-[#E3E8F4] p-5">
             <h2 className="text-[18px] font-black text-[#040B37]">Admin scope controls</h2>
             <p className="mt-1 text-[12px] font-semibold text-[#9CA3AF]">
-              Super admins can tune each admin's scopes. Scoped admins can view the model but cannot grant themselves power.
+              {"Super admins can tune each admin's scopes. Scoped admins can view the model but cannot grant themselves power."}
             </p>
           </div>
           {data.admins.length > 0 ? (

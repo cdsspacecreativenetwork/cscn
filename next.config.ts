@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: projectRoot,
+  turbopack: {
+    root: projectRoot,
+  },
   serverExternalPackages: ['nodemailer'],
   images: {
     remotePatterns: [
@@ -76,7 +84,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "100mb",
+      // Avatar uploads are capped at 5 MB. Keep a small allowance for multipart
+      // encoding instead of accepting the previous 100 MB global payload.
+      bodySizeLimit: "6mb",
     },
   },
 };

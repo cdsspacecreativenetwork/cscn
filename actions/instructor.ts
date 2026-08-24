@@ -31,6 +31,7 @@ import {
 } from "@/data/instructor";
 import type { CourseInstructorRole, CourseType, Difficulty, ContentType, ResourceType, QuizMode, QuizQuestionType } from "@prisma/client";
 import { assertCreatorReadyForReview } from "@/lib/trust-gates";
+import { sanitizeArticleHtml } from "@/lib/article-html";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -277,7 +278,10 @@ export async function updateLessonAction(
   }
 ) {
   const userId = await requireStudioUser();
-  await updateLesson(lessonId, userId, data);
+  const safeData = data.contentType === "ARTICLE" || data.bodyContent !== undefined
+    ? { ...data, bodyContent: sanitizeArticleHtml(data.bodyContent) || null }
+    : data;
+  await updateLesson(lessonId, userId, safeData);
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
 }
 
@@ -1132,5 +1136,4 @@ export async function deleteExamQuestionAction(
   revalidatePath(`/dashboard/instructor/courses/${courseId}`);
   return { success: true };
 }
-
 

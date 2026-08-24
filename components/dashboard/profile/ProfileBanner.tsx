@@ -8,7 +8,7 @@ import { settings } from '@/actions/settings';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { generateTapbackAvatar } from '@/lib/avatar';
-import Cropper from 'react-easy-crop';
+import Cropper, { type Area } from 'react-easy-crop';
 import getCroppedImg from '@/lib/cropImage';
 import { uploadAvatar } from '@/actions/upload';
 import { useSession } from 'next-auth/react';
@@ -46,13 +46,13 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   const processFile = (file: File) => {
-    if (file.size > 1 * 1024 * 1024) {
-      toast.error("File is too large. Please select an image under 1MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File is too large. Please select an image up to 5MB.");
       return;
     }
     const reader = new FileReader();
@@ -68,7 +68,7 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
     }
   };
 
-  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+  const onCropComplete = (_croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   };
 
@@ -97,25 +97,18 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
         setImageToCrop(null);
         
         startTransition(() => {
-          settings({ image: uploadResult.url as string })
-            .then((data) => {
-              if (data.error) {
-                toast.error(data.error);
-                setCurrentImage(user.image || fallbackAvatar);
-              }
-              if (data.success) {
-                update({ image: uploadResult.url });
-                toast.success("Profile picture updated!");
-                router.refresh();
-              }
+          update({ image: uploadResult.url })
+            .then(() => {
+              toast.success("Profile picture updated!");
+              router.refresh();
             })
             .catch(() => {
-              toast.error("Something went wrong!");
-              setCurrentImage(user.image || fallbackAvatar);
+              toast.error("The image was saved, but the session could not refresh. Reload the page to continue.");
+              router.refresh();
             });
         });
       }
-    } catch (e) {
+    } catch {
       toast.error("Failed to process image");
     } finally {
       setIsUploading(false);
@@ -206,10 +199,10 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
             </div>
 
             <div className="px-6 pt-4 shrink-0 flex items-center gap-2 overflow-x-auto hide-scrollbar">
-              {['memoji', 'vector', 'sketch', 'upload'].map((tab) => (
+              {(['memoji', 'vector', 'sketch', 'upload'] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab as any)}
+                  onClick={() => setActiveTab(tab)}
                   className={`px-4 py-2.5 rounded-[12px] text-[14px] font-bold capitalize transition-all whitespace-nowrap ${
                     activeTab === tab 
                       ? 'bg-[#1C4ED1] text-white' 

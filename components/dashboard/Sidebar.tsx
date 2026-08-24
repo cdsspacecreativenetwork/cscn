@@ -10,10 +10,13 @@ import {
   BarChart2,
   BookOpen,
   BookPlus,
+  Building2,
+  BriefcaseBusiness,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  ClipboardCheck,
   CreditCard,
   FileClock,
   GraduationCap,
@@ -31,6 +34,7 @@ import {
   User,
   UserCog,
   UserCheck,
+  UsersRound,
   X,
 } from 'lucide-react';
 import { hasAnyAdminPermission, type AdminPermissionKey } from '@/lib/admin-permissions';
@@ -54,11 +58,15 @@ const adminOperationItems: NavItem[] = [
   { name: 'Command Center', href: '/dashboard/admin', Icon: LayoutDashboard },
   { name: 'Courses', href: '/dashboard/admin/courses', Icon: Layers, permissions: ['canManageCourses', 'canReviewCourses', 'canPublishCourses'] },
   { name: 'Students', href: '/dashboard/admin/students', Icon: GraduationCap, permissions: ['canManageLearners', 'canManageUsers'] },
+  { name: 'Admissions', href: '/dashboard/admin/admissions', Icon: ClipboardCheck, permissions: ['canManageLearners', 'canManageUsers'] },
+  { name: 'Project Reviews', href: '/dashboard/admin/project-reviews', Icon: ClipboardList, permissions: ['canManageLearners', 'canManageUsers'] },
   { name: 'Learner Insights', href: '/dashboard/admin/learner-insights', Icon: BarChart2, permissions: ['canManageLearners', 'canManageMarketing', 'canViewAnalytics'] },
   { name: 'Instructors', href: '/dashboard/admin/instructors', Icon: UserCheck, permissions: ['canManageInstructors', 'canVerifyInstructors'] },
   { name: 'Invites', href: '/dashboard/admin/invites', Icon: Link2, permissions: ['canManageInvites', 'canManageUsers'] },
   { name: 'Platform Events', href: '/dashboard/admin/platform-events', Icon: CalendarDays, permissions: ['canManageCourses', 'canManageInstructors', 'canManageSettings'] },
   { name: 'Mentorship', href: '/dashboard/admin/mentorship', Icon: Handshake, permissions: ['canManageInstructors', 'canVerifyInstructors', 'canManageBilling'] },
+  { name: 'Community & Career', href: '/dashboard/admin/community-career', Icon: UsersRound, permissions: ['canManageMarketing', 'canManageLearners', 'canManageSettings'] },
+  { name: 'Organizations', href: '/dashboard/admin/organizations', Icon: Building2, permissions: ['canManageBilling', 'canManageUsers', 'canViewAnalytics'] },
   { name: 'Announcements', href: '/dashboard/admin/announcements', Icon: Megaphone, permissions: ['canManageAnnouncements'] },
   { name: 'Billing', href: '/dashboard/admin/billing', Icon: CreditCard, permissions: ['canManageBilling'] },
   { name: 'Marketing', href: '/dashboard/admin/marketing', Icon: Tags, permissions: ['canManageMarketing'] },
@@ -69,6 +77,10 @@ const adminOperationItems: NavItem[] = [
 
 const adminPersonalItems: NavItem[] = [
   { name: 'My Learning', href: '/dashboard/courses', Icon: BookOpen },
+  { name: 'My Cohorts', href: '/dashboard/cohorts', Icon: GraduationCap },
+  { name: 'Community', href: '/community', Icon: UsersRound },
+  { name: 'Career Hub', href: '/dashboard/career', Icon: BriefcaseBusiness },
+  { name: 'Organizations', href: '/dashboard/organizations', Icon: Building2 },
   { name: 'Instructor Studio', href: '/dashboard/instructor/courses', Icon: BookPlus },
   { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
   { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },
@@ -92,6 +104,10 @@ const instructorItems: NavItem[] = [
 
 const instructorPersonalItems: NavItem[] = [
   { name: 'My Learning', href: '/dashboard/courses', Icon: BookOpen },
+  { name: 'My Cohorts', href: '/dashboard/cohorts', Icon: GraduationCap },
+  { name: 'Community', href: '/community', Icon: UsersRound },
+  { name: 'Career Hub', href: '/dashboard/career', Icon: BriefcaseBusiness },
+  { name: 'Organizations', href: '/dashboard/organizations', Icon: Building2 },
   { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
   { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },
   { name: 'Resources', href: '/dashboard/resources', Icon: Library },
@@ -105,6 +121,9 @@ const instructorAccountItems: NavItem[] = [
 
 const learnerItems: NavItem[] = [
   { name: 'Overview', href: '/dashboard', Icon: LayoutDashboard },
+  { name: 'My Cohorts', href: '/dashboard/cohorts', Icon: GraduationCap },
+  { name: 'Career Hub', href: '/dashboard/career', Icon: BriefcaseBusiness },
+  { name: 'Organizations', href: '/dashboard/organizations', Icon: Building2 },
   { name: 'My Learning', href: '/dashboard/courses', Icon: BookOpen },
   { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
   { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },

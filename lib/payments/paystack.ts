@@ -112,7 +112,9 @@ export function verifyPaystackSignature(rawBody: string, signature: string | nul
     .createHmac("sha512", getSecretKey())
     .update(rawBody)
     .digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signature));
+  const expected = Buffer.from(hash);
+  const provided = Buffer.from(signature);
+  return expected.length === provided.length && crypto.timingSafeEqual(expected, provided);
 }
 
 export async function initializePaystackTransaction(input: {

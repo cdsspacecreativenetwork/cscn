@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CSCN
 
-## Getting Started
+CSCN is the CDS Space Creative Network learning platform. The existing product includes courses, progress tracking, payments, mentorship, scheduling, and administration. New work must extend those systems instead of replacing them.
 
-First, run the development server:
+## Implementation documentation
+
+- [`docs/IMPLEMENTATION_AND_REVIEW_GUIDE.md`](docs/IMPLEMENTATION_AND_REVIEW_GUIDE.md) — complete feature inventory, route map, data migrations, access boundaries, QA workflow, verification checklist, production configuration, and known limitations.
+- [`DEPLOYMENT.md`](DEPLOYMENT.md) — deployment, migration, scheduler, authentication, and storage-transfer runbook.
+
+## Local requirements
+
+- Node.js 20+
+- pnpm 10.34.5 (Corepack is recommended)
+- PostgreSQL 17
+
+## First-time setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+corepack enable
+pnpm install --frozen-lockfile
+createdb cscn_dev
+createdb cscn_test
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Configure `.env.local` for direct local PostgreSQL:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+DATABASE_ADAPTER="pg"
+DATABASE_URL="postgresql://YOUR_USER@localhost:5432/cscn_dev?schema=public"
+DIRECT_URL="postgresql://YOUR_USER@localhost:5432/cscn_dev?schema=public"
+TEST_DATABASE_URL="postgresql://YOUR_USER@localhost:5432/cscn_test?schema=public"
+APP_URL="http://localhost:3001"
+NEXT_PUBLIC_APP_URL="http://localhost:3001"
+AUTH_URL="http://localhost:3001"
+AUTH_SECRET="a-local-secret-at-least-32-characters-long"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Then initialize the development database and run the app:
 
-## Learn More
+```bash
+pnpm db:generate
+pnpm db:migrate:deploy
+pnpm dev -- -p 3001
+```
 
-To learn more about Next.js, take a look at the following resources:
+Production uses the Neon adapter. Local development and CI use the PostgreSQL driver adapter. Never place production credentials in `.env.local`, run local fixtures against a remote database, or apply an unreviewed migration to production.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Local QA fixtures
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The opt-in QA seed creates clearly labelled local-only learner, free-course, and paid-course fixtures. It refuses non-local hosts and databases not named `cscn_dev`.
 
-## Deploy on Vercel
+```bash
+ALLOW_QA_SEED=true pnpm db:seed:qa
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+These records are interface test data, not production content or credibility claims. Do not use `prisma/seed.qa.ts` for staging or production.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Verification
+
+```bash
+pnpm db:reset:test
+pnpm test
+pnpm typecheck
+pnpm lint:baseline
+pnpm build
+```
+
+ESLint errors block CI. Remaining migration warnings are tracked in `eslint-baseline.json`; the baseline gate fails if either errors or warnings increase. Files changed in a review batch must not introduce new warnings.
+
+## Database commands
+
+| Command | Purpose |
+| --- | --- |
+| `pnpm db:generate` | Generate Prisma Client |
+| `pnpm db:migrate:dev` | Create/apply a migration during local schema development |
+| `pnpm db:migrate:deploy` | Apply existing migrations without creating new ones |
+| `pnpm db:migrate:status` | Compare the database with migration history |
+| `pnpm db:reset:test` | Destructively rebuild only local `cscn_test` |
+
+See `DEPLOYMENT.md` for migration promotion, rollback, service configuration, and operational jobs.
+
+## Review workflow
+
+Each implementation batch follows: implement locally, verify, open in the in-app browser, receive approval, then create a local checkpoint commit. No remote push, production database access, or deployment occurs without explicit approval.

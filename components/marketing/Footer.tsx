@@ -6,9 +6,14 @@ import Image from 'next/image';
 
 const FOOTER_LINKS = {
   menu: [
+    { name: 'Cohorts', href: '/cohorts' },
     { name: 'Courses', href: '/courses' },
+    { name: 'Showcase', href: '/showcase' },
     { name: 'Community', href: '/community' },
+    { name: 'Career Hub', href: '/career' },
+    { name: 'For Teams', href: '/teams' },
     { name: 'Certificate', href: '/certificate' },
+    { name: 'Verify credential', href: '/credentials' },
     { name: 'Resources', href: '/resources' },
     { name: 'Mentorship', href: '/mentorship' },
   ],

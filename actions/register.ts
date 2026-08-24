@@ -13,6 +13,7 @@ import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { generateTapbackAvatar } from "@/lib/avatar";
 import { getMarketingSettings, PIONEER_COHORT } from "@/data/marketing";
 import { awardPioneerAchievement } from "@/lib/services/achievements.service";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 function getSafeRedirectPath(value?: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
@@ -30,6 +31,10 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
   }
 
   const { email, password, firstName, lastName, callbackUrl } = validatedFields.data;
+  const rateLimit = await enforceRateLimit("register", email, RATE_LIMITS.auth);
+  if (!rateLimit.allowed) {
+    return { error: `Too many registration attempts. Try again in ${rateLimit.retryAfterSeconds} seconds.` };
+  }
   const fullName = `${firstName} ${lastName}`;
   const hashedPassword = await bcrypt.hash(password, 10);
   

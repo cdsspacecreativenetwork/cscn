@@ -17,10 +17,16 @@ export default auth((req) => {
     /^\/courses\/[^/]+$/.test(nextUrl.pathname) ||
     /^\/courses\/[^/]+\/watch\/[^/]+$/.test(nextUrl.pathname);
   const isProjectPublicRoute = /^\/projects\/[^/]+$/.test(nextUrl.pathname);
+  const isCohortPublicRoute = /^\/cohorts\/[^/]+$/.test(nextUrl.pathname);
+  const isShowcasePublicRoute = /^\/showcase\/[^/]+$/.test(nextUrl.pathname);
+  const isCredentialPublicRoute = /^\/credentials\/[^/]+$/.test(nextUrl.pathname);
   const isInstructorPublicRoute = /^\/instructor\/[^/]+$/.test(nextUrl.pathname);
   const isPublicRoute =
     publicRoutes.includes(nextUrl.pathname) ||
     isCoursePublicRoute ||
+    isCohortPublicRoute ||
+    isShowcasePublicRoute ||
+    isCredentialPublicRoute ||
     isProjectPublicRoute ||
     isInstructorPublicRoute;
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
@@ -39,6 +45,10 @@ export default auth((req) => {
     return;
   }
 
+  if (!isLoggedIn && nextUrl.pathname.startsWith("/api/")) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   if (!isLoggedIn && !isPublicRoute) {
     return Response.redirect(new URL("/signin", nextUrl));
   }
@@ -46,7 +56,7 @@ export default auth((req) => {
   return;
 });
 
-// Optionally, don't invoke Middleware on some paths
+// Avoid invoking Proxy for static assets and Auth.js internals.
 export const config = {
   matcher: ["/((?!api/auth|.+\\.[\\w]+$|_next).*)", "/"],
 };

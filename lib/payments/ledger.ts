@@ -9,6 +9,9 @@ import {
 } from "@/lib/payments/paystack";
 import { createAuditLog } from "@/data/audit-logs";
 import { createNotification } from "@/data/notifications";
+import { grantPaidCourseAccess } from "@/lib/services/enrollment-access.service";
+import { validatePaidCohortAccess } from "@/lib/cohort-admission-decisions";
+import { activateCohortLearnerMembership } from "@/lib/services/cohort-membership.service";
 
 const INSTRUCTOR_SHARE_PERCENT = 80;
 const EARNING_HOLD_DAYS = 14;
@@ -306,11 +309,10 @@ export async function fulfillPaidCourseOrder(input: {
     },
   });
 
-  await db.enrollment.upsert({
-    where: { userId_courseId: { userId: order.userId, courseId: order.courseId } },
-    create: { userId: order.userId, courseId: order.courseId },
-    update: { status: "ACTIVE", completedAt: null },
-  });
+  const access = await grantPaidCourseAccess(order.id, { revalidate: false });
+  if (!access.success) {
+    return { error: access.error, courseSlug: order.course.slug };
+  }
 
   await createInvoiceIfMissing(order.id, {
     userId: order.userId,
@@ -386,6 +388,111 @@ export async function fulfillPaidResourceOrder(input: {
   return { success: true, resourceSlug: order.resource.slug };
 }
 
+export async function fulfillPaidCohortOrder(input: {
+  orderId: string;
+  paymentId: string;
+  providerReference: string;
+  amount: number;
+  currency: string;
+  channel?: string | null;
+  paidAt?: Date | null;
+  rawPayload?: unknown;
+}) {
+  const order = await db.purchaseOrder.findUnique({
+    where: { id: input.orderId },
+    select: {
+      id: true,
+      userId: true,
+      amount: true,
+      currency: true,
+      cohortApplication: {
+        select: {
+          id: true,
+          userId: true,
+          status: true,
+          offerExpiresAt: true,
+          cohort: { select: { id: true, slug: true, title: true, price: true, currency: true } },
+        },
+      },
+      user: { select: { name: true, email: true } },
+    },
+  });
+
+  const application = order?.cohortApplication;
+  if (!order || !application) return { error: "Order not found or not attached to a cohort application." };
+  const paidAt = input.paidAt ?? new Date();
+  const paymentGrantsAccess = validatePaidCohortAccess({
+    applicationStatus: application.status,
+    applicationUserId: application.userId,
+    orderUserId: order.userId,
+    orderAmount: toNumber(order.amount),
+    cohortPrice: toNumber(application.cohort.price),
+    paidAmount: input.amount,
+    orderCurrency: order.currency,
+    cohortCurrency: application.cohort.currency,
+    paidCurrency: input.currency,
+    offerExpiresAt: application.offerExpiresAt,
+    paidAt,
+  });
+
+  if (!paymentGrantsAccess) {
+    await db.payment.update({
+      where: { id: input.paymentId },
+      data: { status: "FAILED", rawPayload: input.rawPayload as Prisma.InputJsonValue | undefined },
+    });
+    return { error: "Payment does not match a current accepted cohort offer.", cohortSlug: application.cohort.slug };
+  }
+
+  const payment = await db.$transaction(async (tx) => {
+    const updatedPayment = await tx.payment.update({
+      where: { id: input.paymentId },
+      data: {
+        status: "SUCCEEDED",
+        channel: input.channel ?? null,
+        providerReference: input.providerReference,
+        rawPayload: input.rawPayload as Prisma.InputJsonValue | undefined,
+        paidAt,
+      },
+      select: { id: true },
+    });
+    await tx.purchaseOrder.update({
+      where: { id: order.id },
+      data: { status: "PAID", provider: "PAYSTACK", providerReference: input.providerReference, paidAt },
+    });
+    await activateCohortLearnerMembership(tx, {
+      cohortId: application.cohort.id,
+      userId: order.userId,
+      joinedAt: paidAt,
+    });
+    return updatedPayment;
+  });
+
+  await createInvoiceIfMissing(order.id, { userId: order.userId, amount: input.amount, currency: input.currency });
+  await Promise.all([
+    createNotification(
+      order.userId,
+      "SYSTEM",
+      "Cohort payment confirmed",
+      `Your place in ${application.cohort.title} is confirmed.`,
+      { applicationId: application.id, cohortId: application.cohort.id, orderId: order.id, area: "cohorts" },
+    ),
+    createAuditLog({
+      actorId: order.userId,
+      actorName: order.user.name,
+      actorEmail: order.user.email,
+      action: "payment.cohort_fulfilled",
+      entityType: "PURCHASE_ORDER",
+      entityId: order.id,
+      entityName: application.cohort.title,
+      metadata: { applicationId: application.id, cohortId: application.cohort.id, paymentId: payment.id, amount: input.amount, currency: input.currency },
+    }),
+  ]);
+  revalidatePath(`/cohorts/${application.cohort.slug}/apply`);
+  revalidatePath("/dashboard/admin/admissions");
+  revalidatePath("/dashboard/admin/billing");
+  return { success: true, cohortSlug: application.cohort.slug, applicationId: application.id };
+}
+
 export async function fulfillPaystackTransaction(transaction: PaystackTransaction) {
   const reference = transaction.reference;
   const payment = await db.payment.findUnique({
@@ -412,6 +519,7 @@ export async function fulfillPaystackTransaction(transaction: PaystackTransactio
         course: { select: { slug: true } },
         resource: { select: { slug: true } },
         mentorBooking: { select: { id: true } },
+        cohortApplication: { select: { cohort: { select: { slug: true } } } },
       },
     });
     return {
@@ -420,6 +528,7 @@ export async function fulfillPaystackTransaction(transaction: PaystackTransactio
       courseSlug: order?.course?.slug,
       resourceSlug: order?.resource?.slug,
       mentorBookingId: order?.mentorBooking?.id,
+      cohortSlug: order?.cohortApplication?.cohort.slug,
     };
   }
 
@@ -460,5 +569,6 @@ export async function fulfillPaystackTransaction(transaction: PaystackTransactio
 
   if (payment.order.type === "MENTORSHIP") return fulfillPaidMentorshipOrder(payload);
   if (payment.order.type === "RESOURCE") return fulfillPaidResourceOrder(payload);
+  if (payment.order.type === "COHORT") return fulfillPaidCohortOrder(payload);
   return fulfillPaidCourseOrder(payload);
 }

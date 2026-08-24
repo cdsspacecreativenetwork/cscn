@@ -4,6 +4,7 @@ import * as z from "zod";
 import { db } from "@/lib/db";
 import { generatePasswordResetToken } from "@/data/password-reset-token";
 import { sendPasswordResetEmail } from "@/lib/mail";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 const Schema = z.object({ email: z.string().email() });
 
@@ -12,6 +13,10 @@ export async function forgotPasswordAction(values: z.infer<typeof Schema>) {
   if (!parsed.success) return { error: "Invalid email address." };
 
   const email = parsed.data.email.toLowerCase();
+  const rateLimit = await enforceRateLimit("password-reset", email, RATE_LIMITS.passwordReset);
+  if (!rateLimit.allowed) {
+    return { success: "If an account exists, a reset link has been sent." };
+  }
 
   const user = await db.user.findUnique({
     where: { email },

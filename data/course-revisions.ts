@@ -413,34 +413,34 @@ export async function promoteCourseRevision(revisionId: string, reviewerId: stri
   const liveModuleIds = new Set(liveModules.map((module) => module.id));
   const draftModuleIds = new Set(draft.modules.filter((module) => !module.id.startsWith("draft-")).map((module) => module.id));
 
-  for (const module of liveModules) {
-    if (!draftModuleIds.has(module.id)) {
-      await db.module.update({ where: { id: module.id }, data: { isPublished: false } });
+  for (const courseModule of liveModules) {
+    if (!draftModuleIds.has(courseModule.id)) {
+      await db.module.update({ where: { id: courseModule.id }, data: { isPublished: false } });
     }
   }
 
-  for (const module of draft.modules) {
-    let moduleId = module.id;
-    if (module.id.startsWith("draft-") || !liveModuleIds.has(module.id)) {
+  for (const courseModule of draft.modules) {
+    let moduleId = courseModule.id;
+    if (courseModule.id.startsWith("draft-") || !liveModuleIds.has(courseModule.id)) {
       const created = await db.module.create({
         data: {
           courseId: revision.courseId,
-          title: module.title,
-          position: module.position,
-          isPublished: module.isPublished,
-          isDefault: module.isDefault,
+          title: courseModule.title,
+          position: courseModule.position,
+          isPublished: courseModule.isPublished,
+          isDefault: courseModule.isDefault,
         },
         select: { id: true },
       });
       moduleId = created.id;
     } else {
       await db.module.update({
-        where: { id: module.id },
+        where: { id: courseModule.id },
         data: {
-          title: module.title,
-          position: module.position,
-          isPublished: module.isPublished,
-          isDefault: module.isDefault,
+          title: courseModule.title,
+          position: courseModule.position,
+          isPublished: courseModule.isPublished,
+          isDefault: courseModule.isDefault,
         },
       });
     }
@@ -450,14 +450,14 @@ export async function promoteCourseRevision(revisionId: string, reviewerId: stri
       select: { id: true },
     });
     const liveLessonIds = new Set(liveLessons.map((lesson) => lesson.id));
-    const draftLessonIds = new Set(module.lessons.filter((lesson) => !lesson.id.startsWith("draft-")).map((lesson) => lesson.id));
+    const draftLessonIds = new Set(courseModule.lessons.filter((lesson) => !lesson.id.startsWith("draft-")).map((lesson) => lesson.id));
     for (const lesson of liveLessons) {
       if (!draftLessonIds.has(lesson.id)) {
         await db.lesson.update({ where: { id: lesson.id }, data: { isPublished: false } });
       }
     }
 
-    for (const lesson of module.lessons) {
+    for (const lesson of courseModule.lessons) {
       let lessonId = lesson.id;
       const lessonData = {
         title: lesson.title,

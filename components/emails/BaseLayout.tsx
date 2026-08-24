@@ -25,7 +25,7 @@ export const BaseLayout = ({
   heading,
   children,
 }: BaseLayoutProps) => {
-  const url = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const url = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
   return (
     <Html>
       <Head />

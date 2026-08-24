@@ -179,6 +179,8 @@ export async function getAdminMentorshipConsole() {
         timezone: true,
         price: true,
         currency: true,
+        cohort: { select: { title: true, program: { select: { title: true } } } },
+        projectSubmission: { select: { title: true } },
         mentor: { select: { id: true, name: true, email: true } },
         student: { select: { id: true, name: true, email: true } },
       },

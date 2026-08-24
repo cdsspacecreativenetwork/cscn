@@ -89,6 +89,8 @@ export default async function InstructorMentorshipPage({
         currency: booking.currency,
         meetingUrl: booking.meetingUrl,
         scheduleEventId: booking.scheduleEventId,
+        cohort: booking.cohort,
+        projectSubmission: booking.projectSubmission,
         student: booking.student,
       }))}
       latestApplication={latestApplication ? {

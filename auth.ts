@@ -7,6 +7,7 @@ import authConfig from "./auth.config";
 import { LoginSchema } from "@/schemas";
 import { getUserByEmail, getUserById } from "@/data/user";
 import { ADMIN_PERMISSION_KEYS } from "@/lib/admin-permissions";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 // Glash forwards requests to Next.js through an internal localhost origin.
 // Give Auth.js the public origin so OAuth URLs and cookies remain consistent.
@@ -31,6 +32,8 @@ export const {
 
         if (validatedFields.success) {
           const { email, password } = validatedFields.data;
+          const rateLimit = await enforceRateLimit("login", email, RATE_LIMITS.auth);
+          if (!rateLimit.allowed) return null;
 
           const user = await getUserByEmail(email);
           if (!user || !user.password) return null;
@@ -44,7 +47,7 @@ export const {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ account, profile }) {
       if (account?.type === "credentials") return true;
 
       try {
@@ -91,20 +94,15 @@ export const {
       }
 
       if (session.user) {
-        // @ts-ignore
-        session.user.role = token.role;
+        session.user.role = token.role ?? "USER";
         session.user.name = token.name;
         session.user.email = token.email as string;
         session.user.image = token.picture;
         for (const permission of ADMIN_PERMISSION_KEYS) {
-          // @ts-ignore - permissions are added to the session user through module augmentation.
           session.user[permission] = Boolean(token[permission]);
         }
-        // @ts-ignore
-        session.user.emailVerified = token.emailVerified;
-        // @ts-ignore
+        session.user.emailVerified = token.emailVerified ?? null;
         session.user.onboardingCohort = token.onboardingCohort;
-        // @ts-ignore
         session.user.pioneerJoinedAt = token.pioneerJoinedAt;
       }
 
@@ -112,7 +110,6 @@ export const {
     },
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        // @ts-ignore
         token.role = user.role;
         token.name = user.name;
         token.picture = user.image;
@@ -129,17 +126,12 @@ export const {
 
         token.name = existingUser.name;
         token.email = existingUser.email;
-        // @ts-ignore
         token.role = existingUser.role;
         token.picture = existingUser.image;
-        // @ts-ignore
         token.emailVerified = existingUser.emailVerified;
-        // @ts-ignore
         token.onboardingCohort = existingUser.onboardingCohort;
-        // @ts-ignore
         token.pioneerJoinedAt = existingUser.pioneerJoinedAt;
         for (const permission of ADMIN_PERMISSION_KEYS) {
-          // @ts-ignore - permission keys are selected from the Prisma user record.
           token[permission] = existingUser[permission] ?? false;
         }
       }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ReviewPublishStatus } from "@prisma/client";
-import { Eye, Megaphone, Plus, Save, Star } from "lucide-react";
+import type { ReviewPublishStatus } from "@prisma/client";
+import { Eye, Plus, Save, Star } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -62,7 +62,7 @@ export function AdminMarketingConsole({ settings, reviews }: Props) {
     rating: 5,
     source: "",
     featured: true,
-    status: ReviewPublishStatus.PUBLISHED,
+    status: "PUBLISHED" as ReviewPublishStatus,
   });
   const [pending, startTransition] = useTransition();
 
@@ -93,7 +93,7 @@ export function AdminMarketingConsole({ settings, reviews }: Props) {
         rating: 5,
         source: "",
         featured: true,
-        status: ReviewPublishStatus.PUBLISHED,
+        status: "PUBLISHED" as ReviewPublishStatus,
       });
     });
   };
@@ -217,13 +217,13 @@ export function AdminMarketingConsole({ settings, reviews }: Props) {
                   <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-relaxed text-[#4B5563]">{review.content}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 md:justify-end">
-                  <button type="button" onClick={() => setReviewStatus(review.id, ReviewPublishStatus.PUBLISHED, true)} className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-[#E3E8F4] px-3 text-[12px] font-bold text-[#1C4ED1] hover:bg-[#F8FAFF]">
+                  <button type="button" onClick={() => setReviewStatus(review.id, "PUBLISHED", true)} className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-[#E3E8F4] px-3 text-[12px] font-bold text-[#1C4ED1] hover:bg-[#F8FAFF]">
                     <Eye size={13} /> Publish
                   </button>
-                  <button type="button" onClick={() => setReviewStatus(review.id, ReviewPublishStatus.PENDING, false)} className="inline-flex h-9 items-center rounded-[10px] border border-[#E3E8F4] px-3 text-[12px] font-bold text-[#4B5563] hover:bg-[#F8FAFF]">
+                  <button type="button" onClick={() => setReviewStatus(review.id, "PENDING", false)} className="inline-flex h-9 items-center rounded-[10px] border border-[#E3E8F4] px-3 text-[12px] font-bold text-[#4B5563] hover:bg-[#F8FAFF]">
                     Unfeature
                   </button>
-                  <button type="button" onClick={() => setReviewStatus(review.id, ReviewPublishStatus.ARCHIVED, false)} className="inline-flex h-9 items-center rounded-[10px] border border-red-100 bg-red-50 px-3 text-[12px] font-bold text-red-600 hover:bg-red-100">
+                  <button type="button" onClick={() => setReviewStatus(review.id, "ARCHIVED", false)} className="inline-flex h-9 items-center rounded-[10px] border border-red-100 bg-red-50 px-3 text-[12px] font-bold text-red-600 hover:bg-red-100">
                     Archive
                   </button>
                 </div>
