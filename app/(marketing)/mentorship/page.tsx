@@ -1,10 +1,14 @@
 import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { db } from '@/lib/db';
 import { MENTORSHIP_BENEFITS } from '@/lib/mentorship';
 import MentorCard from '@/components/ui/MentorCard';
 import FAQSection, { type FAQEntry } from '@/components/marketing/FAQSection';
 import { generateTapbackAvatar } from '@/lib/avatar';
 import { buildMentorBookingSlots } from '@/lib/mentor-booking-slots';
+import Button from '@/components/ui/Button';
+import MentorsFilterSection from '@/components/marketing/MentorsFilterSection';
 
 const MENTORSHIP_FAQS: FAQEntry[] = [
   {
@@ -125,16 +129,30 @@ export default async function MentorshipPage({
   ];
 
   return (
-    <main className="min-h-screen bg-background pt-[6rem] md:pt-[8.25rem] pb-24">
-      <div className="max-w-[83rem] mx-auto px-4 md:px-6 lg:px-3 flex flex-col gap-16 md:gap-20">
+    <main className="min-h-screen bg-background pt-[8.5rem] md:pt-[10.5rem] pb-24">
+      <div className="max-w-[88rem] mx-auto px-4 md:px-6 lg:px-6 flex flex-col gap-16 md:gap-20">
         <div className="flex flex-col gap-10 md:gap-[48px]">
-          <div className="flex flex-col gap-4 md:gap-6 max-w-[527px]">
-            <h1 className="text-[32px] md:text-[48px] font-semibold text-[#040B37] tracking-[-0.02em] leading-[1.24] font-inter">
-              Mentorship
-            </h1>
-            <p className="text-[16px] font-medium text-[#4B5563] tracking-[-0.01em] font-inter leading-relaxed">
-              Connect with verified instructors who have opened mentorship slots for portfolio reviews, feedback, and practical career guidance.
-            </p>
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 w-full">
+            <div className="flex flex-col gap-4 md:gap-6 flex-1 max-w-4xl">
+              <h1 className="text-[32px] md:text-[48px] font-semibold text-[#040B37] tracking-[-0.02em] leading-[1.24] font-inter">
+                Mentorship
+              </h1>
+              <p className="text-[16px] font-medium text-[#4B5563] tracking-[-0.01em] font-inter leading-relaxed w-full">
+                Browse verified mentors and book personalized 1:1 sessions. Explore design, tech, and engineering mentors who help with portfolio reviews, interviews, and practical career growth.
+              </p>
+            </div>
+            <div className="shrink-0 pt-1">
+              <Link href="/dashboard/settings">
+                <Button
+                  variant="gradient"
+                  size="sm"
+                  rounded="full"
+                  rightIcon={<ArrowRight size={16} />}
+                >
+                  Become a mentor
+                </Button>
+              </Link>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-6 md:gap-[24px]">
@@ -188,20 +206,7 @@ export default async function MentorshipPage({
             </div>
           )}
 
-          {displayMentors.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {displayMentors.map((mentor) => (
-                <MentorCard key={mentor.id} {...mentor} />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-[18px] border border-[#E3E8F4] bg-white p-10 text-center">
-              <p className="text-[18px] font-bold text-[#040B37]">No mentors available yet</p>
-              <p className="mt-2 text-[14px] font-medium text-[#9CA3AF]">
-                Verified instructors who enable mentorship will appear here.
-              </p>
-            </div>
-          )}
+          <MentorsFilterSection mentors={displayMentors} />
         </div>
       </div>
 
