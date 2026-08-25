@@ -131,10 +131,11 @@ export function ScheduleTimeCombobox({
   return (
     <div ref={rootRef} className="relative">
       <div
-        className="mt-2 flex h-18 w-full items-center rounded-[10px] border border-[#D8E0EF] bg-white px-4 transition focus-within:border-[#1C4ED1] focus-within:ring-4 focus-within:ring-[#1C4ED1]/10 hover:border-[#1C4ED1]/60"
+        className="cscn-form-control mt-2 flex w-full items-center focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/5"
         onClick={() => setOpen(true)}
       >
         <input
+          data-slot="input-group-control"
           value={draft}
           onFocus={() => setOpen(true)}
           onChange={(event) => {
@@ -149,7 +150,7 @@ export function ScheduleTimeCombobox({
             if (parsed) onChange(parsed);
           }}
           placeholder={placeholder}
-          className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold text-[#040B37] outline-none placeholder:text-[#9CA3AF]"
+          className="h-full min-w-0 flex-1 bg-transparent text-sm font-medium text-navy outline-none placeholder:text-text-mute"
         />
         <Clock size={17} className="shrink-0 text-[#9CA3AF]" strokeWidth={1.9} />
       </div>

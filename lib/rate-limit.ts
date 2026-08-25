@@ -20,6 +20,7 @@ export const RATE_LIMITS = {
   enrollment: { limit: 10, windowMs: 60_000 },
   checkout: { limit: 5, windowMs: 60_000 },
   mentorBooking: { limit: 5, windowMs: 5 * 60_000 },
+  instructorApplication: { limit: 5, windowMs: 60 * 60_000 },
   upload: { limit: 10, windowMs: 10 * 60_000 },
 } satisfies Record<string, RateLimitRule>;
 

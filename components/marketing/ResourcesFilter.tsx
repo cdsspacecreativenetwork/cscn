@@ -3,8 +3,11 @@
 import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SearchX } from 'lucide-react';
 import ResourceCard from '@/components/ui/ResourceCard';
-import { RESOURCES, type Resource } from '@/lib/resources';
+import { EmptyState, EmptyStateDescription, EmptyStateIcon, EmptyStateTitle } from '@/components/ui/EmptyState';
+import SearchField from '@/components/ui/SearchField';
+import { RESOURCES } from '@/lib/resources';
 
 const CATEGORIES = ['All Resources', 'Mockups', 'Templates', 'Assets'] as const;
 
@@ -81,15 +84,24 @@ const CustomDropdown = ({ options, selected, onChange }: DropdownProps) => {
 export default function ResourcesFilter() {
   const [activeCategory, setActiveCategory] = useState<string>('All Resources');
   const [sortOrder, setSortOrder] = useState<'Popular' | 'Newest'>('Popular');
+  const [query, setQuery] = useState('');
 
   const filteredResources = useMemo(() => {
-    return RESOURCES.filter(resource => {
-      if (activeCategory === 'All Resources') return true;
-      if (activeCategory === 'Mockups') return resource.id.includes('mockup');
-      if (activeCategory === 'Templates') return resource.id.includes('template');
-      return true;
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return RESOURCES.filter((resource) => {
+      const matchesCategory =
+        activeCategory === 'All Resources' ||
+        (activeCategory === 'Mockups' && resource.id.includes('mockup')) ||
+        (activeCategory === 'Templates' && resource.id.includes('template')) ||
+        (activeCategory === 'Assets' && !resource.id.includes('mockup') && !resource.id.includes('template'));
+      const matchesSearch =
+        !normalizedQuery ||
+        `${resource.title} ${resource.label} ${resource.id}`.toLowerCase().includes(normalizedQuery);
+
+      return matchesCategory && matchesSearch;
     });
-  }, [activeCategory]);
+  }, [activeCategory, query]);
 
   return (
     <div className="flex flex-col gap-10">
@@ -120,26 +132,42 @@ export default function ResourcesFilter() {
         </div>
       </div>
 
+      <SearchField
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Search resources by name or type"
+        aria-label="Search resources"
+        containerClassName="max-w-2xl"
+      />
+
       {/* Grid - 3 Columns on LG screens to match 1328px width, 4 on XL */}
-      <motion.div 
-        layout
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
-      >
-        <AnimatePresence mode="popLayout">
-          {filteredResources.map((resource) => (
-            <motion.div
-              layout
-              key={resource.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ResourceCard {...resource} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      {filteredResources.length > 0 ? (
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredResources.map((resource) => (
+              <motion.div
+                layout
+                key={resource.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ResourceCard {...resource} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      ) : (
+        <EmptyState>
+          <EmptyStateIcon><SearchX size={23} /></EmptyStateIcon>
+          <EmptyStateTitle>No matching resources</EmptyStateTitle>
+          <EmptyStateDescription>Try another search term or choose a different category.</EmptyStateDescription>
+        </EmptyState>
+      )}
     </div>
   );
 }

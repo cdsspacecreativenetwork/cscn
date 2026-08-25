@@ -3,8 +3,16 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { SearchX } from 'lucide-react';
 import CourseCard, { type CourseCardProps } from '@/components/ui/CourseCard';
 import CourseCardSkeleton from '@/components/ui/CourseCardSkeleton';
+import {
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from '@/components/ui/EmptyState';
+import { SearchField } from '@/components/ui/SearchField';
 
 interface CoursesFilterProps {
   courses: CourseCardProps[];
@@ -204,21 +212,15 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
   return (
     <div className="flex flex-col gap-6">
       {/* Search Input Bar */}
-      <div className="relative w-full">
-        <input
-          type="text"
+      <SearchField
           placeholder="Search our 100+ courses"
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
             setVisibleCount(INITIAL_VISIBLE_COUNT);
           }}
-          className="w-full bg-background border border-stroke-ii rounded-2xl px-4 py-3 text-lg font-inter text-navy placeholder:text-text-mute focus:outline-none focus:ring-2 focus:ring-primary/5 focus:border-primary transition-all pr-16"
+          aria-label="Search courses"
         />
-        <div className="absolute right-7 top-1/2 -translate-y-1/2">
-          <Image src="/assets/courses/search-01.svg" alt="Search" width={16} height={16} className="opacity-40" />
-        </div>
-      </div>
 
       {/* Filter Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -300,13 +302,11 @@ export default function CoursesFilter({ courses, categories, instructors }: Cour
           ))}
 
           {filteredCourses.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-40 text-center">
-              <div className="w-24 h-24 bg-background rounded-full flex items-center justify-center mb-8 border border-stroke">
-                <Image src="/assets/courses/search-01.svg" alt="Not found" width={40} height={40} className="opacity-10" />
-              </div>
-              <h3 className="text-2xl font-bold text-navy mb-3">No courses found</h3>
-              <p className="text-text-body text-lg max-w-md mx-auto">Try adjusting your filters or search query to find the perfect course for you.</p>
-            </div>
+            <EmptyState className="col-span-full py-28">
+              <EmptyStateIcon><SearchX /></EmptyStateIcon>
+              <EmptyStateTitle>No courses found</EmptyStateTitle>
+              <EmptyStateDescription>Try adjusting your filters or search query to find the right course for you.</EmptyStateDescription>
+            </EmptyState>
           )}
         </motion.div>
 

@@ -2,8 +2,9 @@
 
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import SearchField from "@/components/ui/SearchField";
 
 interface Option {
   value: string;
@@ -23,6 +24,7 @@ interface CustomSelectProps {
   variant?: "default" | "role";
   searchable?: boolean;
   searchPlaceholder?: string;
+  size?: "default" | "compact";
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -36,6 +38,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   variant = "default",
   searchable = false,
   searchPlaceholder = "Search options",
+  size = "default",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -105,10 +108,10 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
+        data-state={isOpen ? "open" : "closed"}
         className={`
-          w-full h-[40px] px-4 flex items-center justify-between gap-2 
-          rounded-[10px] border-[1.5px] transition-all duration-200 outline-none
-          ${isOpen ? "border-[#1C4ED1] ring-2 ring-[#1C4ED1]/10 bg-white" : "border-[#E3E8F4] bg-white hover:border-[#1C4ED1]"}
+          cscn-form-control cscn-select-trigger w-full flex items-center justify-between gap-2
+          ${size === "compact" ? "cscn-form-control-compact" : ""}
           ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
           ${triggerClassName}
         `}
@@ -136,13 +139,13 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
             className="fixed z-[9999] bg-white border border-[#E3E8F4] rounded-[12px] shadow-[0px_18px_48px_-12px_rgba(4,11,55,0.22)] overflow-hidden py-1.5"
           >
             {searchable && (
-              <div className="flex items-center gap-2 border-b border-[#E3E8F4] px-3 py-2">
-                <Search size={16} className="text-[#9CA3AF]" strokeWidth={1.9} />
-                <input
+              <div className="border-b border-[#E3E8F4] p-2">
+                <SearchField
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={searchPlaceholder}
-                  className="h-9 min-w-0 flex-1 bg-transparent text-[13px] font-semibold text-[#040B37] outline-none placeholder:text-[#9CA3AF]"
+                  aria-label={searchPlaceholder}
+                  compact
                 />
               </div>
             )}

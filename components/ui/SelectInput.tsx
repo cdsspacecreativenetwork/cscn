@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
+
+import { NativeSelect } from '@/components/ui/NativeSelect';
 
 interface SelectInputProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   label?: string;
   hint?: string;
   error?: string;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'default' | 'compact';
 }
 
 export default function SelectInput({
@@ -19,25 +20,12 @@ export default function SelectInput({
   children,
   ...props
 }: SelectInputProps) {
-  const base =
-    size === 'sm'
-      ? 'w-full appearance-none px-3 py-1.5 pr-8 border rounded-lg text-xs font-medium text-navy bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-      : 'w-full appearance-none px-4 py-2.5 pr-10 border rounded-xl text-sm font-medium text-navy bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-
-  const iconSize = size === 'sm' ? 14 : 16;
-  const iconRight = size === 'sm' ? 'right-2.5' : 'right-3';
-  const borderCls = error ? 'border-red-400' : 'border-stroke';
+  const normalizedSize = size === 'sm' || size === 'compact' ? 'compact' : 'default';
 
   const select = (
-    <div className="relative">
-      <select className={`${base} ${borderCls} ${className}`} {...props}>
+    <NativeSelect size={normalizedSize} aria-invalid={Boolean(error)} className={className} {...props}>
         {children}
-      </select>
-      <ChevronDown
-        size={iconSize}
-        className={`absolute ${iconRight} top-1/2 -translate-y-1/2 pointer-events-none text-text-mute`}
-      />
-    </div>
+    </NativeSelect>
   );
 
   if (!label && !hint && !error) return select;

@@ -6,6 +6,7 @@ import StudentDashboardClient from '@/components/dashboard/StudentDashboardClien
 import { redirect } from 'next/navigation';
 import { getCreatorReadinessByUserId } from '@/lib/trust-gates';
 import { shouldRedirectInstructorToOnboarding } from '@/lib/instructor-onboarding';
+import { db } from '@/lib/db';
 
 export const metadata = {
   title: 'Dashboard | CSCN',
@@ -40,10 +41,26 @@ export default async function DashboardPage() {
     ]);
     return <InstructorDashboardClient data={data} user={user} creatorReadiness={creatorReadiness} />;
   } else {
-    const data = await getStudentDashboardData(user.id, role);
-    if (data.marketingSettings.launchMode && !data.hasCompletedLearnerOnboarding) {
+    const [data, instructorApplication] = await Promise.all([
+      getStudentDashboardData(user.id, role),
+      db.instructorApplication.findUnique({
+        where: { userId: user.id },
+        select: { status: true, submittedAt: true, reviewDueAt: true },
+      }),
+    ]);
+    if (data.marketingSettings.launchMode && !data.hasCompletedLearnerOnboarding && !instructorApplication) {
       redirect('/onboarding');
     }
-    return <StudentDashboardClient data={data} user={user} />;
+    return (
+      <StudentDashboardClient
+        data={data}
+        user={user}
+        instructorApplication={instructorApplication ? {
+          status: instructorApplication.status,
+          submittedAt: instructorApplication.submittedAt.toISOString(),
+          reviewDueAt: instructorApplication.reviewDueAt.toISOString(),
+        } : null}
+      />
+    );
   }
 }

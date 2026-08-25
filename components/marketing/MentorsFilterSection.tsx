@@ -5,7 +5,7 @@ import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, Sparkles, Pale
 import MentorCard from '@/components/ui/MentorCard';
 import type { Mentor } from '@/lib/mentorship';
 import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: null },
@@ -98,7 +98,7 @@ export default function MentorsFilterSection({ mentors }: { mentors: Mentor[] })
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, company, or role..."
-            className="pl-12 pr-10 h-12 text-[15px] rounded-full"
+            className="pl-12 pr-10 h-12 text-[15px] rounded-full outline-none"
           />
           {searchQuery && (
             <button

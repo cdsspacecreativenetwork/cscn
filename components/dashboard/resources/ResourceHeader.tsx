@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { CustomSelect } from '../../ui/CustomSelect';
 import { FileText, Link as LinkIcon, Folder, LayoutGrid, GraduationCap, UserRound, BookOpen } from 'lucide-react';
 
 import { Plus } from 'lucide-react';
+import SearchField from '@/components/ui/SearchField';
 
 interface ResourceHeaderProps {
   onSearch: (query: string) => void;
@@ -118,33 +118,24 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
 
       {/* Filter Bar */}
       <div className="flex flex-col lg:flex-row gap-5 items-stretch lg:items-center">
-        {/* Search Input Container */}
-        <div className="relative flex-1 group">
-          <div className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors pointer-events-none">
-            <Image 
-              src="/assets/dashboard/search.svg" 
-              alt="" 
-              fill 
-              className="object-contain opacity-40 group-focus-within:opacity-100 group-focus-within:brightness-0 group-focus-within:invert-[.3] group-focus-within:sepia-[1] group-focus-within:saturate-[5] group-focus-within:hue-rotate-[200deg] transition-all" 
-            />
-          </div>
-          <input 
-            type="text" 
-            placeholder="Search resources by title or course..."
-            onChange={(e) => onSearch(e.target.value)}
-            className="w-full bg-white border border-[#E3E8F4] rounded-[32px] py-4 pl-14 pr-6 text-[15px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all shadow-sm font-medium"
-          />
-        </div>
+        <SearchField
+          placeholder="Search resources by title or course..."
+          aria-label="Search resources"
+          onChange={(e) => onSearch(e.target.value)}
+          containerClassName="flex-1"
+        />
 
         {/* Custom Styled Dropdown Filters */}
         <div className="flex flex-row gap-4 items-center">
           <CustomSelect
+            size="default"
             options={TYPE_OPTIONS}
             value={type}
             onChange={handleTypeChange}
             className="flex-1 lg:flex-none lg:min-w-[200px]"
           />
           <CustomSelect
+            size="default"
             options={courseOptions}
             value={course}
             onChange={handleCourseChange}

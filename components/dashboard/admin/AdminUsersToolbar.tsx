@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { CustomSelect } from "@/components/ui/CustomSelect";
+import SearchField from "@/components/ui/SearchField";
 
 const tabs = [
   { label: "All users", value: "all" },
@@ -112,18 +113,20 @@ export function AdminUsersToolbar({
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" size={16} />
-            <input
+          <div>
+            <SearchField
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search name, email, headline"
-              className="h-10 w-full rounded-[10px] border border-[#E3E8F4] bg-[#F8FAFF] pl-9 pr-3 text-[13px] font-medium text-[#040B37] outline-none transition focus:border-[#1C4ED1] sm:w-[320px]"
+              aria-label="Search users"
+              compact
+              containerClassName="sm:w-[320px]"
             />
           </div>
           <div className="relative flex items-center gap-2">
             <SlidersHorizontal className="text-[#9CA3AF]" size={16} />
             <CustomSelect
+              size="compact"
               options={sortOptions}
               value={activeSort}
               onChange={handleSortChange}

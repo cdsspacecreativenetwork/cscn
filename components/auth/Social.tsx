@@ -5,9 +5,13 @@ import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 
-export const Social = () => {
+type SocialProps = {
+  callbackUrl?: string;
+};
+
+export const Social = ({ callbackUrl: callbackUrlOverride }: SocialProps = {}) => {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || DEFAULT_LOGIN_REDIRECT;
+  const callbackUrl = callbackUrlOverride || searchParams.get("callbackUrl") || DEFAULT_LOGIN_REDIRECT;
 
   const onClick = (provider: "google" | "apple" | "linkedin") => {
     signIn(provider, {

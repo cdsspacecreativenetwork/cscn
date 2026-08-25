@@ -4,6 +4,7 @@ import { FormEvent, startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CustomSelect } from "@/components/ui/CustomSelect";
+import SearchField from "@/components/ui/SearchField";
 
 type Option = {
   value: string;
@@ -51,13 +52,15 @@ export function AdminAuditLogFilters({
 
   return (
     <form onSubmit={submitSearch} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_240px_240px_auto]">
-      <input
+      <SearchField
         value={searchValue}
         onChange={(event) => setSearchValue(event.target.value)}
         placeholder="Search actor, action, entity..."
-        className="h-14 rounded-[10px] border border-[#E3E8F4] bg-white px-4 text-[14px] font-semibold text-[#040B37] outline-none transition focus:border-[#1C4ED1] focus:ring-2 focus:ring-[#1C4ED1]/10"
+        aria-label="Search audit logs"
+        compact
       />
       <CustomSelect
+        size="compact"
         value={actionValue}
         options={[{ value: "all", label: "All actions" }, ...actionOptions]}
         onChange={(next) => {
@@ -67,6 +70,7 @@ export function AdminAuditLogFilters({
         className="min-w-[220px]"
       />
       <CustomSelect
+        size="compact"
         value={entityValue}
         options={[{ value: "all", label: "All entities" }, ...entityOptions]}
         onChange={(next) => {

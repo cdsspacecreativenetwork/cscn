@@ -197,7 +197,7 @@ export function CourseLiveSessionForm({
             searchable
             searchPlaceholder="Search courses"
             className="mt-2 w-full"
-            triggerClassName="!h-18 !border-[#D8E0EF]"
+            size="default"
           />
         </div>
 
@@ -271,7 +271,7 @@ export function CourseLiveSessionForm({
             searchable
             searchPlaceholder="Search timezones"
             className="mt-2 w-full"
-            triggerClassName="!h-18 !border-[#D8E0EF]"
+            size="default"
           />
           <p className="mt-2 text-[12px] font-medium leading-relaxed text-[#9CA3AF]">
             Defaulted from your profile. Change only if this session should use another timezone.
