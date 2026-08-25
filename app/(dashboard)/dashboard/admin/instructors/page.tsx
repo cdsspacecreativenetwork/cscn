@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Award, BadgeCheck, GraduationCap, UserCheck } from "lucide-react";
+import { AlertTriangle, Award, BadgeCheck, GraduationCap, UserCheck } from "lucide-react";
 
-import { getAdminInstructors, getAdminInstructorStats } from "@/data/admin-instructors";
+import { getAdminInstructorApplications, getAdminInstructors, getAdminInstructorStats } from "@/data/admin-instructors";
 import { requireAnyAdminPermission } from "@/lib/admin-guards";
 import { hasAdminPermission } from "@/lib/admin-permissions";
 import { generateTapbackAvatar } from "@/lib/avatar";
@@ -11,6 +11,8 @@ import { InstructorVerificationActions } from "@/components/dashboard/admin/Inst
 import { FeaturedInstructorStar } from "@/components/dashboard/admin/FeaturedInstructorStar";
 import { InstructorMentorshipToggle } from "@/components/dashboard/admin/InstructorMentorshipToggle";
 import { AdminDirectoryFilters } from "@/components/dashboard/admin/AdminDirectoryFilters";
+import { InstructorApplicationActions } from "@/components/dashboard/admin/InstructorApplicationActions";
+import { INSTRUCTOR_EXPERIENCE_LEVELS } from "@/lib/instructor-applications";
 
 export const metadata = { title: "Instructors | CSCN Admin" };
 
@@ -45,8 +47,9 @@ export default async function AdminInstructorsPage({ searchParams }: PageProps) 
   const canVerifyInstructors = hasAdminPermission(session.user, "canVerifyInstructors");
   const canManageMarketing = hasAdminPermission(session.user, "canManageMarketing");
 
-  const [{ instructors, total, totalPages }, stats] = await Promise.all([
+  const [{ instructors, total, totalPages }, applicationResult, stats] = await Promise.all([
     getAdminInstructors({ page, query, sort, tab }),
+    getAdminInstructorApplications({ page, query }),
     getAdminInstructorStats(),
   ]);
 
@@ -55,10 +58,12 @@ export default async function AdminInstructorsPage({ searchParams }: PageProps) 
     { label: "Pending verification", value: stats.pending, icon: BadgeCheck },
     { label: "Verified", value: stats.verified, icon: Award },
     { label: "Mentorship eligible", value: stats.mentorship, icon: GraduationCap },
+    { label: "Pending applications", value: stats.pendingApplications, icon: AlertTriangle },
   ];
 
   const tabs = [
     ["all", "All"],
+    ["applications", "Applications"],
     ["pending", "Pending"],
     ["verified", "Verified"],
     ["needs-completion", "Needs completion"],
@@ -76,7 +81,7 @@ export default async function AdminInstructorsPage({ searchParams }: PageProps) 
         </p>
       </div>
 
-      <section className="grid grid-cols-1 gap-[clamp(16px,1.39vw,24px)] sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-[clamp(16px,1.39vw,24px)] sm:grid-cols-2 lg:grid-cols-5">
         {statCards.map((card) => (
           <div
             key={card.label}
@@ -101,7 +106,11 @@ export default async function AdminInstructorsPage({ searchParams }: PageProps) 
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h2 className="text-[20px] font-black tracking-[-0.03em] text-[#040B37]">Instructor Directory</h2>
-                <p className="mt-1 text-[13px] font-medium text-[#9CA3AF]">{total.toLocaleString()} instructors match this view.</p>
+                <p className="mt-1 text-[13px] font-medium text-[#9CA3AF]">
+                  {tab === "applications"
+                    ? `${applicationResult.total.toLocaleString()} pending applications${stats.overdueApplications ? ` · ${stats.overdueApplications} overdue` : ""}`
+                    : `${total.toLocaleString()} instructors match this view.`}
+                </p>
               </div>
 
               <AdminDirectoryFilters
@@ -109,7 +118,7 @@ export default async function AdminInstructorsPage({ searchParams }: PageProps) 
                 query={query}
                 sort={sort}
                 tab={tab}
-                searchPlaceholder="Search name, email, headline"
+                searchPlaceholder={tab === "applications" ? "Search applicant, email, industry" : "Search name, email, headline"}
                 sortOptions={[
                   { value: "newest", label: "Newest first" },
                   { value: "oldest", label: "Oldest first" },
@@ -137,7 +146,70 @@ export default async function AdminInstructorsPage({ searchParams }: PageProps) 
           </div>
         </div>
 
-        {instructors.length > 0 ? (
+        {tab === "applications" && (applicationResult.applications.length > 0 ? (
+          <>
+            <div className="admin-horizontal-scrollbar overflow-auto">
+              <table className="w-full min-w-[1080px]">
+                <thead className="bg-[#F8FAFF]">
+                  <tr className="border-b border-[#E3E8F4]">
+                    <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-wider text-[#9CA3AF]">Applicant</th>
+                    <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-wider text-[#9CA3AF]">Industry</th>
+                    <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-wider text-[#9CA3AF]">Experience</th>
+                    <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-wider text-[#9CA3AF]">Portfolio</th>
+                    <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-wider text-[#9CA3AF]">Review target</th>
+                    <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-wider text-[#9CA3AF]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F4F6FB]">
+                  {applicationResult.applications.map((application) => {
+                    const overdue = application.reviewDueAt < new Date();
+                    const experience = INSTRUCTOR_EXPERIENCE_LEVELS.find((option) => option.value === application.experienceLevel)?.label;
+                    return (
+                      <tr key={application.id} className="transition hover:bg-[#F8FAFF]">
+                        <td className="px-6 py-4">
+                          <p className="text-[14px] font-black text-navy">{application.fullName}</p>
+                          <p className="mt-1 text-[12px] font-semibold text-text-mute">{application.email}</p>
+                        </td>
+                        <td className="px-6 py-4 text-[13px] font-semibold text-text-body">{application.industry}</td>
+                        <td className="px-6 py-4 text-[13px] font-semibold text-text-body">{experience}</td>
+                        <td className="px-6 py-4">
+                          <Link href={application.portfolioUrl} target="_blank" rel="noreferrer" className="text-[13px] font-bold text-primary hover:underline">
+                            Open portfolio
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${overdue ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>
+                            {overdue ? "Overdue" : "Within 48 hours"}
+                          </span>
+                          <p className="mt-2 text-[11px] font-semibold text-text-mute">
+                            {application.reviewDueAt.toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          {canManageInstructors
+                            ? <InstructorApplicationActions applicationId={application.id} />
+                            : <span className="text-[12px] font-semibold text-text-mute">View only</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              page={page}
+              totalPages={applicationResult.totalPages}
+              baseUrl={buildQuery({ tab: "applications", q: query })}
+            />
+          </>
+        ) : (
+          <div className="py-16 text-center">
+            <p className="text-[15px] font-bold text-navy">No pending applications</p>
+            <p className="mt-1 text-[13px] font-medium text-text-mute">New instructor applications will appear here.</p>
+          </div>
+        ))}
+
+        {tab !== "applications" && (instructors.length > 0 ? (
           <>
             <div className="admin-horizontal-scrollbar overflow-auto">
               <table className="w-full min-w-[1220px]">
@@ -256,7 +328,7 @@ export default async function AdminInstructorsPage({ searchParams }: PageProps) 
             <p className="text-[15px] font-bold text-[#040B37]">No instructors found</p>
             <p className="mt-1 text-[13px] font-medium text-[#9CA3AF]">Try a different search or filter.</p>
           </div>
-        )}
+        ))}
       </section>
     </div>
   );

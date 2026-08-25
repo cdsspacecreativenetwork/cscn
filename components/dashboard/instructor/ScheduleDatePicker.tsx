@@ -120,7 +120,7 @@ export function ScheduleDatePicker({
       <button
         type="button"
         onClick={() => setOpen((state) => !state)}
-        className={`mt-2 flex h-18 w-full items-center justify-between rounded-[10px] border border-[#D8E0EF] bg-white px-4 text-left text-[14px] font-semibold outline-none transition hover:border-[#1C4ED1]/60 focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/10 ${
+        className={`cscn-form-control mt-2 flex w-full items-center justify-between text-left ${
           selectedDate ? 'text-[#040B37]' : 'text-[#9CA3AF]'
         }`}
       >

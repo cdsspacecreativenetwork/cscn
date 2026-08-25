@@ -45,6 +45,8 @@ model User {
   instructorVerifiedAt         DateTime?
   instructorFeatured           Boolean                      @default(false)
   instructorFeaturedOrder      Int?
+  instructorApplication        InstructorApplication?       @relation("InstructorApplicationApplicant")
+  instructorApplicationsReviewed InstructorApplication[]    @relation("InstructorApplicationReviewer")
   mentorshipEligible           Boolean                      @default(false)
   mentorshipEnabled            Boolean                      @default(false)
   mentorshipApprovedAt         DateTime?
@@ -237,6 +239,44 @@ enum InstructorVerificationStatus {
   PENDING
   VERIFIED
   REJECTED
+}
+
+enum InstructorApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InstructorExperienceLevel {
+  LESS_THAN_ONE_YEAR
+  ONE_TO_TWO_YEARS
+  THREE_TO_FIVE_YEARS
+  SIX_TO_TEN_YEARS
+  TEN_PLUS_YEARS
+}
+
+model InstructorApplication {
+  id              String                      @id @default(cuid())
+  userId          String                      @unique
+  fullName        String
+  email           String
+  industry        String
+  portfolioUrl    String
+  experienceLevel InstructorExperienceLevel
+  status          InstructorApplicationStatus @default(PENDING)
+  submittedAt     DateTime                    @default(now())
+  reviewDueAt     DateTime
+  reviewedAt      DateTime?
+  reviewedById    String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+
+  user       User  @relation("InstructorApplicationApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("InstructorApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, submittedAt])
+  @@index([reviewDueAt])
+  @@index([reviewedById])
 }
 
 enum PublicProfileStatus {

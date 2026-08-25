@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { SearchX } from 'lucide-react';
 import MyCourseCard from '@/components/dashboard/MyCourseCard';
 import type { MyCourseCardProps } from '@/components/dashboard/MyCourseCard';
+import { EmptyState, EmptyStateDescription, EmptyStateIcon, EmptyStateTitle } from '@/components/ui/EmptyState';
+import SearchField from '@/components/ui/SearchField';
 
 type TabId = 'All' | 'In Progress' | 'Completed';
 
@@ -49,19 +51,14 @@ export default function MyCoursesClient({ courses }: MyCoursesClientProps) {
           ))}
         </div>
 
-        <div className="relative group w-full lg:w-[320px]">
-          <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] group-focus-within:text-[#1C4ED1] transition-colors"
-            size={20}
-          />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search courses..."
-            className="w-full pl-12 pr-4 py-2.5 bg-white border border-[#E3E8F4] rounded-xl focus:outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all text-[14px] font-medium text-[#4B5563] placeholder:text-[#9CA3AF]"
-          />
-        </div>
+        <SearchField
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search courses..."
+          aria-label="Search my courses"
+          compact
+          containerClassName="lg:w-[320px]"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -71,14 +68,13 @@ export default function MyCoursesClient({ courses }: MyCoursesClientProps) {
       </div>
 
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-16 h-16 bg-[#F4F6FB] rounded-full flex items-center justify-center">
-            <Search size={32} className="text-[#9CA3AF]" />
-          </div>
-          <p className="text-[#9CA3AF] font-medium">
+        <EmptyState>
+          <EmptyStateIcon><SearchX size={23} /></EmptyStateIcon>
+          <EmptyStateTitle>No courses found</EmptyStateTitle>
+          <EmptyStateDescription>
             {search ? `No courses match "${search}".` : 'No courses in this category.'}
-          </p>
-        </div>
+          </EmptyStateDescription>
+        </EmptyState>
       )}
     </>
   );

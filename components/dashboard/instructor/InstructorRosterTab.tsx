@@ -263,6 +263,7 @@ export default function InstructorRosterTab({ courseId, isAdmin = false, initial
                   {isOwner && member.role !== 'OWNER' && (
                     <div className="flex items-center gap-1 shrink-0">
                       <CustomSelect
+                        size="compact"
                         options={ROLE_OPTIONS}
                         value={member.role}
                         disabled={changingRoleId === member.user.id}

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getInstructorPublicProfileEligibility, isInstructorFeatureEligible } from "@/lib/profile-eligibility";
+import type { Prisma } from "@prisma/client";
 
 export type AdminInstructorsFilter = {
   page?: number;
@@ -10,7 +11,40 @@ export type AdminInstructorsFilter = {
 
 export const ADMIN_INSTRUCTORS_PAGE_SIZE = 25;
 
-function getSort(sort?: string) {
+export async function getAdminInstructorApplications(filters: AdminInstructorsFilter = {}) {
+  const page = Math.max(1, filters.page ?? 1);
+  const query = filters.query?.trim();
+  const where = {
+    status: "PENDING" as const,
+    ...(query
+      ? {
+          OR: [
+            { fullName: { contains: query, mode: "insensitive" as const } },
+            { email: { contains: query, mode: "insensitive" as const } },
+            { industry: { contains: query, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+  const [applications, total] = await Promise.all([
+    db.instructorApplication.findMany({
+      where,
+      orderBy: { submittedAt: "asc" },
+      skip: (page - 1) * ADMIN_INSTRUCTORS_PAGE_SIZE,
+      take: ADMIN_INSTRUCTORS_PAGE_SIZE,
+      include: { user: { select: { image: true, role: true } } },
+    }),
+    db.instructorApplication.count({ where }),
+  ]);
+  return {
+    applications,
+    total,
+    page,
+    totalPages: Math.max(1, Math.ceil(total / ADMIN_INSTRUCTORS_PAGE_SIZE)),
+  };
+}
+
+function getSort(sort?: string): Prisma.UserOrderByWithRelationInput | Prisma.UserOrderByWithRelationInput[] {
   if (sort === "oldest") return { createdAt: "asc" as const };
   if (sort === "name") return { name: "asc" as const };
   if (sort === "featured") return [{ instructorFeaturedOrder: "asc" as const }, { createdAt: "desc" as const }];
@@ -54,7 +88,7 @@ export async function getAdminInstructors(filters: AdminInstructorsFilter = {}) 
   const [rows, total] = await Promise.all([
     db.user.findMany({
       where: baseWhere,
-      orderBy: getSort(filters.sort) as any,
+      orderBy: getSort(filters.sort),
       skip: (page - 1) * ADMIN_INSTRUCTORS_PAGE_SIZE,
       take: ADMIN_INSTRUCTORS_PAGE_SIZE,
       select: {
@@ -161,13 +195,16 @@ export async function getAdminInstructors(filters: AdminInstructorsFilter = {}) 
 }
 
 export async function getAdminInstructorStats() {
-  const [total, pending, verified, featured, mentorship] = await Promise.all([
+  const now = new Date();
+  const [total, pending, verified, featured, mentorship, pendingApplications, overdueApplications] = await Promise.all([
     db.user.count({ where: { instructorProfileEnabled: true } }),
     db.user.count({ where: { instructorProfileEnabled: true, instructorVerificationStatus: "PENDING" } }),
     db.user.count({ where: { instructorProfileEnabled: true, instructorVerificationStatus: "VERIFIED" } }),
     db.user.count({ where: { instructorProfileEnabled: true, instructorFeatured: true } }),
     db.user.count({ where: { instructorProfileEnabled: true, mentorshipEligible: true } }),
+    db.instructorApplication.count({ where: { status: "PENDING" } }),
+    db.instructorApplication.count({ where: { status: "PENDING", reviewDueAt: { lt: now } } }),
   ]);
 
-  return { total, pending, verified, featured, mentorship };
+  return { total, pending, verified, featured, mentorship, pendingApplications, overdueApplications };
 }

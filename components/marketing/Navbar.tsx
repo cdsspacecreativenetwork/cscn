@@ -11,6 +11,7 @@ import Button from '../ui/Button';
 const exploreLinks = [
   { name: 'Courses', path: '/courses' },
   { name: 'Cohorts', path: '/cohorts' },
+  { name: 'Mentorship', path: '/mentorship' },
   { name: 'Showcase', path: '/showcase' },
   { name: 'Career Hub', path: '/career' },
 ];
@@ -18,8 +19,8 @@ const exploreLinks = [
 const navLinks = [
   { name: 'Community', path: '/community' },
   { name: 'For Teams', path: '/teams' },
+  { name: 'For Instructors', path: '/instructors' },
   { name: 'Resources', path: '/resources' },
-  { name: 'Mentorship', path: '/mentorship' },
 ];
 
 export default function Navbar() {

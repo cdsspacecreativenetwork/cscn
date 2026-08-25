@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Plus, ArrowUpRight, MoreHorizontal, GraduationCap, Clock, CheckCircle2, Flame, Share2, EyeOff, BookOpen } from 'lucide-react';
+import { Plus, ArrowUpRight, MoreHorizontal, GraduationCap, Clock, Clock3, CheckCircle2, Flame, Share2, EyeOff, BookOpen, RotateCcw } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useRouter } from 'next/navigation';
 import { useDashboardStore } from '@/lib/store/dashboardStore';
@@ -10,6 +10,7 @@ import { ResumeCourseModal, GetStartedModal } from '@/components/dashboard/Cours
 import { StudentDashboardData } from '@/lib/services/dashboard.service';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 
 interface DashboardUser {
   name?: string | null;
@@ -18,9 +19,14 @@ interface DashboardUser {
 interface Props {
   data: StudentDashboardData;
   user: DashboardUser | null;
+  instructorApplication?: {
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    submittedAt: string;
+    reviewDueAt: string;
+  } | null;
 }
 
-export default function StudentDashboardClient({ data, user }: Props) {
+export default function StudentDashboardClient({ data, user, instructorApplication }: Props) {
   const router = useRouter();
   const { activeModal, selectedCourse, openResumeModal, openStartModal, closeModals } = useDashboardStore();
 
@@ -88,6 +94,41 @@ export default function StudentDashboardClient({ data, user }: Props) {
           Explore Courses
         </Button>
       </div>
+
+      {instructorApplication?.status === 'PENDING' && (
+        <Alert className="border-amber-200 bg-amber-50 p-5 sm:p-6">
+          <Clock3 aria-hidden="true" className="mt-0.5 size-5 text-amber-700" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <AlertTitle>Instructor application pending approval</AlertTitle>
+              <AlertDescription>
+                Submitted {new Date(instructorApplication.submittedAt).toLocaleDateString('en-NG')}. CSCN reviews applications within 48 hours; your review target is{' '}
+                {new Date(instructorApplication.reviewDueAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}.
+              </AlertDescription>
+            </div>
+            <Button variant="outline" size="sm" rounded="full" onClick={() => router.push('/instructors?apply=1')}>
+              View application
+            </Button>
+          </div>
+        </Alert>
+      )}
+
+      {instructorApplication?.status === 'REJECTED' && (
+        <Alert className="border-stroke-ii bg-background p-5 sm:p-6">
+          <RotateCcw aria-hidden="true" className="mt-0.5 size-5 text-primary" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <AlertTitle>Review your instructor application</AlertTitle>
+              <AlertDescription>
+                Your previous application was not approved. Update your details and submit a new application when you are ready.
+              </AlertDescription>
+            </div>
+            <Button variant="primary" size="sm" rounded="full" onClick={() => router.push('/instructors?apply=1')}>
+              Apply again
+            </Button>
+          </div>
+        </Alert>
+      )}
 
       {/* Stats section - 4 Columns with curated premium Lucide icons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

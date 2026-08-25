@@ -84,7 +84,7 @@ function SelectField({
       disabled={disabled}
       placeholder={placeholder}
       className="w-full"
-      triggerClassName="h-[42px] rounded-xl border-stroke"
+      size="default"
     />
   );
 }

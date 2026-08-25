@@ -13,6 +13,7 @@ export const publicRoutes = [
   "/certificate",
   "/resources",
   "/mentorship",
+  "/instructors",
   "/about",
   "/contact",
   "/terms",
@@ -28,6 +29,7 @@ export const publicRoutes = [
 export const authRoutes = [
   "/signin",
   "/signup",
+  "/signup/instructor",
   "/forgot-password",
   "/auth/error",
 ];

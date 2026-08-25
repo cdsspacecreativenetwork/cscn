@@ -12,6 +12,7 @@ const FOOTER_LINKS = {
     { name: 'Community', href: '/community' },
     { name: 'Career Hub', href: '/career' },
     { name: 'For Teams', href: '/teams' },
+    { name: 'For Instructors', href: '/instructors' },
     { name: 'Certificate', href: '/certificate' },
     { name: 'Verify credential', href: '/credentials' },
     { name: 'Resources', href: '/resources' },

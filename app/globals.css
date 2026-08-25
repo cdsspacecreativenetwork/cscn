@@ -104,6 +104,163 @@ body {
   width: 100%;
 }
 
+/* CSCN form-control source of truth. The instructor application established
+   this surface; shared primitives and guarded legacy controls use it app-wide. */
+.cscn-form-control,
+:where(
+  input:not([data-slot]):not([type]),
+  input:not([data-slot])[type="text"],
+  input:not([data-slot])[type="email"],
+  input:not([data-slot])[type="password"],
+  input:not([data-slot])[type="url"],
+  input:not([data-slot])[type="tel"],
+  input:not([data-slot])[type="search"],
+  input:not([data-slot])[type="number"],
+  input:not([data-slot])[type="date"],
+  input:not([data-slot])[type="time"],
+  input:not([data-slot])[type="month"],
+  input:not([data-slot])[type="week"],
+  input:not([data-slot])[type="datetime-local"],
+  textarea:not([data-slot]),
+  select:not([data-slot])
+) {
+  box-sizing: border-box;
+  min-height: 3rem;
+  border: 1px solid var(--stroke-ii);
+  border-radius: 14px;
+  background-color: #fff;
+  padding-inline: 1rem;
+  color: var(--navy);
+  font-family: "Inter", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.cscn-form-control::placeholder,
+:where(
+  input:not([data-slot]):not([type]),
+  input:not([data-slot])[type="text"],
+  input:not([data-slot])[type="email"],
+  input:not([data-slot])[type="password"],
+  input:not([data-slot])[type="url"],
+  input:not([data-slot])[type="tel"],
+  input:not([data-slot])[type="search"],
+  input:not([data-slot])[type="number"],
+  textarea:not([data-slot])
+)::placeholder {
+  color: var(--text-mute);
+  opacity: 1;
+}
+
+.cscn-form-control:not(textarea),
+:where(
+  input:not([data-slot]):not([type]),
+  input:not([data-slot])[type="text"],
+  input:not([data-slot])[type="email"],
+  input:not([data-slot])[type="password"],
+  input:not([data-slot])[type="url"],
+  input:not([data-slot])[type="tel"],
+  input:not([data-slot])[type="search"],
+  input:not([data-slot])[type="number"],
+  input:not([data-slot])[type="date"],
+  input:not([data-slot])[type="time"],
+  input:not([data-slot])[type="month"],
+  input:not([data-slot])[type="week"],
+  input:not([data-slot])[type="datetime-local"],
+  select:not([data-slot])
+) {
+  height: 3rem;
+}
+
+.cscn-form-control:focus,
+:where(
+  input:not([data-slot]):not([type]),
+  input:not([data-slot])[type="text"],
+  input:not([data-slot])[type="email"],
+  input:not([data-slot])[type="password"],
+  input:not([data-slot])[type="url"],
+  input:not([data-slot])[type="tel"],
+  input:not([data-slot])[type="search"],
+  input:not([data-slot])[type="number"],
+  input:not([data-slot])[type="date"],
+  input:not([data-slot])[type="time"],
+  input:not([data-slot])[type="month"],
+  input:not([data-slot])[type="week"],
+  input:not([data-slot])[type="datetime-local"],
+  textarea:not([data-slot]),
+  select:not([data-slot])
+):focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgb(28 78 209 / 0.05);
+}
+
+.cscn-form-control:disabled,
+.cscn-form-control[readonly],
+:where(
+  input:not([data-slot]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
+  textarea:not([data-slot]),
+  select:not([data-slot])
+):is(:disabled, [readonly]) {
+  cursor: not-allowed;
+  background-color: var(--background);
+  color: var(--text-mute);
+}
+
+.cscn-form-control[aria-invalid="true"],
+:where(
+  input:not([data-slot]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
+  textarea:not([data-slot]),
+  select:not([data-slot])
+)[aria-invalid="true"] {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 2px rgb(239 68 68 / 0.1);
+}
+
+.cscn-form-control-compact,
+:where(
+  input:not([data-slot]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
+  select:not([data-slot])
+):is([class~="h-8"], [class~="h-9"], [class~="h-10"], [class~="h-11"]) {
+  min-height: 2.5rem;
+  height: 2.5rem;
+  padding-inline: 0.875rem;
+  font-size: 0.8125rem;
+}
+
+.cscn-select-trigger[data-state="open"] {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgb(28 78 209 / 0.05);
+}
+
+[data-slot="native-select"] { padding-right: 2.75rem; }
+.cscn-form-control[class~="pl-8"], :where(input:not([data-slot]))[class~="pl-8"] { padding-left: 2rem; }
+.cscn-form-control[class~="pl-10"], :where(input:not([data-slot]))[class~="pl-10"] { padding-left: 2.5rem; }
+.cscn-form-control[class~="pl-11"], :where(input:not([data-slot]))[class~="pl-11"] { padding-left: 2.75rem; }
+.cscn-form-control[class~="pr-9"], :where(input:not([data-slot]))[class~="pr-9"] { padding-right: 2.25rem; }
+.cscn-form-control[class~="pr-10"], :where(input:not([data-slot]))[class~="pr-10"] { padding-right: 2.5rem; }
+.cscn-form-control[class~="pr-11"], :where(input:not([data-slot]))[class~="pr-11"] { padding-right: 2.75rem; }
+.cscn-form-control[class~="pr-12"], :where(input:not([data-slot]))[class~="pr-12"] { padding-right: 3rem; }
+.cscn-form-control[class~="pr-14"], :where(input:not([data-slot]))[class~="pr-14"] { padding-right: 3.5rem; }
+
+.cscn-form-control[data-slot="textarea"] { min-height: 6rem; height: auto; }
+.cscn-form-control[data-slot="textarea"].cscn-form-control-compact { min-height: 5rem; height: auto; }
+
+:where(textarea:not([data-slot])) {
+  min-height: 6rem;
+  padding-block: 0.75rem;
+  line-height: 1.5rem;
+}
+
+:where(textarea:not([data-slot]))[class~="min-h-20"] { min-height: 5rem; }
+:where(textarea:not([data-slot]))[class~="min-h-24"] { min-height: 6rem; }
+:where(textarea:not([data-slot]))[class~="min-h-28"] { min-height: 7rem; }
+:where(textarea:not([data-slot]))[class~="min-h-36"] { min-height: 9rem; }
+:where(textarea:not([data-slot]))[class*="min-h-[96px]"] { min-height: 6rem; }
+:where(textarea:not([data-slot]))[class*="min-h-[110px]"] { min-height: 6.875rem; }
+:where(textarea:not([data-slot]))[class*="min-h-[112px]"] { min-height: 7rem; }
+
 @utility container {
   margin-inline: auto;
   padding-inline: 1.5rem;
@@ -561,16 +718,19 @@ body {
 .cscn-form-field {
   width: 100%;
   border: 1px solid #C8D1E0;
-  border-radius: 0.5rem;
+  border-radius: 14px;
   background: #FFFFFF;
   color: #040B37;
+  font-family: "Inter", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
   outline: none;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .cscn-form-field:focus {
   border-color: #1C4ED1;
-  box-shadow: 0 0 0 3px rgba(28, 78, 209, 0.12);
+  box-shadow: 0 0 0 2px rgba(28, 78, 209, 0.05);
 }
 
 @media (min-width: 768px) {

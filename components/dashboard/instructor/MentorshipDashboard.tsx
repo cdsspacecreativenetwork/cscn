@@ -689,7 +689,7 @@ export function MentorshipDashboard({
                       value={availabilityType}
                       onChange={(value) => setAvailabilityType(value as "WEEKLY" | "DATE")}
                       className="mt-2 w-full"
-                      triggerClassName="!h-14 !border-[#D8E0EF]"
+                      size="default"
                     />
                     <input type="hidden" name="type" value={availabilityType} />
                   </div>
@@ -702,7 +702,7 @@ export function MentorshipDashboard({
                         value={weekday}
                         onChange={setWeekday}
                         className="mt-2 w-full"
-                        triggerClassName="!h-14 !border-[#D8E0EF]"
+                        size="default"
                       />
                       <input type="hidden" name="weekday" value={weekday} />
                     </div>
@@ -748,7 +748,7 @@ export function MentorshipDashboard({
                       onChange={setTimezone}
                       searchable
                       className="mt-2 w-full"
-                      triggerClassName="!h-14 !border-[#D8E0EF]"
+                      size="default"
                     />
                     <input type="hidden" name="timezone" value={timezone} />
                   </div>
