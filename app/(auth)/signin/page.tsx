@@ -54,13 +54,13 @@ function LoginPageContent() {
   };
 
   return (
-    <AuthLayout 
-      title={showTwoFactor ? "Verify your identity" : "Welcome back"} 
+    <AuthLayout
+      title={showTwoFactor ? "Verify your identity" : "Welcome back"}
       subtitle={showTwoFactor ? "Two-Factor Verification required" : "Continue where you left off"}
       sidebarTitle="Your Knowledge Awaits You."
       sidebarSubtitle="Pick up right where you left off. Your progress, your courses, your community all here."
     >
-      <form 
+      <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-8 xl:space-y-10"
       >
@@ -109,7 +109,7 @@ function LoginPageContent() {
                   </p>
                 )}
               </div>
-              
+
               <div className="flex justify-end">
                 <Link href="/forgot-password" className="text-[#1C4ED1] font-medium text-[16px] xl:text-[18px] tracking-[-0.18px]">
                   Forgot password?
@@ -139,8 +139,8 @@ function LoginPageContent() {
               </div>
 
               <div className="flex justify-start">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     setShowTwoFactor(false);
                     form.setValue("code", "");
@@ -158,7 +158,7 @@ function LoginPageContent() {
         <FormError message={error} />
 
         <div className="flex flex-col items-center gap-8 xl:gap-[40px]">
-          <button 
+          <button
             type="submit"
             disabled={isPending}
             className="w-full h-[56px] p-[2px] bg-[#F4F6FB] border border-[#648EFC] rounded-full shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] overflow-hidden group disabled:cursor-not-allowed"

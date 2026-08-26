@@ -39,6 +39,7 @@ model User {
   telegramUrl                  String?
   expertise                    Json?
   learningFocus                String?
+  onboardingIntent             String?
   yearsExperience              Int?
   instructorProfileEnabled     Boolean                      @default(false)
   instructorVerificationStatus InstructorVerificationStatus @default(NOT_STARTED)

@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/Input';
 import { EXPERTISE_CATEGORIES, INDUSTRY_SECTORS } from '@/lib/categories';
 import { MENTORSHIP_BENEFITS } from '@/lib/mentorship';
 import { ScheduleDatePicker } from '@/components/dashboard/instructor/ScheduleDatePicker';
+import { BecomeInstructorModal } from '@/components/marketing/BecomeInstructorModal';
 import { WORLD_COUNTRIES } from '@/lib/countries';
 import { parseISO } from 'date-fns';
 
@@ -82,7 +83,7 @@ export default function MentorsFilterSection({
   const userRole = session?.user?.role;
   const canBecomeMentor = userRole === 'INSTRUCTOR' || userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
 
-
+  const [becomeInstructorModalOpen, setBecomeInstructorModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -383,14 +384,18 @@ export default function MentorsFilterSection({
               </p>
             </div>
 
-            {/* "Become a mentor" button ONLY visible if user is logged in AND role === INSTRUCTOR */}
+            {/* "Become a mentor" button ONLY visible if user is logged in AND role === INSTRUCTOR | ADMIN | SUPER_ADMIN */}
             {canBecomeMentor && (
               <div className="shrink-0 pt-1">
-                <Link href="/dashboard/settings">
-                  <Button variant="gradient" size="sm" rounded="full" rightIcon={<ArrowRight size={15} />}>
-                    Become a mentor
-                  </Button>
-                </Link>
+                <Button
+                  variant="gradient"
+                  size="sm"
+                  rounded="full"
+                  onClick={() => setBecomeInstructorModalOpen(true)}
+                  rightIcon={<ArrowRight size={15} />}
+                >
+                  Become a mentor
+                </Button>
               </div>
             )}
           </div>
@@ -1069,7 +1074,7 @@ export default function MentorsFilterSection({
               <Button
                 variant="default"
                 size="md"
-                rounded="lg"
+                rounded="full"
                 onClick={applyDraftFilters}
                 disabled={draftFilterCount === 0}
                 className={`text-[13px] font-bold px-4 py-2 ${draftFilterCount === 0 ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''
@@ -1081,6 +1086,11 @@ export default function MentorsFilterSection({
           </motion.aside>
         )}
       </AnimatePresence>
+
+      <BecomeInstructorModal
+        open={becomeInstructorModalOpen}
+        onClose={() => setBecomeInstructorModalOpen(false)}
+      />
     </motion.div>
   );
 }

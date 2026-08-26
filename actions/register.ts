@@ -16,8 +16,8 @@ import { awardPioneerAchievement } from "@/lib/services/achievements.service";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 function getSafeRedirectPath(value?: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return DEFAULT_LOGIN_REDIRECT;
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value === "/auth/continue") {
+    return "/onboarding/intent";
   }
 
   return value;

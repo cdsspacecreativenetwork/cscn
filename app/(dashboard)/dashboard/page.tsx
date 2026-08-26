@@ -5,7 +5,6 @@ import InstructorDashboardClient from '@/components/dashboard/InstructorDashboar
 import StudentDashboardClient from '@/components/dashboard/StudentDashboardClient';
 import { redirect } from 'next/navigation';
 import { getCreatorReadinessByUserId } from '@/lib/trust-gates';
-import { shouldRedirectInstructorToOnboarding } from '@/lib/instructor-onboarding';
 import { db } from '@/lib/db';
 
 export const metadata = {
@@ -16,51 +15,59 @@ export const metadata = {
 export default async function DashboardPage() {
   const user = await currentUser();
 
-  if (!user) {
-    redirect('/signin');
-  }
-  if (!user.id) {
+  if (!user || !user.id) {
     redirect('/signin');
   }
 
-  const role = user.role || 'USER';
+  // Fetch full user record from DB to check role and instructor status
+  const dbUser = await db.user.findUnique({
+    where: { id: user.id },
+    select: {
+      role: true,
+      learningFocus: true,
+      instructorProfileEnabled: true,
+      instructorVerificationStatus: true,
+    },
+  });
+
+  const role = dbUser?.role || user.role || 'USER';
+  const isInstructor = role === 'INSTRUCTOR' || dbUser?.learningFocus === 'INSTRUCTOR' || dbUser?.instructorProfileEnabled === true;
 
   if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
     redirect('/dashboard/admin');
   }
 
-  if (role === 'INSTRUCTOR' && await shouldRedirectInstructorToOnboarding(user.id)) {
-    redirect('/dashboard/profile?setup=instructor');
-  }
-
-  // Role-aware dispatch: instructors get the creator-first view.
-  if (role === 'INSTRUCTOR') {
+  // Instructors ALWAYS get the creator/instructor dashboard view and NEVER go to student /onboarding
+  if (isInstructor) {
     const [data, creatorReadiness] = await Promise.all([
-      getInstructorDashboardData(user.id, role),
+      getInstructorDashboardData(user.id, 'INSTRUCTOR'),
       getCreatorReadinessByUserId(user.id),
     ]);
     return <InstructorDashboardClient data={data} user={user} creatorReadiness={creatorReadiness} />;
-  } else {
-    const [data, instructorApplication] = await Promise.all([
-      getStudentDashboardData(user.id, role),
-      db.instructorApplication.findUnique({
-        where: { userId: user.id },
-        select: { status: true, submittedAt: true, reviewDueAt: true },
-      }),
-    ]);
-    if (data.marketingSettings.launchMode && !data.hasCompletedLearnerOnboarding && !instructorApplication) {
-      redirect('/onboarding');
-    }
-    return (
-      <StudentDashboardClient
-        data={data}
-        user={user}
-        instructorApplication={instructorApplication ? {
-          status: instructorApplication.status,
-          submittedAt: instructorApplication.submittedAt.toISOString(),
-          reviewDueAt: instructorApplication.reviewDueAt.toISOString(),
-        } : null}
-      />
-    );
   }
+
+  // Students ONLY
+  const [data, instructorApplication] = await Promise.all([
+    getStudentDashboardData(user.id, role),
+    db.instructorApplication.findUnique({
+      where: { userId: user.id },
+      select: { status: true, submittedAt: true, reviewDueAt: true },
+    }),
+  ]);
+
+  if (data.marketingSettings.launchMode && !data.hasCompletedLearnerOnboarding && !instructorApplication) {
+    redirect('/onboarding');
+  }
+
+  return (
+    <StudentDashboardClient
+      data={data}
+      user={user}
+      instructorApplication={instructorApplication ? {
+        status: instructorApplication.status,
+        submittedAt: instructorApplication.submittedAt.toISOString(),
+        reviewDueAt: instructorApplication.reviewDueAt.toISOString(),
+      } : null}
+    />
+  );
 }
