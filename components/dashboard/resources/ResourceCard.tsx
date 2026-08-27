@@ -79,7 +79,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   return (
     <Card
       onContextMenu={handleContextMenu}
-      className="gap-5 px-6 md:px-8 [--card-spacing:24px] md:[--card-spacing:32px] transition-all hover:border-[#1C4ED1]/30 group h-full relative select-none"
+      className="gap-5 overflow-visible px-6 md:px-8 [--card-spacing:24px] md:[--card-spacing:32px] transition-all hover:border-[#1C4ED1]/30 group h-full relative select-none"
     >
       {/* Optional Thumbnail Image Header */}
       {resource.thumbnail && (
