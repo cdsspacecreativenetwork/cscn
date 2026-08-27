@@ -1,11 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { Navbar } from '@/components/dashboard/Navbar';
 import { VerificationBanner } from '@/components/dashboard/VerificationBanner';
 import { SessionProvider } from 'next-auth/react';
 import type { Session } from 'next-auth';
+import { RegistrationIntentModal } from '@/components/auth/RegistrationIntentModal';
+import { BecomeInstructorModal } from '@/components/marketing/BecomeInstructorModal';
 
 export function DashboardShell({
   children,
@@ -14,11 +17,25 @@ export function DashboardShell({
   children: React.ReactNode;
   session: Session;
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
-  const [isMidSize, setIsMidSize] = React.useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMidSize, setIsMidSize] = useState(false);
 
-  React.useEffect(() => {
+  const [showIntentModal, setShowIntentModal] = useState(false);
+  const [showInstructorModal, setShowInstructorModal] = useState(false);
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Hard guard: If user has not selected their registration role, redirect to /onboarding/intent
+    const userFocus = (session?.user as any)?.learningFocus;
+    if (searchParams.get('onboarding') === 'intent' || (!userFocus && searchParams.get('onboarding') === '1')) {
+      router.replace('/onboarding/intent');
+    }
+  }, [searchParams, session, router]);
+
+  useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       if (width >= 1024 && width < 1440) {
@@ -37,6 +54,15 @@ export function DashboardShell({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const handleSelectIntent = (intent: 'LEARNER' | 'INSTRUCTOR') => {
+    setShowIntentModal(false);
+    router.replace('/dashboard');
+
+    if (intent === 'INSTRUCTOR') {
+      setShowInstructorModal(true);
+    }
+  };
 
   return (
     <SessionProvider session={session} refetchOnWindowFocus={false}>
@@ -71,6 +97,20 @@ export function DashboardShell({
           </main>
         </div>
       </div>
+
+      <RegistrationIntentModal
+        open={showIntentModal}
+        onClose={() => {
+          setShowIntentModal(false);
+          router.replace('/dashboard');
+        }}
+        onSelectIntent={handleSelectIntent}
+      />
+
+      <BecomeInstructorModal
+        open={showInstructorModal}
+        onClose={() => setShowInstructorModal(false)}
+      />
     </SessionProvider>
   );
 }

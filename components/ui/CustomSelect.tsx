@@ -75,8 +75,17 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     const updatePosition = () => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
+
+      const optionsCount = options.length;
+      const menuHeight = searchable
+        ? Math.min(optionsCount * 44 + 60, 320)
+        : Math.min(optionsCount * 44 + 16, 240);
+
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const shouldFlipUp = spaceBelow < menuHeight && rect.top > menuHeight;
+
       setMenuRect({
-        top: rect.bottom + 8,
+        top: shouldFlipUp ? rect.top - menuHeight - 6 : rect.bottom + 6,
         left: rect.left,
         width: rect.width,
       });
@@ -89,7 +98,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [isOpen]);
+  }, [isOpen, searchable, options.length]);
 
   useEffect(() => {
     if (!isOpen) setQuery("");

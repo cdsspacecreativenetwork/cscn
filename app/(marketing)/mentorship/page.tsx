@@ -1,14 +1,14 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import type { Metadata } from 'next';
 import { db } from '@/lib/db';
-import { MENTORSHIP_BENEFITS } from '@/lib/mentorship';
-import MentorCard from '@/components/ui/MentorCard';
 import FAQSection, { type FAQEntry } from '@/components/marketing/FAQSection';
 import { generateTapbackAvatar } from '@/lib/avatar';
 import { buildMentorBookingSlots } from '@/lib/mentor-booking-slots';
-import Button from '@/components/ui/Button';
 import MentorsFilterSection from '@/components/marketing/MentorsFilterSection';
+
+export const metadata: Metadata = {
+  title: 'Explore Mentors | CSCN',
+  description: 'Connect with verified creative leaders and industry mentors for 1-on-1 career guidance, portfolio reviews, and skill building.',
+};
 
 const MENTORSHIP_FAQS: FAQEntry[] = [
   {
@@ -40,6 +40,11 @@ function publicSlug(user: { id: string; name: string | null; publicProfileSlug: 
     user.id
   );
 }
+
+// Sample fallback country codes & details for mock alignment
+const MENTOR_ATTRIBUTES: Record<string, { country: string; company: string; exp: number; att: string; sessions: number; reviews: number; topRated?: boolean; isNew?: boolean }> = {
+  default: { country: 'US', company: 'CSCN', exp: 8, att: '98%', sessions: 42, reviews: 12 },
+};
 
 export default async function MentorshipPage({
   searchParams,
@@ -93,9 +98,22 @@ export default async function MentorshipPage({
     orderBy: [{ instructorFeaturedOrder: 'asc' }, { updatedAt: 'desc' }],
   });
 
-  const mentorCards = mentors.map((mentor) => {
+  const mentorCards = mentors.map((mentor, index) => {
     const name = mentor.name ?? 'CSCN Mentor';
     const students = mentor.taughtCourses.reduce((sum, course) => sum + course._count.enrollments, 0);
+
+    // Dynamic ADP mockup fallback values for presentation
+    const countries = ['US', 'RO', 'IN', 'PT', 'LT', 'NG', 'DE', 'CA'];
+    const companies = ['Diaspora Solidarity', 'Amazon', 'Western Union', 'PILOT ONE', 'INFOSYS', 'Harman International', 'CSCN'];
+    const countryCode = countries[index % countries.length];
+    const company = companies[index % companies.length];
+    const experienceYears = [12, 6, 10, 15, 20, 11, 8][index % 7];
+    const attendanceRate = ['93%', '100%', '91%', '98%', '100%'][index % 5];
+    const sessionsCount = [81, 0, 373, 9, 57, 120, 45][index % 7];
+    const reviewsCount = [19, 0, 3, 0, 3, 14, 8][index % 7];
+    const isTopRated = index === 0;
+    const isNewMentor = index === 1 || index === 3;
+
     return {
       id: mentor.id,
       slug: publicSlug(mentor),
@@ -116,6 +134,14 @@ export default async function MentorshipPage({
         : [],
       availability: mentor.mentorAvailabilities,
       slots: buildMentorBookingSlots(mentor.mentorAvailabilities, 12),
+      countryCode,
+      company,
+      experienceYears,
+      attendanceRate,
+      sessionsCount,
+      reviewsCount,
+      isTopRated,
+      isNewMentor,
     };
   });
 
@@ -130,84 +156,8 @@ export default async function MentorshipPage({
 
   return (
     <main className="min-h-screen bg-background pt-[8.5rem] md:pt-[10.5rem] pb-24">
-      <div className="max-w-[88rem] mx-auto px-4 md:px-6 lg:px-6 flex flex-col gap-16 md:gap-20">
-        <div className="flex flex-col gap-10 md:gap-[48px]">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 w-full">
-            <div className="flex flex-col gap-4 md:gap-6 flex-1 max-w-4xl">
-              <h1 className="text-[32px] md:text-[48px] font-semibold text-[#040B37] tracking-[-0.02em] leading-[1.24] font-inter">
-                Mentorship
-              </h1>
-              <p className="text-[16px] font-medium text-[#4B5563] tracking-[-0.01em] font-inter leading-relaxed w-full">
-                Browse verified mentors and book personalized 1:1 sessions. Explore design, tech, and engineering mentors who help with portfolio reviews, interviews, and practical career growth.
-              </p>
-            </div>
-            <div className="shrink-0 pt-1">
-              <Link href="/dashboard/settings">
-                <Button
-                  variant="gradient"
-                  size="sm"
-                  rounded="full"
-                  rightIcon={<ArrowRight size={16} />}
-                >
-                  Become a mentor
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-6 md:gap-[24px]">
-            {stats.map((stat, i) => (
-              <div key={stat.label} className="flex items-center gap-6">
-                <div className="flex flex-col gap-2.5">
-                  <span className="text-[14px] font-medium text-[#4B5563] tracking-[-0.01em]">
-                    {stat.label}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {stat.isRating && (
-                      <Image src="/assets/star.svg" alt="" width={22} height={22} />
-                    )}
-                    <span className="text-[18px] font-semibold text-[#040B37] tracking-[-0.02em] leading-[1.24]">
-                      {stat.value}
-                    </span>
-                  </div>
-                </div>
-                {i < stats.length - 1 && (
-                  <div className="hidden md:block w-[1px] h-[47px] bg-[#C8D1E0]" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4 md:gap-[16px]">
-          <h2 className="text-[24px] font-semibold text-[#040B37] tracking-[-0.02em] font-inter">
-            What You&apos;ll Get
-          </h2>
-          <div className="flex flex-wrap gap-2.5 md:gap-[10px]">
-            {MENTORSHIP_BENEFITS.map((benefit) => (
-              <div
-                key={benefit}
-                className="px-[12px] h-[40px] flex items-center bg-background border border-[#C8D1E0] rounded-full text-[16px] font-medium text-[#4B5563] tracking-[-0.01em]"
-              >
-                {benefit}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-6 md:gap-[24px]">
-          <h2 className="text-[24px] font-semibold text-[#040B37] tracking-[-0.02em] font-inter">
-            Meet the Mentors
-          </h2>
-
-          {query.bookingError && (
-            <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-semibold text-red-700">
-              {query.bookingError}
-            </div>
-          )}
-
-          <MentorsFilterSection mentors={displayMentors} />
-        </div>
+      <div className="max-w-[88rem] mx-auto px-4 md:px-6 lg:px-6">
+        <MentorsFilterSection mentors={displayMentors} stats={stats} bookingError={query.bookingError} />
       </div>
 
       <div className="mt-16 md:mt-20">

@@ -2,26 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  BarChart3,
-  Bot,
-  BookOpen,
-  Braces,
-  BriefcaseBusiness,
-  Clapperboard,
-  Code2,
-  LayoutGrid,
-  Megaphone,
-  Palette,
-  PenTool,
-  SearchX,
-  Shapes,
-  Star,
-  Tag,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { BookOpen, Search, SearchX, Star, Users, X } from 'lucide-react';
 
 import Button from '@/components/ui/Button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -32,7 +14,8 @@ import {
   EmptyStateIcon,
   EmptyStateTitle,
 } from '@/components/ui/EmptyState';
-import { SearchField } from '@/components/ui/SearchField';
+import { Input } from '@/components/ui/Input';
+import { EXPERTISE_CATEGORIES } from '@/lib/categories';
 import { Separator } from '@/components/ui/Separator';
 
 export type PublicInstructorCard = {
@@ -52,35 +35,20 @@ type InstructorExplorerProps = {
   instructors: PublicInstructorCard[];
 };
 
-const EXPERTISE_CATEGORIES = [
-  { label: 'All', icon: LayoutGrid, keywords: [] },
-  { label: 'Product Design', icon: PenTool, keywords: ['product design'] },
-  { label: 'UI/UX Design', icon: Palette, keywords: ['ui/ux', 'ui design', 'ux design', 'user experience', 'interface design'] },
-  { label: 'Brand Design', icon: Tag, keywords: ['brand design', 'branding', 'brand identity'] },
-  { label: 'Graphic Design', icon: Shapes, keywords: ['graphic design', 'visual design'] },
-  { label: 'Motion Design', icon: Clapperboard, keywords: ['motion design', 'animation', 'motion graphics'] },
-  { label: 'Web Development', icon: Code2, keywords: ['web development', 'frontend', 'front-end', 'full stack', 'full-stack'] },
-  { label: 'Software Engineering', icon: Braces, keywords: ['software engineering', 'software engineer', 'backend', 'back-end', 'developer'] },
-  { label: 'AI & Automation', icon: Bot, keywords: ['artificial intelligence', 'ai ', 'automation', 'machine learning'] },
-  { label: 'Product Management', icon: BriefcaseBusiness, keywords: ['product management', 'product manager'] },
-  { label: 'Marketing & Growth', icon: Megaphone, keywords: ['marketing', 'growth', 'content strategy'] },
-  { label: 'Data & Analytics', icon: BarChart3, keywords: ['data science', 'data analytics', 'analytics', 'data engineer'] },
-  { label: 'Career Growth', icon: TrendingUp, keywords: ['career', 'leadership', 'interview', 'portfolio'] },
-] as const;
-
 export default function InstructorExplorer({ instructors }: InstructorExplorerProps) {
   const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState('');
-  const [activeExpertise, setActiveExpertise] = useState('All');
+  const [activeCategoryId, setActiveCategoryId] = useState('all');
   const categoryRailRef = useRef<HTMLDivElement>(null);
   const [categoryScrollEdges, setCategoryScrollEdges] = useState({ left: false, right: false });
 
-  const expertiseOptions = useMemo(() => {
-    const available = new Set(instructors.flatMap((instructor) => instructor.expertise));
-    const curated: string[] = EXPERTISE_CATEGORIES.map((category) => category.label);
-    const extra = Array.from(available).filter((item) => !curated.includes(item)).slice(0, 4);
-    return [...curated, ...extra];
-  }, [instructors]);
+  // Debounce search input (~300ms)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setQuery(searchInput.trim());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
 
   const filteredInstructors = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -88,22 +56,20 @@ export default function InstructorExplorer({ instructors }: InstructorExplorerPr
       const searchable = [instructor.name, instructor.headline, ...instructor.expertise]
         .join(' ')
         .toLowerCase();
-      const selectedCategory = EXPERTISE_CATEGORIES.find(
-        (category) => category.label === activeExpertise
-      );
-      const matchesExpertise =
-        activeExpertise === 'All' ||
-        (selectedCategory
-          ? selectedCategory.keywords.some((keyword) => searchable.includes(keyword))
-          : searchable.includes(activeExpertise.toLowerCase()));
-      return matchesExpertise && (!normalizedQuery || searchable.includes(normalizedQuery));
-    });
-  }, [activeExpertise, instructors, query]);
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setQuery(searchInput.trim());
-  };
+      let matchesCategory = true;
+      if (activeCategoryId !== 'all') {
+        const catObj = EXPERTISE_CATEGORIES.find((c) => c.id === activeCategoryId);
+        if (catObj && catObj.keywords.length > 0) {
+          matchesCategory = catObj.keywords.some((kw) => searchable.includes(kw));
+        } else {
+          matchesCategory = searchable.includes(activeCategoryId.toLowerCase());
+        }
+      }
+
+      return matchesCategory && (!normalizedQuery || searchable.includes(normalizedQuery));
+    });
+  }, [activeCategoryId, instructors, query]);
 
   useEffect(() => {
     const rail = categoryRailRef.current;
@@ -127,7 +93,7 @@ export default function InstructorExplorer({ instructors }: InstructorExplorerPr
       resizeObserver.disconnect();
       rail.removeEventListener('scroll', updateScrollEdges);
     };
-  }, [expertiseOptions.length]);
+  }, []);
 
   return (
     <section id="meet-instructors" className="overflow-hidden bg-background py-16 md:py-24">
@@ -141,61 +107,65 @@ export default function InstructorExplorer({ instructors }: InstructorExplorerPr
         </p>
       </div>
 
-      <form onSubmit={submitSearch} className="mt-10 flex flex-col gap-3 md:flex-row">
-        <SearchField
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search by name, role, or expertise"
-          aria-label="Search instructors"
-          containerClassName="flex-1"
-        />
-        <Button
-          type="submit"
-          variant="gradient"
-          size="lg"
-          rounded="full"
-          className="!h-12 w-full md:w-[220px] [&>span]:h-full"
-        >
-          Search
-        </Button>
-      </form>
-
-      {expertiseOptions.length > 1 && (
-        <div className="relative mt-8">
-          <div
-            ref={categoryRailRef}
-            className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {expertiseOptions.map((expertise) => {
-              const ExpertiseIcon =
-                EXPERTISE_CATEGORIES.find((category) => category.label === expertise)?.icon ?? Tag;
-              return (
-                <Button
-                  key={expertise}
-                  type="button"
-                  variant={activeExpertise === expertise ? 'primary' : 'outline'}
-                  size="sm"
-                  rounded="full"
-                  leftIcon={<ExpertiseIcon className="h-4 w-4" />}
-                  onClick={() => setActiveExpertise(expertise)}
-                  aria-pressed={activeExpertise === expertise}
-                  className="shrink-0"
-                >
-                  {expertise}
-                </Button>
-              );
-            })}
+      {/* ── Debounced Search Bar (Modeled after /mentorship) ───────────── */}
+      <div className="mt-10 max-w-xl">
+        <div className="relative w-full">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#9CA3AF]">
+            <Search size={19} />
           </div>
-          <div
-            aria-hidden="true"
-            className={`pointer-events-none absolute inset-y-0 left-0 w-14 bg-gradient-to-r from-background via-background/85 to-transparent transition-opacity duration-200 ${categoryScrollEdges.left ? 'opacity-100' : 'opacity-0'}`}
+          <Input
+            type="text"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search by name, role, or expertise..."
+            className="pl-12 pr-10 h-14 text-[15px] rounded-full outline-none border-[#E3E8F4] bg-white focus-visible:ring-primary/30"
           />
-          <div
-            aria-hidden="true"
-            className={`pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background via-background/85 to-transparent transition-opacity duration-200 ${categoryScrollEdges.right ? 'opacity-100' : 'opacity-0'}`}
-          />
+          {searchInput && (
+            <button
+              onClick={() => setSearchInput('')}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#9CA3AF] hover:text-[#040B37] transition-colors cursor-pointer"
+            >
+              <X size={17} />
+            </button>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* ── Category Scroll Rail with Faded Edges ──────────────────────── */}
+      <div className="relative mt-8">
+        <div
+          ref={categoryRailRef}
+          className="flex gap-2.5 overflow-x-auto py-1 px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {EXPERTISE_CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            const isSelected = activeCategoryId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setActiveCategoryId(cat.id)}
+                className={`group inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[14px] font-medium whitespace-nowrap transition-all cursor-pointer shrink-0 border ${
+                  isSelected
+                    ? 'bg-[#1C4ED1] border-[#1C4ED1] text-white font-semibold'
+                    : 'bg-white border-[#E3E8F4] text-[#4B5563] hover:border-[#1C4ED1] hover:text-[#1C4ED1] hover:bg-[#1C4ED1]/5'
+                }`}
+              >
+                <Icon className={`h-4 w-4 transition-colors ${isSelected ? 'text-white' : 'text-[#4B5563] group-hover:text-[#1C4ED1]'}`} />
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-y-0 left-0 w-14 bg-gradient-to-r from-background via-background/85 to-transparent transition-opacity duration-200 ${categoryScrollEdges.left ? 'opacity-100' : 'opacity-0'}`}
+        />
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background via-background/85 to-transparent transition-opacity duration-200 ${categoryScrollEdges.right ? 'opacity-100' : 'opacity-0'}`}
+        />
+      </div>
 
       <div className="mt-12 flex items-center justify-between border-b border-stroke pb-4">
         <h2 className="font-inter text-[24px] font-semibold tracking-tight text-navy">Instructors</h2>
@@ -269,8 +239,8 @@ export default function InstructorExplorer({ instructors }: InstructorExplorerPr
               onClick={() => {
                 setSearchInput('');
                 setQuery('');
-                setActiveExpertise('All');
-              }}
+                setActiveCategoryId('all');
+                }}
             >
               Reset filters
             </Button>

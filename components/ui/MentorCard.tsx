@@ -1,85 +1,119 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { Briefcase, MessageSquare, Star } from 'lucide-react';
 import { MentorBookingPanel } from '@/components/marketing/MentorBookingPanel';
 import type { Mentor } from '@/lib/mentorship';
-import Button from './Button';
 
 export default function MentorCard(mentor: Mentor) {
-  const { id, slug, name, role, image, courses, students, priceLabel, slots } = mentor;
+  const {
+    id,
+    slug,
+    name,
+    role,
+    image,
+    priceLabel,
+    availability,
+    slots,
+    countryCode = 'US',
+    company,
+    sessionsCount = 42,
+    reviewsCount = 12,
+    experienceYears = 8,
+    attendanceRate = '98%',
+    isTopRated = false,
+    isNewMentor = false,
+  } = mentor;
+
   const [bookingOpen, setBookingOpen] = useState(false);
   const profileUrl = `/instructor/${slug ?? id}`;
+
+  const hasAsap = (availability && availability.length > 0) || (slots && slots.length > 0);
 
   return (
     <>
       <motion.div
         layout
-        whileHover={{ y: -6, boxShadow: '0 20px 40px rgba(4,11,55,0.08)' }}
-        className="group flex w-full flex-row overflow-hidden rounded-[16px] border border-[#C8D1E0] bg-white transition-all duration-300 sm:flex-col"
+        onClick={() => setBookingOpen(true)}
+        className="flex w-full max-w-[270px] mx-auto sm:mx-0 flex-col overflow-hidden rounded-[20px] border border-[#E3E8F4] bg-white p-3 shadow-xs transition-none cursor-pointer"
       >
-        <div className="relative h-auto w-[130px] flex-shrink-0 bg-slate-100 sm:h-[280px] sm:w-full">
+        {/* Padded Portrait Image Container with Overlay Badges */}
+        <div className="relative w-full h-[245px] sm:h-[260px] rounded-[16px] overflow-hidden bg-slate-100 shrink-0">
           <Image
             src={image}
             alt={name}
             fill
-            className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 640px) 130px, 314px"
+            className="object-cover object-top"
+            sizes="(max-width: 640px) 100vw, 270px"
           />
+
+          {/* Top Rated Overlay Badge */}
+          {isTopRated && (
+            <span className="absolute top-2.5 left-2.5 px-3 py-1 bg-white/95 backdrop-blur-md rounded-full text-[11px] font-bold text-[#040B37] shadow-xs border border-white/50">
+              Top rated
+            </span>
+          )}
+
+          {/* Available ASAP Overlay Glassmorphic Badge with Pulsing Emerald Dot */}
+          {hasAsap && (
+            <span className="absolute bottom-2.5 left-2.5 px-2.5 py-1 bg-white/90 backdrop-blur-md rounded-full text-[11px] font-semibold text-[#040B37] flex items-center gap-1.5 shadow-xs border border-[#E3E8F4]">
+              <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse shrink-0" />
+              <span>Available ASAP</span>
+            </span>
+          )}
         </div>
 
-        <div className="flex min-w-0 flex-grow flex-col gap-3 p-3 sm:gap-[16px] sm:p-4">
-          <div className="flex flex-col items-start gap-1 text-left sm:items-center sm:gap-2 sm:text-center">
-            <h3 className="w-full truncate font-inter text-[18px] font-semibold leading-tight tracking-[-0.02em] text-[#040B37] sm:text-[24px] sm:leading-[1.24]">
+        {/* Card Body Details with Comfortable Spacing */}
+        <div className="flex flex-col gap-3.5 pt-3.5 pb-1 px-1 flex-1">
+          {/* Name & Country Code */}
+          <div className="flex items-center gap-2">
+            <h3 className="font-inter text-[16px] font-semibold text-[#040B37] tracking-[-0.01em] truncate">
               {name}
             </h3>
-            <p className="font-inter text-[12px] font-medium tracking-[-0.01em] text-[#4B5563] sm:text-[14px]">
-              {role}
-            </p>
+            <span className="text-[9px] font-bold text-[#9CA3AF] tracking-wider uppercase shrink-0">
+              {countryCode}
+            </span>
           </div>
 
-          <div className="grid w-full grid-cols-2 gap-2 self-stretch border-y border-dashed border-[#E3E8F4] py-3 sm:gap-[18px] sm:px-2">
-            <div className="flex flex-col items-start gap-0.5 sm:items-center sm:gap-2">
-              <span className="text-[14px] font-semibold leading-none text-[#040B37] sm:text-[18px] sm:leading-[1.24]">
-                {courses}
-              </span>
-              <span className="text-[10px] font-medium tracking-[-0.01em] text-[#4B5563] sm:text-[14px]">
-                Courses
-              </span>
-            </div>
-            <div className="flex flex-col items-start gap-0.5 border-l border-dashed border-[#E3E8F4] pl-2 sm:items-center sm:gap-2 sm:pl-0">
-              <span className="text-[14px] font-semibold leading-none text-[#040B37] sm:text-[18px] sm:leading-[1.24]">
-                {students}
-              </span>
-              <span className="text-[10px] font-medium tracking-[-0.01em] text-[#4B5563] sm:text-[14px]">
-                Students
-              </span>
-            </div>
+          {/* Current Role & Company */}
+          <div className="flex items-start gap-2 text-[#4B5563] text-[12px] font-medium leading-snug">
+            <Briefcase size={14} className="text-[#4B5563] shrink-0 mt-0.5" />
+            <span className="line-clamp-2">
+              {role}{company ? ` at ${company}` : ''}
+            </span>
           </div>
 
-          <div className="flex w-full flex-nowrap items-center justify-center gap-1.5 sm:gap-2">
-            <Button
-              variant="gradient"
-              type="button"
-              rounded="full"
-              size="sm"
-              hasBorder={false}
-              onClick={() => setBookingOpen(true)}
-              className="min-w-0 flex-1 cursor-pointer items-center justify-center whitespace-nowrap transition hover:bg-[#163fa3] active:scale-[0.98]"
-            >
-              Book session
-            </Button>
-            <Link
-              href={profileUrl}
-              className="group/btn inline-flex h-[36px] min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-full border border-[#E3E8F4] px-2 font-inter text-[11px] font-medium text-[#4B5563] transition-all hover:bg-slate-50 sm:h-[40px] sm:px-3 sm:text-[12px] lg:px-4"
-            >
-              View profile
-              <ArrowRight size={14} className="shrink-0 transition-transform group-hover/btn:translate-x-1 sm:h-4 sm:w-4" />
-            </Link>
+          {/* Sessions & Reviews OR New Mentor Badge */}
+          <div>
+            {isNewMentor ? (
+              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#040B37]">
+                <Star size={14} className="text-[#F59E0B] fill-[#F59E0B]" />
+                <span>New mentor</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#4B5563]">
+                <MessageSquare size={14} className="text-[#9CA3AF] shrink-0" />
+                <span>
+                  <strong className="text-[#040B37] font-semibold">{sessionsCount} sessions</strong> ({reviewsCount} reviews)
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Base Stats Box (Full Un-abbreviated Labels with Single-Line "Avg. Attendance") */}
+          <div className="mt-auto pt-1">
+            <div className="bg-[#F8FAFC] border border-[#E3E8F4]/80 rounded-md p-2.5 sm:p-3 grid grid-cols-[40%_60%] gap-1.5 sm:gap-2">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-[10px] font-semibold text-[#9CA3AF] capitalize tracking-wider truncate">Experience</span>
+                <span className="text-[12px] font-bold text-[#040B37]">{experienceYears} years</span>
+              </div>
+              <div className="flex flex-col gap-0.5 border-l border-[#E3E8F4] pl-2.5 sm:pl-3 min-w-0">
+                <span className="text-[10px] font-semibold text-[#9CA3AF] capitalize tracking-wider whitespace-nowrap truncate">Avg. Attendance</span>
+                <span className="text-[12px] font-bold text-[#040B37]">{attendanceRate}</span>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>
