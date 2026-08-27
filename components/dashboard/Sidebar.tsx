@@ -38,6 +38,13 @@ import {
   X,
 } from 'lucide-react';
 import { hasAnyAdminPermission, type AdminPermissionKey } from '@/lib/admin-permissions';
+import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type IconComponent = React.ComponentType<{
   size?: number;
@@ -52,6 +59,8 @@ type NavItem = {
   Icon?: IconComponent;
   icon?: string;
   permissions?: AdminPermissionKey[];
+  // Concise label used only by the narrow learner rail; full `name` stays in the tooltip.
+  short?: string;
 };
 
 const adminOperationItems: NavItem[] = [
@@ -121,12 +130,12 @@ const instructorAccountItems: NavItem[] = [
 
 const learnerItems: NavItem[] = [
   { name: 'Overview', href: '/dashboard', Icon: LayoutDashboard },
-  { name: 'My Cohorts', href: '/dashboard/cohorts', Icon: GraduationCap },
-  { name: 'Career Hub', href: '/dashboard/career', Icon: BriefcaseBusiness },
-  { name: 'Organizations', href: '/dashboard/organizations', Icon: Building2 },
-  { name: 'My Learning', href: '/dashboard/courses', Icon: BookOpen },
+  { name: 'My Cohorts', short: 'Cohorts', href: '/dashboard/cohorts', Icon: GraduationCap },
+  { name: 'Career Hub', short: 'Career', href: '/dashboard/career', Icon: BriefcaseBusiness },
+  { name: 'Organizations', short: 'Orgs', href: '/dashboard/organizations', Icon: Building2 },
+  { name: 'My Learning', short: 'Learning', href: '/dashboard/courses', Icon: BookOpen },
   { name: 'Schedule', href: '/dashboard/schedule', Icon: CalendarDays },
-  { name: 'My Progress', href: '/dashboard/progress', Icon: ClipboardList },
+  { name: 'My Progress', short: 'Progress', href: '/dashboard/progress', Icon: ClipboardList },
   { name: 'Resources', href: '/dashboard/resources', Icon: Library },
 ];
 
@@ -242,6 +251,65 @@ function SidebarSection({
   );
 }
 
+function RailIcon({ item, active }: { item: NavItem; active: boolean }) {
+  if (item.Icon) {
+    return (
+      <item.Icon
+        style={{ width: 22, height: 22 }}
+        strokeWidth={1.85}
+        className="shrink-0 text-current"
+      />
+    );
+  }
+  return (
+    <span className="relative block shrink-0" style={{ width: 22, height: 22 }}>
+      <Image
+        src={item.icon ?? '/assets/dashboard/user/dashboard-square-03.svg'}
+        alt=""
+        fill
+        className={cn('object-contain transition-all', active ? 'brightness-0 opacity-100' : 'brightness-0 opacity-60')}
+      />
+    </span>
+  );
+}
+
+// ADPList-style rail item: icon stacked above a small caption. Used for the learner rail.
+function RailItem({
+  item,
+  active,
+  onClick,
+}: {
+  item: NavItem;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Link
+            href={item.href}
+            onClick={onClick}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'flex flex-col items-center justify-center gap-1 rounded-[10px] px-1 py-2.5 transition-colors',
+              active ? 'bg-[#1C4ED1]/5 text-[#1C4ED1]' : 'text-[#4B5563] hover:bg-[#F4F6FB]',
+            )}
+          >
+            <RailIcon item={item} active={active} />
+            <span className="line-clamp-2 w-full text-center text-[10px] font-medium leading-tight break-words">
+              {item.short ?? item.name}
+            </span>
+          </Link>
+        }
+      />
+      <TooltipContent side="right" sideOffset={8}>
+        {item.name}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, setIsCollapsed }) => {
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -292,6 +360,90 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
       cancelled = true;
     };
   }, [session?.user?.id, isAdmin, isInstructor]);
+
+  const isLearner = !isAdmin && !isInstructor;
+
+  // Learner view uses an ADPList-style permanent narrow rail (icon above a small
+  // caption), independent of the admin/instructor collapse behaviour.
+  if (isLearner) {
+    return (
+      <TooltipProvider delay={300}>
+        <aside
+          className={cn(
+            'flex h-screen flex-col border-r border-[#E3E8F4] bg-white transition-transform duration-300 ease-in-out',
+            isOpen
+              ? 'fixed inset-y-0 left-0 z-[70] w-[84px] translate-x-0'
+              : 'fixed inset-y-0 -translate-x-full lg:static lg:translate-x-0',
+            'lg:sticky lg:top-0 lg:z-[50] lg:w-[clamp(76px,5.2vw,88px)]',
+          )}
+        >
+          <div className="relative flex h-[clamp(60px,4.17vw,72px)] shrink-0 items-center justify-center border-b border-[#E3E8F4] px-2">
+            <Link
+              href="/"
+              className="block shrink-0 rounded-sm bg-[#D7EAFF] p-[clamp(4px,0.5vw,8px)] transition-opacity hover:opacity-90"
+            >
+              <Image
+                src="/assets/dashboard/user/Group 162.svg"
+                alt="CSCN Logo"
+                width={32}
+                height={32}
+                className="h-[clamp(22px,1.7vw,30px)] w-[clamp(22px,1.7vw,30px)] object-contain"
+              />
+            </Link>
+            <button
+              onClick={onClose}
+              className="absolute right-1 top-3 p-1.5 text-[#9CA3AF] transition-colors hover:text-[#040B37] lg:hidden"
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="custom-scrollbar flex-1 overflow-y-auto px-2 py-4">
+            <nav className="flex flex-col gap-1">
+              {learnerMainItems.map((item) => (
+                <RailItem
+                  key={item.name}
+                  item={item}
+                  active={isActivePath(pathname, item.href)}
+                  onClick={handleNavClick}
+                />
+              ))}
+              <div className="mx-auto my-2 h-px w-8 bg-[#E3E8F4]" />
+              {learnerAccountItems.map((item) => (
+                <RailItem
+                  key={item.name}
+                  item={item}
+                  active={isActivePath(pathname, item.href)}
+                  onClick={handleNavClick}
+                />
+              ))}
+            </nav>
+          </div>
+
+          <div className="shrink-0 border-t border-[#E3E8F4] p-2">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] px-1 py-2.5 text-[#EF4444] transition-colors hover:bg-red-50"
+                  >
+                    <LogOut style={{ width: 22, height: 22 }} strokeWidth={1.85} className="shrink-0" />
+                    <span className="w-full truncate text-center text-[10px] font-medium leading-tight">Logout</span>
+                  </button>
+                }
+              />
+              <TooltipContent side="right" sideOffset={8}>
+                Log out
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </aside>
+      </TooltipProvider>
+    );
+  }
 
   return (
     <aside

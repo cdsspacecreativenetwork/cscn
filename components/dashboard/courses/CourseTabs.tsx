@@ -79,7 +79,7 @@ export const CourseTabs = ({ lessonOverview, resources }: CourseTabsProps) => {
                 href={r.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="border border-stroke rounded-[14px] p-6 lg:p-8 flex flex-col gap-6 hover:shadow-md transition-all group cursor-pointer"
+                className="border border-stroke rounded-[14px] p-6 lg:p-8 flex flex-col gap-6 transition-all group cursor-pointer"
               >
                 <div className="w-12 h-12 bg-primary/4 rounded-lg flex items-center justify-center shrink-0">
                   {r.type === 'PDF' ? <PdfIcon /> : <LinkIcon />}

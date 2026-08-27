@@ -18,6 +18,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { SettingsToggle } from './SettingsToggle';
+import { Input } from '@/components/ui/input';
 import { signOut } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { ConnectedAccountsSettings } from './ConnectedAccountsSettings';
@@ -431,13 +432,13 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
                   </p>
                 )}
                 <div className="relative">
-                  <input
+                  <Input
                     type={showCurrentPassword ? "text" : "password"}
                     required={hasPassword}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder={hasPassword ? "Enter current password" : "Leave blank for OAuth accounts"}
-                    className="w-full px-4 py-3 pr-11 rounded-[10px] border border-[#E3E8F4] text-[13px] font-semibold text-[#040B37] placeholder-gray-400 focus:outline-none focus:border-[#1C4ED1] bg-white"
+                    className="pr-11"
                   />
                   <button
                     type="button"
@@ -454,7 +455,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
                   New Password
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showNewPassword ? "text" : "password"}
                     required
                     value={newPassword}
@@ -462,7 +463,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
                     onFocus={() => setIsNewPasswordFocused(true)}
                     onBlur={() => setIsNewPasswordFocused(false)}
                     placeholder="Minimum 8 characters"
-                    className="w-full px-4 py-3 pr-11 rounded-[10px] border border-[#E3E8F4] text-[13px] font-semibold text-[#040B37] placeholder-gray-400 focus:outline-none focus:border-[#1C4ED1] bg-white"
+                    className="pr-11"
                   />
                   <button
                     type="button"
@@ -505,13 +506,13 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
                   Confirm New Password
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showConfirmPassword ? "text" : "password"}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-type new password"
-                    className="w-full px-4 py-3 pr-11 rounded-[10px] border border-[#E3E8F4] text-[13px] font-semibold text-[#040B37] placeholder-gray-400 focus:outline-none focus:border-[#1C4ED1] bg-white"
+                    className="pr-11"
                   />
                   <button
                     type="button"
@@ -527,14 +528,14 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
                 <label className="text-[12px] font-extrabold text-[#4B5563] block mb-1.5">
                   6-Digit Verification Code
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   maxLength={6}
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="Enter 6-digit code sent to email"
-                  className="w-full px-4 py-3 rounded-[10px] border border-[#E3E8F4] text-[13px] font-semibold text-[#040B37] placeholder-gray-400 focus:outline-none focus:border-[#1C4ED1] bg-white tracking-widest"
+                  className="tracking-widest"
                 />
               </div>
 
@@ -702,13 +703,13 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
                 <label className="text-[12px] font-extrabold text-[#4B5563] block mb-1.5">
                   Confirm Registered Email Address
                 </label>
-                <input
+                <Input
                   type="email"
                   required
                   value={deleteEmailConfirm}
                   onChange={(e) => setDeleteEmailConfirm(e.target.value)}
                   placeholder="Enter your email to confirm deletion"
-                  className="w-full px-4 py-3 rounded-[10px] border border-[#E3E8F4] text-[13px] font-semibold text-[#040B37] placeholder-gray-400 focus:outline-none focus:border-rose-500 bg-white"
+                  className="focus-visible:border-rose-500 focus-visible:ring-rose-500/20"
                 />
               </div>
 
@@ -791,13 +792,13 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ initialData, o
                 <label className="text-[12px] font-extrabold text-[#4B5563] block">
                   Verify Authenticator 6-Digit PIN Code
                 </label>
-                <input
+                <Input
                   type="text"
                   maxLength={6}
                   value={totpCode}
                   onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="Enter 6-digit pin code"
-                  className="w-full text-center tracking-widest text-[20px] font-black px-4 py-2.5 rounded-[10px] border border-[#E3E8F4] text-[#040B37] placeholder:text-[13px] placeholder:font-bold placeholder:tracking-normal placeholder-gray-400 focus:outline-none focus:border-[#1C4ED1] font-mono"
+                  className="h-11 text-center text-[20px] font-black tracking-widest font-mono placeholder:text-[13px] placeholder:font-bold placeholder:tracking-normal"
                 />
               </div>
 

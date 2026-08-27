@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, Circle, UserRound } from 'lucide-react';
 import type { CreatorReadiness } from '@/lib/trust-gates';
+import { Card, CardAction, CardContent, CardHeader } from '@/components/ui/Card';
 
 export default function CreatorReadinessCard({ readiness }: { readiness: CreatorReadiness }) {
   if (readiness.canSubmitForReview) return null;
@@ -10,8 +11,8 @@ export default function CreatorReadinessCard({ readiness }: { readiness: Creator
   const completed = readiness.items.filter((item) => item.complete).length;
 
   return (
-    <div className="bg-white border border-[#E3E8F4] rounded-[12px] p-5 md:p-6 shadow-sm">
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
+    <Card>
+      <CardHeader>
         <div className="min-w-0">
           <div className="inline-flex items-center gap-2 rounded-[8px] bg-[#EEF3FF] px-3 py-1 text-[12px] font-bold text-[#1C4ED1]">
             <UserRound size={14} />
@@ -25,12 +26,15 @@ export default function CreatorReadinessCard({ readiness }: { readiness: Creator
           </p>
         </div>
 
-        <div className="shrink-0 rounded-[8px] border border-[#1C4ED1]/15 bg-[#F8FAFF] px-3 py-2 text-[13px] font-bold text-[#1C4ED1]">
-          {completed} of {readiness.items.length} complete
-        </div>
-      </div>
+        <CardAction className="self-start">
+          <div className="shrink-0 rounded-[8px] border border-[#1C4ED1]/15 bg-[#F8FAFF] px-3 py-2 text-[13px] font-bold text-[#1C4ED1]">
+            {completed} of {readiness.items.length} complete
+          </div>
+        </CardAction>
+      </CardHeader>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <CardContent>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         {readiness.items.map((item) => {
           const Icon = item.complete ? CheckCircle2 : item.id === 'email' ? AlertTriangle : Circle;
           const content = (
@@ -59,7 +63,8 @@ export default function CreatorReadinessCard({ readiness }: { readiness: Creator
             </Link>
           );
         })}
-      </div>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

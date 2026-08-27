@@ -390,27 +390,27 @@ export function ProgressHubClient({
     } else {
       switch (ach.name) {
         case "First Step":
-          themeClass = "bg-gradient-to-br from-[#DBE5FF]/85 to-[#DBE5FF]/45 border-[#C5D5FF] text-[#040B37] hover:shadow-lg hover:border-[#1C4ED1]/40";
+          themeClass = "bg-gradient-to-br from-[#DBE5FF]/85 to-[#DBE5FF]/45 border-[#C5D5FF] text-[#040B37] hover:border-[#1C4ED1]/40";
           highlightClass = "text-[#1C4ED1]";
           break;
         case "Curious Mind":
-          themeClass = "bg-gradient-to-br from-[#DDF5E6]/85 to-[#DDF5E6]/45 border-[#C4ECD2] text-[#040B37] hover:shadow-lg hover:border-[#10B981]/40";
+          themeClass = "bg-gradient-to-br from-[#DDF5E6]/85 to-[#DDF5E6]/45 border-[#C4ECD2] text-[#040B37] hover:border-[#10B981]/40";
           highlightClass = "text-[#10B981]";
           break;
         case "7-Day Streak":
-          themeClass = "bg-gradient-to-br from-[#FFEBD3]/85 to-[#FFEBD3]/45 border-[#FCD2A9] text-[#040B37] hover:shadow-lg hover:border-[#F59E0B]/40";
+          themeClass = "bg-gradient-to-br from-[#FFEBD3]/85 to-[#FFEBD3]/45 border-[#FCD2A9] text-[#040B37] hover:border-[#F59E0B]/40";
           highlightClass = "text-[#F59E0B]";
           break;
         case "30-Day Streak":
-          themeClass = "bg-gradient-to-br from-[#F3E8FF]/85 to-[#F3E8FF]/45 border-[#E9D5FF] text-[#040B37] hover:shadow-lg hover:border-purple-400/40";
+          themeClass = "bg-gradient-to-br from-[#F3E8FF]/85 to-[#F3E8FF]/45 border-[#E9D5FF] text-[#040B37] hover:border-purple-400/40";
           highlightClass = "text-purple-600";
           break;
         case "Course Completer":
-          themeClass = "bg-gradient-to-br from-[#E3F5FF]/85 to-[#E3F5FF]/45 border-[#C5EBFF] text-[#040B37] hover:shadow-lg hover:border-blue-400/40";
+          themeClass = "bg-gradient-to-br from-[#E3F5FF]/85 to-[#E3F5FF]/45 border-[#C5EBFF] text-[#040B37] hover:border-blue-400/40";
           highlightClass = "text-blue-500";
           break;
         default: // Creator stats or published courses
-          themeClass = "bg-gradient-to-br from-slate-900 to-slate-950 border-slate-800 text-white hover:shadow-lg hover:border-[#1C4ED1]/40";
+          themeClass = "bg-gradient-to-br from-slate-900 to-slate-950 border-slate-800 text-white hover:border-[#1C4ED1]/40";
           highlightClass = "text-blue-400";
       }
     }
@@ -695,7 +695,7 @@ export function ProgressHubClient({
             {/* 2. Learner Streak & Stats Overview Widget */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Active Streak Card */}
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group">
                 <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-4 translate-y-4 group-hover:scale-110 transition-transform duration-300">
                   <Flame size={160} />
                 </div>
@@ -1047,7 +1047,7 @@ export function ProgressHubClient({
                   {coursesProgress.map((course) => (
                     <div
                       key={course.id}
-                      className="bg-white rounded-2xl border border-[#E3E8F4] p-6 shadow-sm hover:shadow-md transition-all hover:border-[#1C4ED1]/20 flex flex-col justify-between gap-5 group"
+                      className="bg-white rounded-2xl border border-[#E3E8F4] p-6 shadow-sm transition-all hover:border-[#1C4ED1]/20 flex flex-col justify-between gap-5 group"
                     >
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">

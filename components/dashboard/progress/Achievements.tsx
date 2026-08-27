@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { getAchievements, Achievement } from '@/lib/progressService';
+import { Card } from '@/components/ui/Card';
 
 export const Achievements = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -25,21 +26,21 @@ export const Achievements = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-12 bg-white rounded-[16px] border border-[#E3E8F4]">
+      <Card className="items-center justify-center px-12 [--card-spacing:48px]">
         <Loader2 className="w-8 h-8 text-[#1C4ED1] animate-spin" />
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white rounded-[16px] border border-[#E3E8F4] p-6 md:p-8">
+    <Card className="px-6 md:px-8 [--card-spacing:24px] md:[--card-spacing:32px]">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
         {achievements.map((achievement) => (
           <div 
             key={achievement.id}
             className={`h-[128px] rounded-[12px] border border-[#E3E8F4] flex flex-col items-center justify-center gap-3 transition-all ${
               achievement.isUnlocked 
-                ? 'bg-white opacity-100 shadow-sm hover:shadow-md hover:border-[#1C4ED1]/30 cursor-default' 
+                ? 'bg-white opacity-100 shadow-sm hover:border-[#1C4ED1]/30 cursor-default'
                 : 'bg-[#F9FAFB] opacity-60 grayscale cursor-not-allowed'
             }`}
           >
@@ -54,6 +55,6 @@ export const Achievements = () => {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 };

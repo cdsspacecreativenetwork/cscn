@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { X, Upload, Link as LinkIcon, Image as ImageIcon, FileText, Loader2, CheckCircle2, Globe, GraduationCap, DollarSign } from 'lucide-react';
 import { createMarketplaceResourceAction, updateMarketplaceResourceAction } from '@/actions/marketplace-resources';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { Input } from '@/components/ui/input';
 import { Resource, InstructorCourseOption } from '@/lib/resourceService';
 
 interface CreateResourceModalProps {
@@ -251,12 +252,12 @@ export const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                 <label className="block text-[14px] font-bold text-[#040B37]">
                   Resource Title <span className="text-red-500">*</span>
                 </label>
-                <input
+                <Input
                   type="text"
                   placeholder="e.g. Design Systems Cheat Sheet & Guidelines"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-[#E3E8F4] rounded-[10px] px-4 py-3 text-[15px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/10 transition-all font-medium"
+                  className="h-11"
                 />
               </div>
 
@@ -304,12 +305,12 @@ export const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                   </label>
                   <div className="relative">
                     <LinkIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-                    <input
+                    <Input
                       type="url"
                       placeholder="https://figma.com/file/... or https://github.com/..."
                       value={linkUrl}
                       onChange={(e) => setLinkUrl(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-[#E3E8F4] rounded-[10px] py-3.5 pl-11 pr-4 text-[14px] text-[#040B37] outline-none focus:border-[#1C4ED1] transition-all font-medium"
+                      className="h-11 pl-11"
                     />
                   </div>
                 </div>
@@ -560,13 +561,13 @@ export const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                       <label className="block text-[13px] font-bold text-[#040B37]">
                         Resource Price (NGN) <span className="text-red-500">*</span>
                       </label>
-                      <input
+                      <Input
                         type="number"
                         min="1"
                         placeholder="e.g. 5000 or 100"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
-                        className="w-full bg-[#F8FAFC] border border-[#E3E8F4] rounded-[10px] px-4 py-3 text-[14px] text-[#040B37] font-medium outline-none focus:border-[#1C4ED1]"
+                        className="h-11"
                       />
                     </div>
                   )}

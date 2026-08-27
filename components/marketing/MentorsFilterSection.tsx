@@ -5,7 +5,7 @@ import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, Sparkles, Pale
 import MentorCard from '@/components/ui/MentorCard';
 import type { Mentor } from '@/lib/mentorship';
 import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/ui/input';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: null },

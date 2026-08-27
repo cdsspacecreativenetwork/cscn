@@ -9,6 +9,7 @@ import {
   Tooltip 
 } from 'recharts';
 import { getCompletionStats, CompletionStats } from '@/lib/progressService';
+import { Card } from '@/components/ui/Card';
 
 export const CompletionDonut = () => {
   const [stats, setStats] = useState<CompletionStats | null>(null);
@@ -59,12 +60,12 @@ export const CompletionDonut = () => {
 
   if (isLoading || !stats) {
     return (
-      <div className="bg-white rounded-[16px] border border-[#E3E8F4] h-[480px] shadow-sm transition-all hover:shadow-md">
+      <Card className="h-[480px] [--card-spacing:0px] transition-all">
         <div className="px-8 py-6 border-b border-[#E3E8F4]">
           <h3 className="text-[18px] md:text-[20px] font-bold text-[#040B37]">Course Completion</h3>
         </div>
         <DonutSkeleton />
-      </div>
+      </Card>
     );
   }
 
@@ -74,7 +75,7 @@ export const CompletionDonut = () => {
   ];
 
   return (
-    <div className="bg-white rounded-[16px] border border-[#E3E8F4] overflow-hidden flex flex-col h-[480px] shadow-sm transition-all hover:shadow-md">
+    <Card className="h-[480px] [--card-spacing:0px] transition-all">
       {/* Card Header */}
       <div className="px-8 py-6 border-b border-[#E3E8F4]">
         <h3 className="text-[18px] md:text-[20px] font-bold text-[#040B37]">Course Completion</h3>
@@ -140,6 +141,6 @@ export const CompletionDonut = () => {
           ))}
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
