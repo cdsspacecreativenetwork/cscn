@@ -29,7 +29,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
   className = ""
 }) => {
   return (
-    <div className={`flex flex-col bg-white border ${isCurrent ? 'border-[#1C4ED1] ring-1 ring-[#1C4ED1]' : 'border-[#E3E8F4]'} rounded-[16px] p-8 transition-all hover:shadow-md ${className}`}>
+    <div className={`flex flex-col bg-white border ${isCurrent ? 'border-[#1C4ED1] ring-1 ring-[#1C4ED1]' : 'border-[#E3E8F4]'} rounded-[16px] p-8 transition-all ${className}`}>
       <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="text-[20px] font-bold text-[#040B37] tracking-tight mb-1">{name}</h3>

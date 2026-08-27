@@ -19,6 +19,7 @@ import { EventCard, type ScheduleEvent } from '@/components/dashboard/schedule/E
 import { ScheduleDatePicker } from '@/components/dashboard/instructor/ScheduleDatePicker';
 import { ScheduleTimeCombobox } from '@/components/dashboard/instructor/ScheduleTimeCombobox';
 import Button from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import {
   buildMentorBookingSlotsForDate,
   hasMentorAvailabilityOnDate,
@@ -339,10 +340,10 @@ export function ScheduleClient({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((item) => (
-          <div key={item.label} className="rounded-[14px] border border-[#E3E8F4] bg-white p-5 shadow-sm">
+          <Card key={item.label} className="rounded-[14px] px-5 [--card-spacing:20px]">
             <p className="text-[13px] font-semibold text-[#9CA3AF]">{item.label}</p>
             <p className="mt-5 text-[30px] font-bold leading-none text-[#040B37]">{item.value}</p>
-          </div>
+          </Card>
         ))}
       </div>
 
@@ -352,7 +353,7 @@ export function ScheduleClient({
         </aside>
 
         <section className="flex min-w-0 flex-col gap-5 lg:col-span-3">
-          <div className="flex flex-col gap-4 rounded-[16px] border border-[#E3E8F4] bg-white p-4 shadow-sm md:p-5">
+          <Card className="gap-4 px-4 md:px-5 [--card-spacing:16px] md:[--card-spacing:20px]">
             <div className="flex flex-col gap-1">
               <h2 className="text-[18px] font-bold tracking-tight text-[#040B37]">
                 {activeView === 'Week' ? `Week of ${formatRange(visibleRange.start, visibleRange.end)}` : format(selectedDate, 'MMMM yyyy')}
@@ -379,7 +380,7 @@ export function ScheduleClient({
                 </button>
               ))}
             </div>
-          </div>
+          </Card>
 
           {events.length > 0 ? (
             events.map((event) => (

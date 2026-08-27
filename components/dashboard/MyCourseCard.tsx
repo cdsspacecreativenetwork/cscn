@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { Card } from '@/components/ui/Card';
 
 export type CourseStatus = 'In Progress' | 'Completed';
 
@@ -49,10 +50,8 @@ export default function MyCourseCard({
 
   return (
     <Link href={href} className="block h-full group">
-      <motion.div
-        whileHover={{ y: -4 }}
-        className="bg-white rounded-[12px] border border-stroke overflow-hidden flex flex-col h-full shadow-sm hover:shadow-md transition-all duration-300 px-[8px] pt-[8px] pb-[16px] gap-[16px]"
-      >
+      <motion.div whileHover={{ y: -4 }} className="h-full">
+        <Card className="h-full gap-[16px] px-[8px] pt-[8px] pb-[16px] [--card-spacing:0px] transition-all duration-300">
         <div className="relative h-[216px] w-full overflow-hidden rounded-[4px] shrink-0">
           <Image src={image} alt={title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
           <div className={`absolute top-2 right-2 px-[8px] py-[6px] rounded-[10px] text-[12px] font-semibold text-white capitalize tracking-[-0.24px] ${statusConfig[status].bg}`}>
@@ -100,6 +99,7 @@ export default function MyCourseCard({
             </span>
           </div>
         </div>
+        </Card>
       </motion.div>
     </Link>
   );
