@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Upload, Check, ArrowRight, ArrowLeft, User as UserIcon, AlertCircle, ChevronDown, ExternalLink, Plus, Loader2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -33,7 +33,7 @@ import {
 import { WORLD_COUNTRIES } from '@/lib/countries';
 import { EXPERTISE_CATEGORIES, INDUSTRY_SECTORS } from '@/lib/categories';
 
-const LOCAL_STORAGE_KEY = 'cscn_instructor_onboarding_draft';
+import { uploadAvatar } from '@/actions/upload';
 
 // Sample disciplines list
 const DISCIPLINE_OPTIONS = [
@@ -137,6 +137,7 @@ export default function InstructorOnboardingClient() {
 
   // Step 5 Form State (Udemy: "Share your knowledge")
   const [teachingExperience, setTeachingExperience] = useState<string>('');
+  const [otherTeachingExperience, setOtherTeachingExperience] = useState<string>('');
 
   // Step 6 Form State (Udemy: "Create a course")
   const [videoReadiness, setVideoReadiness] = useState<string>('');
@@ -144,6 +145,9 @@ export default function InstructorOnboardingClient() {
   // Step 7 Form State (Udemy: "Expand your reach")
   const [audienceSize, setAudienceSize] = useState<string>('');
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
+  const [submitError, setSubmitError] = useState<string>('');
+
+  const userDraftKey = session?.user?.id ? `cscn_instructor_onboarding_draft_${session.user.id}` : null;
 
   // Lock body scroll when any dropdown / popover is open
   useEffect(() => {
@@ -157,44 +161,51 @@ export default function InstructorOnboardingClient() {
     };
   }, [countryOpen, industryOpen]);
 
-  // 1. Load saved draft from localStorage or session on mount
+  // 1. Purge legacy localStorage keys on mount & load server draft
   useEffect(() => {
-    try {
-      const savedDraft = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedDraft) {
-        const parsed = JSON.parse(savedDraft);
-        if (parsed.profilePhotoUrl) setProfilePhotoUrl(parsed.profilePhotoUrl);
-        if (parsed.fullName) setFullName(parsed.fullName);
-        if (parsed.gender) setGender(parsed.gender);
-        if (parsed.country) setCountry(parsed.country);
-        if (parsed.company) setCompany(parsed.company);
-        if (parsed.jobTitle) setJobTitle(parsed.jobTitle);
-        if (parsed.expYears) setExpYears(parsed.expYears);
-        if (parsed.expMonths) setExpMonths(parsed.expMonths);
-        if (parsed.linkedinHandle) setLinkedinHandle(parsed.linkedinHandle);
-        if (parsed.portfolioUrl) setPortfolioUrl(parsed.portfolioUrl);
-        if (parsed.primaryExpertise) setPrimaryExpertise(parsed.primaryExpertise);
-        if (parsed.secondaryExpertise) {
-          setSecondaryExpertise(parsed.secondaryExpertise);
-          setShowSecondaryExpertise(true);
+    async function loadServerDraft() {
+      try {
+        const res = await fetch('/api/instructor/onboarding/draft');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.draft) {
+          const parsed = data.draft;
+          if (parsed.profilePhotoUrl) setProfilePhotoUrl(parsed.profilePhotoUrl);
+          if (parsed.fullName) setFullName(parsed.fullName);
+          if (parsed.gender) setGender(parsed.gender);
+          if (parsed.country) setCountry(parsed.country);
+          if (parsed.company) setCompany(parsed.company);
+          if (parsed.jobTitle) setJobTitle(parsed.jobTitle);
+          if (parsed.expYears) setExpYears(parsed.expYears);
+          if (parsed.expMonths) setExpMonths(parsed.expMonths);
+          if (parsed.linkedinHandle) setLinkedinHandle(parsed.linkedinHandle);
+          if (parsed.portfolioUrl) setPortfolioUrl(parsed.portfolioUrl);
+          if (parsed.primaryExpertise) setPrimaryExpertise(parsed.primaryExpertise);
+          if (parsed.secondaryExpertise) {
+            setSecondaryExpertise(parsed.secondaryExpertise);
+            setShowSecondaryExpertise(true);
+          }
+          if (parsed.industrySector) setIndustrySector(parsed.industrySector);
+          if (parsed.selectedDisciplines) setSelectedDisciplines(parsed.selectedDisciplines);
+          if (parsed.selectedTools) setSelectedTools(parsed.selectedTools);
+          if (parsed.bio) setBio(parsed.bio);
+          if (parsed.teachingExperience) setTeachingExperience(parsed.teachingExperience);
+          if (parsed.otherTeachingExperience) setOtherTeachingExperience(parsed.otherTeachingExperience);
+          if (parsed.videoReadiness) setVideoReadiness(parsed.videoReadiness);
+          if (parsed.audienceSize) setAudienceSize(parsed.audienceSize);
+          if (parsed.currentStep && (parsed.currentStep >= 1 && parsed.currentStep <= 7)) {
+            setCurrentStep(parsed.currentStep as 1 | 2 | 3 | 4 | 5 | 6 | 7);
+          }
         }
-        if (parsed.industrySector) setIndustrySector(parsed.industrySector);
-        if (parsed.selectedDisciplines) setSelectedDisciplines(parsed.selectedDisciplines);
-        if (parsed.selectedTools) setSelectedTools(parsed.selectedTools);
-        if (parsed.bio) setBio(parsed.bio);
-        if (parsed.teachingExperience) setTeachingExperience(parsed.teachingExperience);
-        if (parsed.videoReadiness) setVideoReadiness(parsed.videoReadiness);
-        if (parsed.audienceSize) setAudienceSize(parsed.audienceSize);
-        if (parsed.currentStep && (parsed.currentStep >= 1 && parsed.currentStep <= 7)) {
-          setCurrentStep(parsed.currentStep as 1 | 2 | 3 | 4 | 5 | 6 | 7);
-        }
+      } catch (e) {
+        console.error('Failed to load server draft:', e);
       }
-    } catch (e) {
-      console.error('Failed to parse onboarding draft:', e);
     }
+
+    loadServerDraft();
   }, []);
 
-  // 2. Pre-fill full name from registered account session if still empty
+  // 2. Pre-fill full name and image from registered session if still empty
   useEffect(() => {
     if (!fullName && session?.user?.name) {
       setFullName(session.user.name);
@@ -222,48 +233,74 @@ export default function InstructorOnboardingClient() {
     }
   }, [country]);
 
-  // 4. Save progress automatically to localStorage whenever fields update
+  // 4. Server-Side Auto-Save: Debounced background save to server API whenever fields change
   useEffect(() => {
-    try {
-      const draftData = {
-        profilePhotoUrl,
-        fullName,
-        gender,
-        country,
-        company,
-        jobTitle,
-        expYears,
-        expMonths,
-        linkedinHandle,
-        portfolioUrl,
-        primaryExpertise,
-        secondaryExpertise,
-        industrySector,
-        selectedDisciplines,
-        selectedTools,
-        bio,
-        teachingExperience,
-        videoReadiness,
-        audienceSize,
-        currentStep,
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(draftData));
-    } catch (e) {
-      console.error('Failed to save onboarding draft:', e);
-    }
-  }, [profilePhotoUrl, fullName, gender, country, company, jobTitle, expYears, expMonths, linkedinHandle, portfolioUrl, primaryExpertise, secondaryExpertise, industrySector, selectedDisciplines, selectedTools, bio, teachingExperience, videoReadiness, audienceSize, currentStep]);
+    if (!session?.user?.id) return;
+    const timer = setTimeout(() => {
+      fetch('/api/instructor/onboarding/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profilePhotoUrl,
+          fullName,
+          gender,
+          country,
+          company,
+          jobTitle,
+          expYears,
+          expMonths,
+          linkedinHandle,
+          portfolioUrl,
+          primaryExpertise,
+          secondaryExpertise,
+          industrySector,
+          selectedDisciplines,
+          selectedTools,
+          bio,
+          teachingExperience,
+          otherTeachingExperience,
+          videoReadiness,
+          audienceSize,
+          currentStep,
+        }),
+      }).catch((err) => console.error('Auto-save draft error:', err));
+    }, 1000);
 
-  // File upload handler with strict 2MB validation
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    return () => clearTimeout(timer);
+  }, [session?.user?.id, profilePhotoUrl, fullName, gender, country, company, jobTitle, expYears, expMonths, linkedinHandle, portfolioUrl, primaryExpertise, secondaryExpertise, industrySector, selectedDisciplines, selectedTools, bio, teachingExperience, otherTeachingExperience, videoReadiness, audienceSize, currentStep]);
+
+  // File upload handler: Instant preview + Supabase Storage server action upload
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhotoError('');
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setPhotoError('File size exceeds the 2MB limit. Please upload a smaller photo.');
-        return;
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('File size exceeds the 5MB limit. Please upload a smaller photo.');
+      return;
+    }
+
+    const localPreviewUrl = URL.createObjectURL(file);
+    setProfilePhotoUrl(localPreviewUrl);
+    setIsUploadingPhoto(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await uploadAvatar(formData);
+
+      if (res.error) {
+        setPhotoError(res.error);
+      } else if (res.url) {
+        setProfilePhotoUrl(res.url);
       }
-      const url = URL.createObjectURL(file);
-      setProfilePhotoUrl(url);
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      setPhotoError('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -310,6 +347,7 @@ export default function InstructorOnboardingClient() {
   const handleFinalSubmit = async () => {
     setIsSubmittingFinal(true);
     setIsNavigating(true);
+    setSubmitError('');
 
     try {
       const res = await fetch('/api/instructor/onboarding', {
@@ -332,21 +370,26 @@ export default function InstructorOnboardingClient() {
           selectedDisciplines,
           selectedTools,
           bio,
-          teachingExperience,
+          teachingExperience: teachingExperience === 'other' ? `Other: ${otherTeachingExperience.trim()}` : teachingExperience,
           videoReadiness,
           audienceSize,
         }),
       });
 
       if (!res.ok) {
-        throw new Error('Failed to save onboarding');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save onboarding details. Please try again.');
       }
 
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      if (userDraftKey) {
+        localStorage.removeItem(userDraftKey);
+      }
+      localStorage.removeItem('cscn_instructor_onboarding_draft');
+
       router.push('/dashboard');
-    } catch (err) {
-      console.error(err);
-      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Onboarding submission error:', err);
+      setSubmitError(err.message || 'An error occurred while saving your onboarding profile. Please try again.');
     } finally {
       setIsSubmittingFinal(false);
       setIsNavigating(false);
@@ -375,7 +418,7 @@ export default function InstructorOnboardingClient() {
   const isStep2Valid = company.trim().length > 0 && jobTitle.trim().length > 0 && expYears !== '' && expMonths !== '' && linkedinHandle.trim().length > 0;
   const isStep3Valid = primaryExpertise !== '' && industrySector !== '' && selectedDisciplines.length > 0 && selectedTools.length > 0;
   const isStep4Valid = bio.trim().length >= 10;
-  const isStep5Valid = teachingExperience !== '';
+  const isStep5Valid = teachingExperience === 'other' ? otherTeachingExperience.trim().length > 0 : teachingExperience !== '';
   const isStep6Valid = videoReadiness !== '';
   const isStep7Valid = audienceSize !== '';
 
@@ -1153,6 +1196,32 @@ export default function InstructorOnboardingClient() {
                     );
                   })}
                 </div>
+
+                {/* Animated "Other" teaching experience sub-input field */}
+                <AnimatePresence>
+                  {teachingExperience === 'other' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-2 p-4 bg-[#F8FAFC] border border-[#E3E8F4] rounded-[14px]">
+                        <label className="text-sm font-semibold text-[#040B37]">
+                          Please specify your teaching experience <span className="text-[#1C4ED1]">*</span>
+                        </label>
+                        <Input
+                          type="text"
+                          placeholder="e.g. Bootcamps, Workshops, Corporate Training, Mentorship..."
+                          value={otherTeachingExperience}
+                          onChange={(e) => setOtherTeachingExperience(e.target.value)}
+                          className="w-full h-12 bg-white border border-[#CBD5E1] rounded-[10px] px-4 text-sm font-medium text-[#040B37] placeholder:text-[#9CA3AF] focus:border-[#1C4ED1] focus:ring-2 focus:ring-[#1C4ED1]/15 transition-all outline-none"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {/* Step 5 Footer Controls */}
@@ -1335,6 +1404,13 @@ export default function InstructorOnboardingClient() {
                   })}
                 </div>
               </motion.div>
+
+              {submitError && (
+                <motion.div variants={itemVariants} className="p-3.5 rounded-[12px] bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center gap-2">
+                  <AlertCircle size={16} className="shrink-0 text-red-600" />
+                  <span>{submitError}</span>
+                </motion.div>
+              )}
 
               {/* Step 7 Footer Controls (Submit & Finish without bold arrow icon) */}
               <motion.div variants={itemVariants} className="mt-4 flex items-center justify-between pt-5 border-t border-[#E3E8F4]">

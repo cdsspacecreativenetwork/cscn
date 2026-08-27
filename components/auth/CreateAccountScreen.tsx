@@ -6,7 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { CheckCircle2, CircleAlert, Eye, EyeOff, Loader2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { RegisterSchema } from "@/schemas";
 import { register } from "@/actions/register";
@@ -16,8 +17,6 @@ import { FormSuccess } from "@/components/auth/FormSuccess";
 import { Social } from "@/components/auth/Social";
 import Button from "@/components/ui/Button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
-import { Input } from "@/components/ui/Input";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { readInstructorApplicationDraft } from "@/lib/instructor-application-draft";
 import {
   INSTRUCTOR_EXPERIENCE_LEVELS,
@@ -26,8 +25,8 @@ import {
 import { cn } from "@/lib/utils";
 
 const fieldGroupClass = "space-y-2";
-const labelClass = "block text-[16px] xl:text-[18px] font-normal text-[#4B5563] tracking-[-0.18px]";
-const subtextClass = "text-[#4B5563] font-medium";
+const labelClass = "block text-sm sm:text-base font-medium text-[#4B5563] font-jakarta";
+const inputClass = "h-12 sm:h-14 w-full px-4.5 text-sm sm:text-base font-medium bg-[#F4F6FB] border border-[#E3E8F4] !rounded-lg text-[#040B37] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] focus:bg-white focus:ring-2 focus:ring-[#1C4ED1]/15 transition-all outline-none disabled:opacity-50 font-jakarta !bg-[#F4F6FB]";
 
 export type CreateAccountVariant = "learner" | "instructor";
 
@@ -39,14 +38,13 @@ const instructorResumeCallback = "/instructors?apply=1&resume=1";
 
 export function CreateAccountScreen({ variant = "learner" }: CreateAccountScreenProps) {
   const searchParams = useSearchParams();
-  const isInstructor = variant === "instructor";
+  const isInstructor = variant === "instructor" || searchParams.get("intent")?.toUpperCase() === "INSTRUCTOR";
   const callbackUrl = searchParams.get("callbackUrl") || (isInstructor ? instructorResumeCallback : undefined);
   const [showPassword, setShowPassword] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const [applicationDraft, setApplicationDraft] = useState<InstructorApplicationInput | null>(null);
-  const [draftChecked, setDraftChecked] = useState(!isInstructor);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof RegisterSchema>>({
@@ -63,21 +61,13 @@ export function CreateAccountScreen({ variant = "learner" }: CreateAccountScreen
   const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
-    if (!isInstructor && !callbackUrl?.startsWith('/instructors?apply=1')) return;
     const draft = readInstructorApplicationDraft();
-    if (!draft) {
-      const missingDraftTimer = window.setTimeout(() => setDraftChecked(true), 0);
-      return () => window.clearTimeout(missingDraftTimer);
-    }
-    form.setValue('firstName', draft.firstName);
-    form.setValue('lastName', draft.lastName);
-    form.setValue('email', draft.email);
-    const summaryTimer = window.setTimeout(() => {
-      setApplicationDraft(draft);
-      setDraftChecked(true);
-    }, 0);
-    return () => window.clearTimeout(summaryTimer);
-  }, [callbackUrl, form, isInstructor]);
+    if (!draft) return;
+    if (draft.firstName) form.setValue('firstName', draft.firstName);
+    if (draft.lastName) form.setValue('lastName', draft.lastName);
+    if (draft.email) form.setValue('email', draft.email);
+    setApplicationDraft(draft);
+  }, [form]);
 
   const experienceLabel = applicationDraft
     ? INSTRUCTOR_EXPERIENCE_LEVELS.find((option) => option.value === applicationDraft.experienceLevel)?.label
@@ -88,8 +78,8 @@ export function CreateAccountScreen({ variant = "learner" }: CreateAccountScreen
     { label: "Uppercase letter", met: /[A-Z]/.test(passwordValue) },
     { label: "Lowercase letter", met: /[a-z]/.test(passwordValue) },
     { label: "Number", met: /\d/.test(passwordValue) },
-    { label: "Special character (e.g. !?<>@#$%)", met: /[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\';/ ]/.test(passwordValue) },
-    { label: "8 characters or more", met: passwordValue.length >= 8 },
+    { label: "Special character", met: /[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\';/ ]/.test(passwordValue) },
+    { label: "8+ characters", met: passwordValue.length >= 8 },
   ];
   const isPasswordSecure = criteria.every(c => c.met);
 
@@ -110,49 +100,10 @@ export function CreateAccountScreen({ variant = "learner" }: CreateAccountScreen
     });
   };
 
-  if (isInstructor && !draftChecked) {
-    return (
-      <AuthLayout
-        title="Create your instructor account"
-        subtitle="Continue your CSCN instructor application"
-        sidebarTitle="Teach what you know. Help creators grow."
-        sidebarSubtitle="Join CSCN as an instructor and turn your practical industry experience into learning that moves careers forward."
-      >
-        <div className="flex flex-col gap-5" aria-label="Loading saved application">
-          <Skeleton className="h-20 w-full rounded-[16px]" />
-          <Skeleton className="h-16 w-full rounded-[16px]" />
-          <Skeleton className="h-14 w-full rounded-full" />
-        </div>
-      </AuthLayout>
-    );
-  }
-
-  if (isInstructor && draftChecked && !applicationDraft) {
-    return (
-      <AuthLayout
-        title="Create your instructor account"
-        subtitle="Start with your instructor application"
-        sidebarTitle="Teach what you know. Help creators grow."
-        sidebarSubtitle="Join CSCN as an instructor and turn your practical industry experience into learning that moves careers forward."
-      >
-        <Alert>
-          <CircleAlert aria-hidden="true" className="mt-0.5 size-5 text-primary" />
-          <div>
-            <AlertTitle>No saved application found</AlertTitle>
-            <AlertDescription>Complete the instructor application first so we can carry your details into account creation.</AlertDescription>
-          </div>
-        </Alert>
-        <Button className="mt-6 w-full" variant="gradient" rounded="full" onClick={() => window.location.assign('/instructors?apply=1')}>
-          Start instructor application
-        </Button>
-      </AuthLayout>
-    );
-  }
-
   return (
     <AuthLayout
-      title={isInstructor ? "Create your instructor account" : "Start learning today"}
-      subtitle={isInstructor ? "Continue your CSCN instructor application" : "Create your free CSCN account"}
+      title={isInstructor ? "Become a CSCN Instructor" : "Start learning today"}
+      subtitle={isInstructor ? "Join CSCN as an instructor & share your knowledge" : "Create your free CSCN account"}
       sidebarTitle={isInstructor ? "Teach what you know. Help creators grow." : "Learn without limits."}
       sidebarSubtitle={isInstructor
         ? "Join CSCN as an instructor and turn your practical industry experience into learning that moves careers forward."
@@ -172,183 +123,245 @@ export function CreateAccountScreen({ variant = "learner" }: CreateAccountScreen
     >
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn(isInstructor && "flex flex-col gap-6", !isInstructor && "space-y-8 xl:space-y-10")}
+        className="space-y-4 sm:space-y-4.5"
       >
         {isInstructor && applicationDraft && (
-          <Alert>
-            <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 text-primary" />
-            <div>
-              <AlertTitle>Instructor application saved</AlertTitle>
-              <AlertDescription>
-                {applicationDraft.firstName} {applicationDraft.lastName} · {applicationDraft.email}<br />
-                {applicationDraft.industry}{experienceLabel ? ` · ${experienceLabel} experience` : ""}
+          <Alert className="py-2.5 px-3.5 rounded-[14px]">
+            <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 text-primary shrink-0" />
+            <div className="text-xs">
+              <AlertTitle className="font-semibold text-xs mb-0.5">Instructor application draft found</AlertTitle>
+              <AlertDescription className="text-xs">
+                {applicationDraft.firstName} {applicationDraft.lastName} · {applicationDraft.email}
               </AlertDescription>
             </div>
           </Alert>
         )}
 
-        <div className={cn(isInstructor && "flex flex-col gap-4", !isInstructor && "space-y-6")}>
-          {isInstructor && (
-            <>
-              <input type="hidden" {...form.register("firstName")} />
-              <input type="hidden" {...form.register("lastName")} />
-              <input type="hidden" {...form.register("email")} />
-            </>
-          )}
-          {!isInstructor && (
-            <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xl:gap-6">
+        <div className="space-y-3.5">
+          {/* First & Last Name row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className={fieldGroupClass}>
               <label className={labelClass}>First name</label>
-              <Input
+              <input
                 {...form.register("firstName")}
                 disabled={isPending}
                 type="text"
-                placeholder="First name"
-                aria-invalid={Boolean(form.formState.errors.firstName)}
+                placeholder="Enter your full name"
+                className={cn(inputClass, form.formState.errors.firstName && "border-red-500 focus:border-red-500")}
               />
               {form.formState.errors.firstName && (
-                <p className="text-[12px] text-[#FF383C] font-medium ml-1">
+                <p className="text-[11px] text-[#FF383C] font-medium ml-1">
                   {form.formState.errors.firstName.message}
                 </p>
               )}
             </div>
+
             <div className={fieldGroupClass}>
               <label className={labelClass}>Last name</label>
-              <Input
+              <input
                 {...form.register("lastName")}
                 disabled={isPending}
                 type="text"
-                placeholder="Last name"
-                aria-invalid={Boolean(form.formState.errors.lastName)}
+                placeholder="Enter your full name"
+                className={cn(inputClass, form.formState.errors.lastName && "border-red-500 focus:border-red-500")}
               />
               {form.formState.errors.lastName && (
-                <p className="text-[12px] text-[#FF383C] font-medium ml-1">
+                <p className="text-[11px] text-[#FF383C] font-medium ml-1">
                   {form.formState.errors.lastName.message}
                 </p>
               )}
             </div>
           </div>
 
+          {/* Email Address */}
           <div className={fieldGroupClass}>
             <label className={labelClass}>Email address</label>
-            <Input
+            <input
               {...form.register("email")}
               disabled={isPending}
               type="email"
               placeholder="Enter your email"
-              aria-invalid={Boolean(form.formState.errors.email)}
+              className={cn(inputClass, form.formState.errors.email && "border-red-500 focus:border-red-500")}
             />
             {form.formState.errors.email && (
-              <p className="text-[12px] text-[#FF383C] font-medium ml-1">
+              <p className="text-[11px] text-[#FF383C] font-medium ml-1">
                 {form.formState.errors.email.message}
               </p>
             )}
           </div>
-            </>
-          )}
 
-          <div className="space-y-4">
-            <div className={fieldGroupClass}>
-              <label className={labelClass}>Password</label>
-              <div className="relative">
-                <Input
-                  {...form.register("password")}
-                  onFocus={() => setIsPasswordFocused(true)}
-                  onBlur={() => setIsPasswordFocused(false)}
-                  disabled={isPending}
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Min. 8 characters"
-                  className="pr-14"
-                  aria-invalid={Boolean(form.formState.errors.password)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#4B5563] cursor-pointer"
-                >
-                  {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
-                </button>
-              </div>
-              {form.formState.errors.password && (
-                <p className="text-[12px] text-[#FF383C] font-medium ml-1">
-                  {form.formState.errors.password.message}
-                </p>
-              )}
+          {/* Password Input */}
+          <div className={fieldGroupClass}>
+            <label className={labelClass}>Password</label>
+            <div className="relative">
+              <input
+                {...form.register("password")}
+                onFocus={() => setIsPasswordFocused(true)}
+                onBlur={() => setIsPasswordFocused(false)}
+                disabled={isPending}
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Min. 8 characters"
+                className={cn(inputClass, "pr-11", form.formState.errors.password && "border-red-500 focus:border-red-500")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
             </div>
 
-            {/* Accordion reveal password strength checklist */}
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isPasswordFocused || passwordValue.length > 0 ? 'max-h-[220px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-              <div className="space-y-2.5 p-4 bg-[#F8FAFB] rounded-[16px] border border-[#E3E8F4]">
-                {criteria.map((c, idx) => (
-                  <div key={idx} className="flex items-center gap-2.5 text-[14px] font-semibold transition-colors duration-200">
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${c.met
-                        ? 'border-emerald-500 bg-emerald-500 text-white'
-                        : 'border-gray-300 bg-white text-transparent'
-                      }`}>
-                      {c.met ? (
-                        <svg className="w-3 h-3 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      ) : (
-                        <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+            {/* Industry Standard 4-Segment Progressive Password Strength Indicator (Figma Spec EL-f8bd89f1) */}
+            <div className="space-y-1.5 pt-1.5">
+              <div className="grid grid-cols-4 gap-2">
+                {[1, 2, 3, 4].map((step) => {
+                  const metCount = criteria.filter(c => c.met).length;
+                  const score = !passwordValue ? 0 : metCount <= 2 ? 1 : metCount === 3 ? 2 : metCount === 4 ? 3 : 4;
+                  const isFilled = score >= step;
+                  const colors = ["bg-[#E3E8F4]", "bg-[#EF4444]", "bg-[#F59E0B]", "bg-[#1C4ED1]", "bg-[#10B981]"];
+                  return (
+                    <div
+                      key={step}
+                      className={cn(
+                        "h-2 flex-1 rounded-full transition-all duration-300",
+                        isFilled
+                          ? colors[score]
+                          : "bg-[#F4F6FB] border border-[#E3E8F4]"
                       )}
-                    </div>
-                    <span className={c.met ? 'text-[#040B37] font-medium' : 'text-gray-400 font-medium'}>
-                      {c.label}
-                    </span>
-                  </div>
-                ))}
+                    />
+                  );
+                })}
               </div>
+
+              {passwordValue.length > 0 && (
+                <div className="flex items-center justify-between text-xs font-jakarta pt-0.5">
+                  <span className="text-[#9CA3AF] font-medium">Password strength</span>
+                  <span
+                    className={cn(
+                      "font-semibold text-xs",
+                      criteria.filter(c => c.met).length <= 2 && "text-[#EF4444]",
+                      criteria.filter(c => c.met).length === 3 && "text-[#F59E0B]",
+                      criteria.filter(c => c.met).length === 4 && "text-[#1C4ED1]",
+                      criteria.filter(c => c.met).length === 5 && "text-[#10B981]"
+                    )}
+                  >
+                    {criteria.filter(c => c.met).length <= 2 ? "Weak" : criteria.filter(c => c.met).length === 3 ? "Fair" : criteria.filter(c => c.met).length === 4 ? "Good" : "Strong"}
+                  </span>
+                </div>
+              )}
+
+              {/* Animated Requirement Checklist Box - Smoothly expands when typing/focused, collapses smoothly when strong */}
+              <AnimatePresence>
+                {(isPasswordFocused || passwordValue.length > 0) && !isPasswordSecure && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-3.5 bg-[#F4F6FB] border border-[#E3E8F4] !rounded-lg space-y-2">
+                      <p className="text-xs font-semibold text-[#040B37] font-jakarta">Password must contain:</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-jakarta">
+                        {criteria.map((c, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            {c.met ? (
+                              <div className="w-4 h-4 rounded-full bg-[#10B981] flex items-center justify-center shrink-0">
+                                <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
+                              </div>
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-[#9CA3AF]/60 bg-white flex items-center justify-center shrink-0">
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#9CA3AF]" />
+                              </div>
+                            )}
+                            <span className={cn(c.met ? "text-[#10B981] font-semibold" : "text-[#6B7280]")}>
+                              {c.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
+
+            {form.formState.errors.password && (
+              <p className="text-[11px] text-[#FF383C] font-medium ml-1">
+                {form.formState.errors.password.message}
+              </p>
+            )}
+          </div>
+
+          {/* Terms & Privacy checkbox */}
+          <div className="flex items-start gap-2.5 pt-1">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1C4ED1] focus:ring-[#1C4ED1] cursor-pointer shrink-0"
+            />
+            <label htmlFor="terms" className="text-xs sm:text-xs text-[#6B7280] font-normal leading-normal select-none">
+              I agree to CSCN&apos;s{" "}
+              <Link href="/terms" className="text-[#1C4ED1] font-medium underline hover:text-[#1C4ED1]/80">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="text-[#1C4ED1] font-medium underline hover:text-[#1C4ED1]/80">
+                Privacy Policy
+              </Link>
+              . I understand I may receive emails about my account and platform updates.
+            </label>
           </div>
         </div>
 
         <FormError message={error} />
         <FormSuccess message={success} />
 
-        <div className="flex items-start gap-2">
-          <input
-            type="checkbox"
-            id="terms"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-[2px] w-5 h-5 rounded border-[#E3E8F4] text-[#1C4ED1] focus:ring-[#1C4ED1] cursor-pointer shrink-0"
-          />
-          <label htmlFor="terms" className="text-[14px] xl:text-[16px] leading-[1.5] text-[#4B5563] font-medium tracking-[-0.16px] cursor-pointer">
-            I agree to CSCN&apos;s <Link href="/terms" target="_blank" className="text-[#1C4ED1] underline underline-offset-4">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="text-[#1C4ED1] underline underline-offset-4">Privacy Policy</Link>.
-          </label>
-        </div>
-
-        <div className="flex flex-col items-center gap-8 xl:gap-[40px]">
-          <button
-            type="submit"
-            disabled={isPending || !agreed}
-            className="w-full h-[56px] p-[2px] bg-[#F4F6FB] border border-[#648EFC] rounded-full shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] overflow-hidden group disabled:cursor-not-allowed"
+        {/* Custom Action Button (Figma Spec Node #8732:4506) */}
+        <button
+          type="submit"
+          disabled={isPending || !agreed || !isPasswordSecure}
+          className="w-full h-[56px] p-[2px] bg-[#F4F6FB] border border-[#648EFC] rounded-full shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] overflow-hidden group disabled:cursor-not-allowed cursor-pointer"
+        >
+          <div
+            className="w-full h-full flex items-center justify-center rounded-full transition-all duration-300"
+            style={{
+              backgroundImage: "linear-gradient(146deg, #0035C1 8.83%, #0575FF 86.3%)",
+              opacity: (isPending || !agreed || !isPasswordSecure) ? 0.4 : 1,
+            }}
           >
-            <div className="w-full h-full flex items-center justify-center rounded-full bg-[#1C4ED1] transition-all duration-300" style={{ opacity: !agreed || isPending ? 0.4 : 1 }}>
-              <span className="text-[16px] xl:text-[18px] font-medium tracking-[-0.18px] flex items-center gap-2 text-white">
-                {isPending && <Loader2 className="h-5 w-5 animate-spin" />}
-                Create account
-              </span>
-            </div>
-          </button>
-
-          <div className="w-full flex items-center gap-4">
-            <div className="flex-1 h-[1px] bg-[#E3E8F4]" />
-            <span className="text-[#9CA3AF] text-[16px] xl:text-[18px] font-medium tracking-[-0.36px]">Or</span>
-            <div className="flex-1 h-[1px] bg-[#E3E8F4]" />
+            <span className="text-white text-[16px] xl:text-[18px] font-medium font-jakarta tracking-[-0.18px] flex items-center gap-2">
+              {isPending && <Loader2 className="h-5 w-5 animate-spin" />}
+              {isPending
+                ? "Creating account..."
+                : (isInstructor ? "Create instructor account" : "Create account")}
+            </span>
           </div>
+        </button>
 
-          <Social callbackUrl={callbackUrl} />
-
-          <div className="flex items-center gap-2 text-[16px] xl:text-[18px] tracking-[-0.18px]">
-            <span className={subtextClass}>Already have an account?</span>
-            <Link href={callbackUrl ? `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signin"} className="text-[#1C4ED1] font-semibold">
-              Sign In
-            </Link>
+        {/* Divider (Figma Spec Node #8732:4507) */}
+        <div className="relative flex items-center justify-center my-3">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-[#C8D1E0]/60" />
+          </div>
+          <div className="relative bg-white px-4 text-sm sm:text-base font-medium text-[#9CA3AF] font-inter">
+            Or
           </div>
         </div>
+
+        {/* Social Auth Buttons (Google & LinkedIn) */}
+        <Social />
+
+        {/* Bottom Sign In Link (Figma Spec Node #8732:4529) */}
+        <p className="text-center text-sm sm:text-base text-[#4B5563] font-medium font-jakarta pt-2">
+          Already have an account?{" "}
+          <Link href={`/signin${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`} className="font-semibold text-[#1C4ED1] hover:underline">
+            Sign In
+          </Link>
+        </p>
       </form>
     </AuthLayout>
   );

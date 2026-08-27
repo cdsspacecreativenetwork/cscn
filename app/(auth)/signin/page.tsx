@@ -15,8 +15,8 @@ import { FormError } from "@/components/auth/FormError";
 import { Social } from "@/components/auth/Social";
 
 const fieldGroupClass = "space-y-2";
-const labelClass = "block text-[16px] xl:text-[18px] font-normal text-[#4B5563] tracking-[-0.18px]";
-const inputClass = "w-full h-[56px] xl:h-[64px] px-4 rounded-[16px] border border-[#E3E8F4] bg-[#F4F6FB] text-[#4B5563] placeholder:text-[#4B5563]/40 text-[16px] xl:text-[18px] focus:border-[#1C4ED1] outline-none transition-all disabled:bg-[#1C4ED1]/40 disabled:text-white disabled:placeholder:text-white/80 disabled:cursor-not-allowed";
+const labelClass = "block text-sm sm:text-base font-medium text-[#4B5563] font-jakarta";
+const inputClass = "h-12 sm:h-14 w-full px-4.5 text-sm sm:text-base font-medium bg-[#F4F6FB] border border-[#E3E8F4] !rounded-lg text-[#040B37] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] focus:bg-white focus:ring-2 focus:ring-[#1C4ED1]/15 transition-all outline-none disabled:opacity-50 font-jakarta !bg-[#F4F6FB]";
 const inputWithIconClass = `${inputClass} pr-14`;
 const subtextClass = "text-[#4B5563] font-medium";
 
@@ -59,6 +59,7 @@ function LoginPageContent() {
       subtitle={showTwoFactor ? "Two-Factor Verification required" : "Continue where you left off"}
       sidebarTitle="Your Knowledge Awaits You."
       sidebarSubtitle="Pick up right where you left off. Your progress, your courses, your community all here."
+      benefits={[]}
     >
       <form
         onSubmit={form.handleSubmit(onSubmit)}
@@ -111,7 +112,7 @@ function LoginPageContent() {
               </div>
 
               <div className="flex justify-end">
-                <Link href="/forgot-password" className="text-[#1C4ED1] font-medium text-[16px] xl:text-[18px] tracking-[-0.18px]">
+                <Link href="/forgot-password" className="text-[#1C4ED1] font-medium text-base tracking-[-0.18px]">
                   Forgot password?
                 </Link>
               </div>

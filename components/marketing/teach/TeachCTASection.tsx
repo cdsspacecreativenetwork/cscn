@@ -17,7 +17,7 @@ export default function TeachCTASection() {
 
     try {
       if (status === 'unauthenticated') {
-        router.push('/signup?intent=INSTRUCTOR&callbackUrl=/instructor/onboarding');
+        window.location.assign('/signup?intent=INSTRUCTOR&callbackUrl=/instructor/onboarding');
         return;
       }
 

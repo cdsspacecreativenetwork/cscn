@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import React from "react";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import { Toaster } from "sonner";
@@ -6,8 +7,9 @@ import { UploadProvider } from "@/context/UploadContext";
 import UploadQueuePanel from "@/components/upload/UploadQueuePanel";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
+import RouteProgress from "@/components/providers/RouteProgress";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: "CSCN - Build Real Skills. Work Globally.",
@@ -28,6 +30,9 @@ export default function RootLayout({
       </head>
       <body>
         <SessionProvider>
+          <React.Suspense fallback={null}>
+            <RouteProgress />
+          </React.Suspense>
           <UploadProvider>
             <Toaster
               position="top-center"
