@@ -11,6 +11,7 @@ import { StudentDashboardData } from '@/lib/services/dashboard.service';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
+import { Card } from '@/components/ui/Card';
 
 interface DashboardUser {
   name?: string | null;
@@ -174,7 +175,7 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
 
           <div className="space-y-6">
             {!hasLearningActivity ? (
-              <div className="overflow-hidden rounded-[18px] border border-[#E3E8F4] bg-white shadow-sm">
+              <Card className="[--card-spacing:0px]">
                 <div className="relative p-6 sm:p-8">
                   <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#1C4ED1]/10 blur-3xl" />
                   <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -197,11 +198,11 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             ) : currentLearning.map((enrollment) => (
-              <div
+              <Card
                 key={enrollment.id}
-                className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[12px] p-6 flex flex-col gap-6 shadow-sm transition-all duration-300"
+                className="gap-6 px-6 [--card-spacing:24px] transition-all duration-300"
               >
                 {/* Top Row: Thumbnail (16:9), Course Title */}
                 <div className="flex items-center gap-4">
@@ -273,14 +274,14 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
                     Resume
                   </Button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
 
         {/* Announcements */}
         <div className="lg:col-span-1 lg:pt-[44px]">
-          <div className="bg-white border border-[#E3E8F4] rounded-[16px] overflow-hidden shadow-sm">
+          <Card className="[--card-spacing:0px]">
             <div className="px-5 py-4 border-b border-[#E3E8F4] bg-white">
               <h2 className="text-[15px] font-bold text-[#040B37] tracking-tight">
                 Announcements
@@ -314,7 +315,7 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
                 </div>
               )}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -336,9 +337,9 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
           {visibleRecs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {visibleRecs.map((course, i) => (
-                <div
+                <Card
                   key={course.id || i}
-                  className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[16px] overflow-hidden flex flex-col w-full shadow-sm hover:shadow-[0px_6px_20px_rgba(23,26,31,0.08)] transition-all duration-300 group relative"
+                  className="w-full [--card-spacing:0px] transition-all duration-300 group relative"
                 >
                   {/* Thumbnail Container */}
                   <div className="relative aspect-[16/9] w-full bg-[#F4F6FB] overflow-hidden shrink-0">
@@ -467,22 +468,22 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
                       </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           ) : (
-            <div className="bg-white border border-[#E3E8F4] rounded-[12px] p-8 text-center flex flex-col items-center justify-center gap-2 shadow-sm min-h-[200px]">
+            <Card className="[--card-spacing:32px] gap-2 px-8 text-center items-center justify-center min-h-[200px]">
               <p className="text-[16px] font-semibold text-[#040B37]">All caught up!</p>
               <p className="text-[14px] font-medium text-[#9CA3AF] max-w-[320px]">
                 You have reviewed all course recommendations. Click Explore Courses above to find more.
               </p>
-            </div>
+            </Card>
           )}
         </div>
 
         {/* Schedule */}
         <div className="lg:col-span-1 lg:pt-[44px]">
-          <div className="bg-white border border-[#E3E8F4] rounded-[16px] overflow-hidden shadow-sm">
+          <Card className="[--card-spacing:0px]">
             <div className="px-5 py-4 border-b border-[#E3E8F4] flex justify-between items-center bg-white">
               <h2 className="text-[15px] font-bold text-[#040B37] tracking-tight">
                 Today&apos;s Schedule
@@ -519,7 +520,7 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
                 </div>
               )}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 

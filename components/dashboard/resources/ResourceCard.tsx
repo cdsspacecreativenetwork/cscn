@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { File as FileIcon, Repeat2, Star, Globe, GraduationCap, MoreVertical, Pencil, Trash2, Copy, Download, ExternalLink, Share2 } from 'lucide-react';
 import { Resource } from '@/lib/resourceService';
 import { toast } from 'sonner';
+import { Card } from '@/components/ui/Card';
 
 interface ResourceCardProps {
   resource: Resource;
@@ -76,9 +77,9 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const isGeneral = resource.isStandalone || resource.courseTitle === 'General Resource';
 
   return (
-    <div 
+    <Card
       onContextMenu={handleContextMenu}
-      className="bg-white rounded-[14px] border border-[#E3E8F4] p-6 md:p-8 flex flex-col gap-5 transition-all hover:border-[#1C4ED1]/30 group h-full shadow-sm relative select-none"
+      className="gap-5 overflow-visible px-6 md:px-8 [--card-spacing:24px] md:[--card-spacing:32px] transition-all hover:border-[#1C4ED1]/30 group h-full relative select-none"
     >
       {/* Optional Thumbnail Image Header */}
       {resource.thumbnail && (
@@ -328,12 +329,12 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
           )}
         </a>
       </div>
-    </div>
+    </Card>
   );
 };
 
 export const ResourceCardSkeleton = () => (
-  <div className="bg-white rounded-[14px] border border-[#E3E8F4] p-6 md:p-8 flex flex-col gap-6 animate-pulse h-full">
+  <Card className="gap-6 px-6 md:px-8 [--card-spacing:24px] md:[--card-spacing:32px] animate-pulse h-full">
     <div className="w-12 h-12 rounded-[8px] bg-[#F4F6FB]" />
     <div className="flex-1 space-y-3">
       <div className="h-5 bg-[#F4F6FB] rounded-md w-3/4" />
@@ -344,5 +345,5 @@ export const ResourceCardSkeleton = () => (
       <div className="w-12 h-4 bg-[#F4F6FB] rounded-md" />
     </div>
     <div className="h-6 bg-[#F4F6FB] rounded-md w-24 mt-2" />
-  </div>
+  </Card>
 );

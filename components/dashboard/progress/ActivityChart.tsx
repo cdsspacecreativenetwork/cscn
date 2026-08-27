@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { ChevronDown } from 'lucide-react';
 import { getLearningActivity, ActivityData, TimeRange } from '@/lib/progressService';
+import { Card } from '@/components/ui/Card';
 
 const timeRangeOptions: { label: string; value: TimeRange }[] = [
   { label: 'Daily', value: 'daily' },
@@ -76,7 +77,7 @@ export const ActivityChart = () => {
   );
 
   return (
-    <div className="bg-white rounded-[16px] border border-[#E3E8F4] overflow-hidden flex flex-col h-[480px] shadow-sm transition-all hover:shadow-md">
+    <Card className="h-[480px] [--card-spacing:0px] transition-all">
       {/* Header */}
       <div className="px-6 md:px-8 py-5 md:py-6 border-b border-[#E3E8F4] flex flex-row items-center justify-between bg-white relative z-20 gap-4">
         <div className="min-w-0">
@@ -179,6 +180,6 @@ export const ActivityChart = () => {
           </ResponsiveContainer>
         )}
       </div>
-    </div>
+    </Card>
   );
 };

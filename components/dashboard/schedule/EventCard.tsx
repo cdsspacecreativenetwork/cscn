@@ -3,6 +3,7 @@
 import React from 'react';
 import { Calendar, Clock, Info, Video, FileCheck2, GraduationCap, ClipboardList } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import type { MentorAvailabilityInput } from '@/lib/mentor-booking-slots';
 
 export interface ScheduleEvent {
@@ -81,7 +82,7 @@ export const EventCard = ({
     : event.actionLabel;
 
   return (
-    <div className="bg-white border border-[#E3E8F4] rounded-[16px] p-6 lg:p-8 flex flex-col gap-8 w-full group hover:border-[#1C4ED1]/30 transition-all shadow-sm hover:shadow-md" data-node-id="8869:3822">
+    <Card className="w-full gap-8 px-6 lg:px-8 [--card-spacing:24px] lg:[--card-spacing:32px] group hover:border-[#1C4ED1]/30 transition-all" data-node-id="8869:3822">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-2 rounded-full bg-[#1C4ED1]/5 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#1C4ED1]">
@@ -146,6 +147,6 @@ export const EventCard = ({
           Details
         </Button>
       </div>
-    </div>
+    </Card>
   );
 };

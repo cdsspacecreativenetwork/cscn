@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Plus, Trash2, Link as LinkIcon, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { Input } from '@/components/ui/input';
 import {
   FALLBACK_LOCATION_TIMEZONE_OPTIONS,
   getLocationTimezoneOption,
@@ -49,12 +50,12 @@ const FormField = ({
         className="w-full bg-background border border-[#E3E8F4] rounded-[16px] p-4 text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all resize-none font-medium disabled:opacity-50"
       />
     ) : (
-      <input 
+      <Input
         {...register(name)}
         type={type}
         placeholder={placeholder}
         disabled={disabled}
-        className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all font-medium disabled:opacity-50"
+        className="h-11"
       />
     )}
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
@@ -370,7 +371,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
             <label className="text-[14px] md:text-[16px] font-semibold text-[#4B5563] tracking-tight">
               Expertise tags
             </label>
-            <input
+            <Input
               value={expertiseText}
               onChange={(event) => {
                 const nextValue = event.target.value;
@@ -378,7 +379,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
                 form.setValue('expertise', splitExpertise(nextValue), { shouldDirty: true, shouldValidate: true });
               }}
               placeholder="UI design, React, Brand strategy"
-              className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all font-medium disabled:opacity-50"
+              className="h-11"
             />
             <p className="text-xs font-medium text-[#9CA3AF]">
               Separate tags with commas. These power your public instructor profile and verification readiness.
@@ -441,10 +442,10 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
                   </div> */}
                   
                   <div className="flex-1 flex flex-col gap-1">
-                    <input
+                    <Input
                       {...form.register(`socials.${index}.url` as const)}
                       placeholder={`https://${platform === 'website' ? '...' : platform + '.com/...'}`}
-                      className="w-full bg-background border border-[#E3E8F4] rounded-[16px] px-6 h-[56px] text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all font-medium disabled:opacity-50"
+                      className="h-11"
                     />
                     {form.formState.errors.socials?.[index]?.url && (
                       <p className="text-red-500 text-xs ml-2">
