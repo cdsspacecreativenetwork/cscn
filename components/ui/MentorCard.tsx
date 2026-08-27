@@ -40,7 +40,7 @@ export default function MentorCard(mentor: Mentor) {
         className="flex w-full max-w-[270px] mx-auto sm:mx-0 flex-col overflow-hidden rounded-[20px] border border-[#E3E8F4] bg-white p-3 shadow-xs transition-none cursor-pointer"
       >
         {/* Padded Portrait Image Container with Overlay Badges */}
-        <div className="relative w-full h-[245px] sm:h-[260px] rounded-[16px] overflow-hidden bg-slate-100 shrink-0">
+        <div className="relative w-full h-[205px] sm:h-[220px] rounded-[16px] overflow-hidden bg-slate-100 shrink-0">
           <Image
             src={image}
             alt={name}
@@ -49,16 +49,16 @@ export default function MentorCard(mentor: Mentor) {
             sizes="(max-width: 640px) 100vw, 270px"
           />
 
-          {/* Top Rated Overlay Badge */}
+          {/* Top Rated Overlay Badge (Glassmorphic Semi-Transparent Pill) */}
           {isTopRated && (
-            <span className="absolute top-2.5 left-2.5 px-3 py-1 bg-white/95 backdrop-blur-md rounded-full text-[11px] font-bold text-[#040B37] shadow-xs border border-white/50">
+            <span className="absolute top-2.5 left-2.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full text-[11px] font-semibold text-white shadow-xs">
               Top rated
             </span>
           )}
 
-          {/* Available ASAP Overlay Glassmorphic Badge with Pulsing Emerald Dot */}
+          {/* Available ASAP Overlay Glassmorphic Pill Badge with Pulsing Emerald Dot */}
           {hasAsap && (
-            <span className="absolute bottom-2.5 left-2.5 px-2.5 py-1 bg-white/90 backdrop-blur-md rounded-full text-[11px] font-semibold text-[#040B37] flex items-center gap-1.5 shadow-xs border border-[#E3E8F4]">
+            <span className="absolute bottom-2.5 left-2.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full text-xs font-semibold text-white flex items-center gap-1.5 shadow-xs">
               <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse shrink-0" />
               <span>Available ASAP</span>
             </span>
@@ -69,16 +69,16 @@ export default function MentorCard(mentor: Mentor) {
         <div className="flex flex-col gap-3.5 pt-3.5 pb-1 px-1 flex-1">
           {/* Name & Country Code */}
           <div className="flex items-center gap-2">
-            <h3 className="font-inter text-[16px] font-semibold text-[#040B37] tracking-[-0.01em] truncate">
+            <h3 className="font-inter text-base font-semibold text-[#040B37] tracking-[-0.01em] truncate">
               {name}
             </h3>
-            <span className="text-[9px] font-bold text-[#9CA3AF] tracking-wider uppercase shrink-0">
+            <span className="text-xs font-normal text-[#9CA3AF] tracking-wider uppercase shrink-0">
               {countryCode}
             </span>
           </div>
 
           {/* Current Role & Company */}
-          <div className="flex items-start gap-2 text-[#4B5563] text-[12px] font-medium leading-snug">
+          <div className="flex items-start gap-2 text-[#4B5563] text-sm font-normal leading-snug">
             <Briefcase size={14} className="text-[#4B5563] shrink-0 mt-0.5" />
             <span className="line-clamp-2">
               {role}{company ? ` at ${company}` : ''}
@@ -88,15 +88,15 @@ export default function MentorCard(mentor: Mentor) {
           {/* Sessions & Reviews OR New Mentor Badge */}
           <div>
             {isNewMentor ? (
-              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#040B37]">
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-[#040B37]">
                 <Star size={14} className="text-[#F59E0B] fill-[#F59E0B]" />
                 <span>New mentor</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#4B5563]">
+              <div className="flex items-center gap-1.5 text-sm font-medium text-[#4B5563]">
                 <MessageSquare size={14} className="text-[#9CA3AF] shrink-0" />
-                <span>
-                  <strong className="text-[#040B37] font-semibold">{sessionsCount} sessions</strong> ({reviewsCount} reviews)
+                <span className="font-normal">
+                  <strong className="text-[#040B37] font-medium">{sessionsCount} sessions</strong> ({reviewsCount} reviews)
                 </span>
               </div>
             )}
@@ -104,14 +104,14 @@ export default function MentorCard(mentor: Mentor) {
 
           {/* Base Stats Box (Full Un-abbreviated Labels with Single-Line "Avg. Attendance") */}
           <div className="mt-auto pt-1">
-            <div className="bg-[#F8FAFC] border border-[#E3E8F4]/80 rounded-md p-2.5 sm:p-3 grid grid-cols-[40%_60%] gap-1.5 sm:gap-2">
+            <div className="bg-[#F8FAFC] border border-[#E3E8F4]/80 rounded-xl p-2.5 sm:p-3 grid grid-cols-[40%_60%] gap-1.5 sm:gap-2">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[10px] font-semibold text-[#9CA3AF] capitalize tracking-wider truncate">Experience</span>
-                <span className="text-[12px] font-bold text-[#040B37]">{experienceYears} years</span>
+                <span className="text-xs font-normal text-[#9CA3AF] capitalize tracking-wider truncate">Experience</span>
+                <span className="text-sm font-medium text-[#040B37]">{experienceYears} years</span>
               </div>
               <div className="flex flex-col gap-0.5 border-l border-[#E3E8F4] pl-2.5 sm:pl-3 min-w-0">
-                <span className="text-[10px] font-semibold text-[#9CA3AF] capitalize tracking-wider whitespace-nowrap truncate">Avg. Attendance</span>
-                <span className="text-[12px] font-bold text-[#040B37]">{attendanceRate}</span>
+                <span className="text-xs font-normal text-[#9CA3AF] capitalize tracking-wider whitespace-nowrap truncate">Avg. Attendance</span>
+                <span className="text-sm font-medium text-[#040B37]">{attendanceRate}</span>
               </div>
             </div>
           </div>

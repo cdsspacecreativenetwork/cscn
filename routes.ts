@@ -14,6 +14,7 @@ export const publicRoutes = [
   "/resources",
   "/mentorship",
   "/instructors",
+  "/teach",
   "/about",
   "/contact",
   "/terms",

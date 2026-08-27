@@ -62,6 +62,7 @@ export interface ButtonProps
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   hasBorder?: boolean;
+  disableScaleHover?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -77,6 +78,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       className = '',
       disabled,
       hasBorder = true,
+      disableScaleHover = false,
       style,
       type = 'button',
       ...props
@@ -91,6 +93,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       const widthDefaultClass = hasWidthClass ? '' : 'w-max';
       const displayClass = className.includes('w-full') ? 'flex' : 'inline-flex';
       const sizeKey = size && gradientSizeMap[size] ? size : 'md';
+      const scaleHoverClass = disableScaleHover ? '' : 'hover:scale-[1.03] active:scale-[0.98]';
 
       if (hasBorder) {
         return (
@@ -98,7 +101,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             ref={ref}
             type={type}
             disabled={isDisabled}
-            className={`${displayClass} h-max cursor-pointer items-center justify-center rounded-full border border-[var(--special-btn-border)] bg-transparent p-[2px] transition-all duration-200 ease-out hover:scale-[1.03] hover:border-[#7b9ffd] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#648EFC]/40 disabled:cursor-not-allowed disabled:opacity-40 ${widthDefaultClass} ${className}`}
+            className={`${displayClass} h-max cursor-pointer items-center justify-center rounded-full border border-[var(--special-btn-border)] bg-transparent p-[2px] transition-all duration-200 ease-out hover:border-[#7b9ffd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#648EFC]/40 disabled:cursor-not-allowed disabled:opacity-40 ${scaleHoverClass} ${widthDefaultClass} ${className}`}
             style={style}
             {...props}
           >

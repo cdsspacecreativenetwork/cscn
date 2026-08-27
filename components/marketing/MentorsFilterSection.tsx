@@ -376,7 +376,7 @@ export default function MentorsFilterSection({
         <div className="flex flex-col gap-6 md:gap-8">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6 w-full">
             <div className="flex flex-col gap-3 md:gap-4 flex-1 max-w-4xl">
-              <h1 className="text-[28px] sm:text-[34px] lg:text-[40px] xl:text-[48px] font-semibold text-[#040B37] tracking-[-0.02em] leading-[1.2] font-inter">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-semibold text-[#040B37] tracking-[-0.02em] leading-[1.2] font-inter">
                 Explore Mentors
               </h1>
               <p className="text-[14px] sm:text-[15px] xl:text-[16px] font-medium text-[#4B5563] tracking-[-0.01em] font-inter leading-relaxed w-full">
@@ -401,7 +401,7 @@ export default function MentorsFilterSection({
           </div>
 
           {/* Stats Bar */}
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-[20px]">
+          {/* <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-[20px]">
             {stats.map((stat, i) => (
               <div key={stat.label} className="flex items-center gap-4 sm:gap-6">
                 <div className="flex flex-col gap-1 sm:gap-2">
@@ -422,11 +422,11 @@ export default function MentorsFilterSection({
                 )}
               </div>
             ))}
-          </div>
+          </div> */}
         </div>
 
         {/* What You'll Get Section */}
-        <div className="flex flex-col gap-3 md:gap-4">
+        {/* <div className="flex flex-col gap-3 md:gap-4">
           <h2 className="text-[20px] sm:text-[22px] lg:text-[24px] font-semibold text-[#040B37] tracking-[-0.02em] font-inter">
             What You&apos;ll Get
           </h2>
@@ -440,12 +440,12 @@ export default function MentorsFilterSection({
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Meet the Mentors Section */}
         <div className="flex flex-col gap-5 md:gap-6 w-full">
           <div className="flex flex-col gap-2">
-            <h2 className="text-[20px] sm:text-[22px] lg:text-[24px] font-semibold text-[#040B37] tracking-[-0.02em] font-inter">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-medium text-[#040B37] tracking-[-0.02em] font-inter">
               Meet the Mentors
             </h2>
             {bookingError && (
@@ -459,14 +459,14 @@ export default function MentorsFilterSection({
           <div className="w-full flex items-center justify-between gap-3 sm:gap-4">
             <div className="relative flex-1 max-w-xl">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#9CA3AF]">
-                <Search size={18} />
+                <Search size={15} />
               </div>
               <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name, company, or role..."
-                className="pl-11 pr-9 h-12 text-[14px] rounded-full outline-none border-[#E3E8F4] bg-white focus-visible:ring-primary/30 w-full"
+                className="pl-11 pr-9 h-12 text-base rounded-full outline-none border-[#E3E8F4] bg-white focus-visible:ring-primary/30 w-full"
               />
             </div>
 
@@ -535,8 +535,8 @@ export default function MentorsFilterSection({
             {isLoadingInitial ? (
               <div
                 className={`grid gap-4 sm:gap-5 ${isFilterOpen
-                    ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4'
-                    : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5'
+                  ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4'
+                  : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5'
                   }`}
               >
                 {Array.from({ length: 8 }).map((_, index) => (
@@ -549,8 +549,8 @@ export default function MentorsFilterSection({
                   layout
                   key="mentors-grid"
                   className={`grid gap-4 sm:gap-5 ${isFilterOpen
-                      ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4'
-                      : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5'
+                    ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4'
+                    : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5'
                     }`}
                 >
                   {visibleMentors.map((mentor) => (
