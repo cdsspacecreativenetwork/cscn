@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Plus, ArrowUpRight, MoreHorizontal, GraduationCap, Clock, Clock3, CheckCircle2, Flame, Share2, EyeOff, BookOpen, RotateCcw } from 'lucide-react';
+import { Plus, ArrowUpRight, MoreHorizontal, GraduationCap, Clock, Clock3, CheckCircle2, Flame, Share2, EyeOff, RotateCcw } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useRouter } from 'next/navigation';
 import { useDashboardStore } from '@/lib/store/dashboardStore';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 import { Card } from '@/components/ui/Card';
+import { LearnerPageHeader } from '@/components/dashboard/learner/LearnerPageHeader';
 
 interface DashboardUser {
   name?: string | null;
@@ -72,18 +73,12 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
   };
 
   return (
-    <div className="p-[clamp(16px,2.78vw,48px)] space-y-8 max-w-[1728px] mx-auto font-jakarta">
+    <div className="mx-auto flex max-w-[1728px] flex-col gap-8 p-[clamp(16px,2.78vw,48px)]">
       {/* Header section - Fluid Scaling */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
-        <div className="space-y-1 w-full">
-          <h1 className="text-[clamp(18px,1.25vw,22px)] font-semibold text-[#040B37] leading-tight">
-            {greeting}, {userName} 👋
-          </h1>
-          <p className="text-[clamp(12px,0.81vw,14px)] font-medium text-[#9CA3AF]">
-            {currentDate}
-          </p>
-        </div>
-        <Button
+      <LearnerPageHeader
+        title={`${greeting}, ${userName} 👋`}
+        description={currentDate}
+        action={<Button
           variant="primary"
           size="sm"
           rounded="[10px]"
@@ -93,8 +88,8 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
           leftIcon={<Plus size={18} className="sm:w-[20px] sm:h-[20px]" />}
         >
           Explore Courses
-        </Button>
-      </div>
+        </Button>}
+      />
 
       {instructorApplication?.status === 'PENDING' && (
         <Alert className="border-amber-200 bg-amber-50 p-5 sm:p-6">
@@ -132,7 +127,7 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
       )}
 
       {/* Stats section - 4 Columns with curated premium Lucide icons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {hasLearningActivity ? <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
         <StatCard
           title="Courses Enrolled"
           value={data.coursesEnrolled}
@@ -153,12 +148,12 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
           value={data.learningStreak}
           icon={<Flame className="text-[#1C4ED1]" size={20} strokeWidth={2.2} />}
         />
-      </div>
+      </div> : null}
 
       {/* Row 1: Continue Learning & Announcements */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Continue Learning */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="flex flex-col gap-6 lg:col-span-3">
           <div className="flex items-center justify-between min-h-[32px]">
             <h2 className="text-[18px] xl:text-[20px] font-medium text-[#040B37]">
               {hasLearningActivity ? 'Continue Learning' : 'Start Your Learning Journey'}
@@ -173,36 +168,11 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
             ) : null}
           </div>
 
-          <div className="space-y-6">
-            {!hasLearningActivity ? (
-              <Card className="[--card-spacing:0px]">
-                <div className="relative p-6 sm:p-8">
-                  <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#1C4ED1]/10 blur-3xl" />
-                  <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="max-w-l">
-                      <h3 className="text-[24px] font-semibold leading-tight text-[#040B37] sm:text-[30px]">
-                        Choose your first course and we will personalize your dashboard as you learn.
-                      </h3>
-                    </div>
-                    <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">
-                      <Button
-                        variant="primary"
-                        size="md"
-                        rounded="[10px]"
-                        hasBorder={false}
-                        leftIcon={<BookOpen size={18} />}
-                        onClick={() => router.push('/courses')}
-                      >
-                        Browse Courses
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ) : currentLearning.map((enrollment) => (
+          <div className="flex flex-col gap-6">
+            {hasLearningActivity ? currentLearning.map((enrollment) => (
               <Card
                 key={enrollment.id}
-                className="gap-6 px-6 [--card-spacing:24px] transition-all duration-300"
+                className="gap-6 px-6 [--card-spacing:24px] transition-colors duration-300"
               >
                 {/* Top Row: Thumbnail (16:9), Course Title */}
                 <div className="flex items-center gap-4">
@@ -233,8 +203,8 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
                 </div>
 
                 {/* Progress Bar Container */}
-                <div className="w-full h-4 bg-[#F4F6FB] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#1C4ED1] rounded-full transition-all duration-1000" style={{ width: `${enrollment.progressPercent}%` }}></div>
+                <div className="h-4 w-full overflow-hidden rounded-full bg-background">
+                  <div className="h-full rounded-full bg-primary transition-[width] duration-1000 motion-reduce:transition-none" style={{ width: `${enrollment.progressPercent}%` }}></div>
                 </div>
 
                 {/* Sub-Task / Activity Box */}
@@ -275,7 +245,7 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
                   </Button>
                 </div>
               </Card>
-            ))}
+            )) : null}
           </div>
         </div>
 
@@ -283,29 +253,38 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
         <div className="lg:col-span-1 lg:pt-[44px]">
           <Card className="[--card-spacing:0px]">
             <div className="px-5 py-4 border-b border-[#E3E8F4] bg-white">
-              <h2 className="text-[15px] font-bold text-[#040B37] tracking-tight">
+              <h2 className="text-base font-semibold tracking-tight text-navy">
                 Announcements
               </h2>
             </div>
 
             <div className="divide-y divide-[#E3E8F4]">
               {data.announcements.length > 0 ? (
-                data.announcements.map((ann) => (
-                  <div
-                    key={ann.id}
-                    onClick={() => ann.linkUrl && window.open(ann.linkUrl, '_blank', 'noopener,noreferrer')}
-                    className={`p-4 flex items-start gap-3.5 hover:bg-[#F4F6FB]/50 transition-all group ${ann.linkUrl ? 'cursor-pointer' : ''}`}
-                  >
+                data.announcements.map((ann) => {
+                  const announcementContent = (
+                    <>
                     <div className="w-9 h-9 bg-[#F4F6FB] rounded-lg border border-[#E3E8F4]/60 flex items-center justify-center text-[16px] shrink-0 group-hover:scale-105 transition-transform mt-0.5">
                       {ann.emoji}
                     </div>
                     <div className="flex flex-col gap-1 min-w-0 flex-1">
                       <p className="text-[13px] font-semibold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors">{ann.title}</p>
                       {ann.body && <p className="line-clamp-2 text-[12px] font-normal text-[#4B5563] leading-relaxed">{ann.body}</p>}
-                      <p className="text-[11px] font-normal text-[#9CA3AF] mt-0.5">{ann.time}</p>
+                      <p className="mt-0.5 text-xs font-medium text-text-mute">{ann.time}</p>
                     </div>
-                  </div>
-                ))
+                    </>
+                  );
+                  const itemClassName = 'group flex items-start gap-3.5 p-4 transition-colors hover:bg-[#F4F6FB]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40';
+
+                  return ann.linkUrl ? (
+                    <a key={ann.id} href={ann.linkUrl} target="_blank" rel="noopener noreferrer" className={itemClassName}>
+                      {announcementContent}
+                    </a>
+                  ) : (
+                    <article key={ann.id} className={itemClassName}>
+                      {announcementContent}
+                    </article>
+                  );
+                })
               ) : (
                 <div className="p-6 text-center">
                   <p className="text-[14px] font-semibold text-[#040B37]">No announcements right now</p>
@@ -339,31 +318,39 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
               {visibleRecs.map((course, i) => (
                 <Card
                   key={course.id || i}
-                  className="w-full [--card-spacing:0px] transition-all duration-300 group relative"
+                className="group relative w-full [--card-spacing:0px] transition-colors duration-300"
                 >
                   {/* Thumbnail Container */}
                   <div className="relative aspect-[16/9] w-full bg-[#F4F6FB] overflow-hidden shrink-0">
                     {course.thumbnail && !brokenThumbnailIds.includes(course.id) ? (
-                      <Image
-                        src={course.thumbnail}
-                        alt={course.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                      <button
+                        type="button"
                         onClick={() => router.push(`/courses/${course.slug}`)}
-                        onError={() => markThumbnailBroken(course.id)}
-                      />
+                        className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        aria-label={`View ${course.title}`}
+                      >
+                        <Image
+                          src={course.thumbnail}
+                          alt=""
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none"
+                          onError={() => markThumbnailBroken(course.id)}
+                        />
+                      </button>
                     ) : (
-                      <div
-                        className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,_rgba(28,78,209,0.16),_transparent_42%),linear-gradient(135deg,#F8FAFF_0%,#EEF3FF_100%)]"
+                      <button
+                        type="button"
+                        aria-label={`View ${course.title}`}
+                        className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,_rgba(28,78,209,0.16),_transparent_42%),linear-gradient(135deg,#F8FAFF_0%,#EEF3FF_100%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         onClick={() => router.push(`/courses/${course.slug}`)}
                       >
                         <GraduationCap size={28} className="text-[#1C4ED1]/60" />
-                        <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#1C4ED1]">
+                        <span className="text-xs font-semibold text-primary">
                           Course preview
                         </span>
-                      </div>
+                      </button>
                     )}
-                    <span className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#1C4ED1] shadow-sm backdrop-blur-sm">
+                    <span className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur-sm">
                       {course.difficulty?.toLowerCase() || 'beginner'}
                     </span>
 
@@ -371,7 +358,8 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
                     <div className="absolute top-3 right-3 z-10">
                       <button
                         onClick={() => setActiveDropdown(activeDropdown === course.id ? null : course.id)}
-                        className="w-8 h-8 rounded-[8px] bg-white/90 hover:bg-white text-[#4B5563] flex items-center justify-center shadow-md transition-all cursor-pointer hover:scale-105"
+                        className="flex size-10 cursor-pointer items-center justify-center rounded-[8px] bg-white/90 text-text-body shadow-md transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        aria-label={`Course actions for ${course.title}`}
                       >
                         <MoreHorizontal size={18} />
                       </button>
@@ -499,7 +487,7 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
             <div className="divide-y divide-[#E3E8F4]">
               {data.schedule.length > 0 ? (
                 data.schedule.map((item) => (
-                  <div key={item.id} className="p-4 flex items-start gap-3 hover:bg-[#F4F6FB]/50 transition-all cursor-pointer group">
+                  <article key={item.id} className="group flex items-start gap-3 p-4 transition-colors hover:bg-[#F4F6FB]/50">
                     <div className="flex flex-col gap-0.5 min-w-[62px] shrink-0">
                       <p className="text-[12px] font-semibold text-[#040B37] group-hover:text-[#1C4ED1] transition-colors">{item.time}</p>
                       <p className="text-[10px] font-normal text-[#9CA3AF]">{item.duration}</p>
@@ -509,7 +497,7 @@ export default function StudentDashboardClient({ data, user, instructorApplicati
                       <p className="text-[13px] font-semibold text-[#040B37] leading-snug group-hover:text-[#1C4ED1] transition-colors line-clamp-2">{item.title}</p>
                       <p className="text-[11px] font-normal text-[#9CA3AF]">{item.type}</p>
                     </div>
-                  </div>
+                  </article>
                 ))
               ) : (
                 <div className="p-6 text-center">

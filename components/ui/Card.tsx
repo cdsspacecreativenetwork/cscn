@@ -38,7 +38,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
     <h3
       data-slot="card-title"
       className={cn(
-        "font-jakarta text-[17px] font-semibold leading-snug tracking-[-0.02em] text-navy group-data-[size=sm]/card:text-[15px]",
+        "text-base font-semibold leading-snug tracking-[-0.02em] text-navy",
         className
       )}
       {...props}
@@ -50,7 +50,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("font-inter text-sm font-medium leading-6 text-text-body", className)}
+      className={cn("text-sm font-normal leading-6 text-text-body", className)}
       {...props}
     />
   )
