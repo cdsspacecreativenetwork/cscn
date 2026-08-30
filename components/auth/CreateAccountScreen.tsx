@@ -16,7 +16,7 @@ import { FormSuccess } from "@/components/auth/FormSuccess";
 import { Social } from "@/components/auth/Social";
 import Button from "@/components/ui/Button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { readInstructorApplicationDraft } from "@/lib/instructor-application-draft";
 import {

@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { CustomSelect } from '@/components/ui/CustomSelect';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import {
   FALLBACK_LOCATION_TIMEZONE_OPTIONS,
   getLocationTimezoneOption,

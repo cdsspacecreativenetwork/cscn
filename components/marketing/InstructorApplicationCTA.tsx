@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/Dialog';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/Field';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import { NativeSelect } from '@/components/ui/NativeSelect';
 import {
   INSTRUCTOR_EXPERIENCE_LEVELS,
