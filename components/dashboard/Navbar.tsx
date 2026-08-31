@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Bell, X } from 'lucide-react';
+import { Search, Bell } from 'lucide-react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { NotificationDropdown } from './NotificationDropdown';
@@ -50,7 +50,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
       <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
         <button 
           onClick={onMenuClick}
-          className="lg:hidden p-2 text-[#4B5563] hover:bg-[#F4F6FB] rounded-lg transition-all shrink-0"
+          className="shrink-0 rounded-lg p-2 text-[#4B5563] transition-colors hover:bg-[#F4F6FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 min-[900px]:hidden"
+          aria-label="Open navigation menu"
         >
           <Image 
             src="/assets/menu.svg" 
@@ -75,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         <button
           type="button"
           onClick={() => setIsCommandPaletteOpen(true)}
-          className="relative hidden w-[clamp(220px,26.68vw,461px)] group md:flex items-center justify-between h-[clamp(40px,2.55vw,44px)] px-[clamp(14px,1.15vw,18px)] bg-[#F4F6FB] border border-[#E3E8F4] rounded-full text-[#9CA3AF] hover:border-[#1C4ED1]/50 hover:bg-white transition-all text-left group"
+          className="group relative hidden h-[clamp(40px,2.55vw,44px)] w-[clamp(220px,26.68vw,461px)] items-center justify-between rounded-full border border-[#E3E8F4] bg-[#F4F6FB] px-[clamp(14px,1.15vw,18px)] text-left text-[#9CA3AF] transition-[border-color,background-color] hover:border-[#1C4ED1]/50 hover:bg-white md:flex"
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <Search size={18} className="text-[#9CA3AF] group-hover:text-[#1C4ED1] transition-colors shrink-0" />
@@ -95,11 +96,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         <div className="relative">
           <button 
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            className={`w-[clamp(40px,2.55vw,44px)] h-[clamp(40px,2.55vw,44px)] flex items-center justify-center border border-[#E3E8F4] rounded-[12px] text-[#4B5563] transition-all relative ${isNotificationsOpen ? 'bg-[#F4F6FB]' : 'hover:bg-[#F4F6FB]'}`}
+            className={`relative flex size-[clamp(40px,2.55vw,44px)] items-center justify-center rounded-[12px] border border-[#E3E8F4] text-[#4B5563] transition-colors ${isNotificationsOpen ? 'bg-[#F4F6FB]' : 'hover:bg-[#F4F6FB]'}`}
+            aria-label={isNotificationsOpen ? 'Close notifications' : `Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
           >
             <Bell size={24} style={{ width: 'clamp(20px, 1.39vw, 24px)', height: 'clamp(20px, 1.39vw, 24px)' }} />
             {unreadCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white ring-2 ring-white">
+              <span className="absolute -right-1.5 -top-1.5 flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold leading-none text-white ring-2 ring-white">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}

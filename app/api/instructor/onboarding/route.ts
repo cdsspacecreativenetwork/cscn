@@ -34,7 +34,6 @@ export async function POST(req: Request) {
       audienceSize,
     } = body;
 
-    // Split full name into firstName and lastName if possible
     let firstName: string | undefined;
     let lastName: string | undefined;
     if (fullName && typeof fullName === 'string') {
@@ -43,12 +42,10 @@ export async function POST(req: Request) {
       if (parts.length > 1) lastName = parts.slice(1).join(' ');
     }
 
-    // Combine job title and company for headline
     const headline = jobTitle && company
       ? `${jobTitle} at ${company}`
       : jobTitle || company || undefined;
 
-    // Calculate total years of experience
     const yearsExperience = expYears ? parseInt(expYears, 10) : undefined;
     const validYearsExp = !isNaN(yearsExperience!) ? yearsExperience : undefined;
     const linkedinUrl = linkedinHandle ? (linkedinHandle.startsWith('http') ? linkedinHandle : `https://linkedin.com/in/${linkedinHandle.replace(/^@/, '')}`) : undefined;
@@ -95,7 +92,6 @@ export async function POST(req: Request) {
       },
     };
 
-    // Update user in database along with Profile and InstructorProfile
     await db.user.update({
       where: { id: session.user.id },
       data: {

@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import SearchField from "@/components/ui/SearchField";
 
 interface Option {
@@ -25,6 +25,7 @@ interface CustomSelectProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   size?: "default" | "compact";
+  ariaLabel?: string;
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -35,10 +36,10 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   disabled = false,
   className = "",
   triggerClassName = "",
-  variant = "default",
   searchable = false,
   searchPlaceholder = "Search options",
   size = "default",
+  ariaLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -55,7 +56,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   }, [options, query]);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (
@@ -64,6 +65,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         !menuRef.current?.contains(target)
       ) {
         setIsOpen(false);
+        setQuery("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -100,10 +102,6 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     };
   }, [isOpen, searchable, options.length]);
 
-  useEffect(() => {
-    if (!isOpen) setQuery("");
-  }, [isOpen]);
-
   const handleSelect = (optionValue: string) => {
     onChange(optionValue);
     setIsOpen(false);
@@ -111,13 +109,22 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <div ref={containerRef} className={`relative min-w-[140px] ${className}`}>
       {/* Trigger */}
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen((open) => {
+            if (open) setQuery("");
+            return !open;
+          });
+        }}
         data-state={isOpen ? "open" : "closed"}
+        aria-label={ariaLabel ?? placeholder}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
         className={`
           cscn-form-control cscn-select-trigger w-full flex items-center justify-between gap-2
           ${size === "compact" ? "cscn-form-control-compact" : ""}
@@ -159,13 +166,15 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               </div>
             )}
 
-            <div className="max-h-[320px] overflow-y-auto p-1.5 custom-scrollbar gap-4">
+            <div role="listbox" aria-label={ariaLabel ?? placeholder} className="custom-scrollbar max-h-[320px] overflow-y-auto p-1.5">
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
                     disabled={option.disabled}
+                    role="option"
+                    aria-selected={value === option.value}
                     onClick={() => handleSelect(option.value)}
                     className={`
                       w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors rounded-[10px]
@@ -199,5 +208,6 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         document.body
       )}
     </div>
+    </MotionConfig>
   );
 };

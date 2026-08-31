@@ -8,7 +8,15 @@ import { generateTapbackAvatar } from '@/lib/avatar';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { db } from '@/lib/db';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { BookOpen, Plus } from 'lucide-react';
+import { LearnerPageHeader } from '@/components/dashboard/learner/LearnerPageHeader';
+import {
+  EmptyState,
+  EmptyStateContent,
+  EmptyStateDescription,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from '@/components/ui/EmptyState';
 
 type DashboardEnrollment = Awaited<ReturnType<typeof getDashboardEnrollments>>[number];
 
@@ -75,27 +83,23 @@ export default async function MyCourses() {
   );
 
   return (
-    <div className="p-[clamp(16px,2.78vw,48px)] space-y-8 max-w-[1728px] mx-auto w-full font-jakarta">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-[24px] lg:text-[28px] font-bold text-[#040B37] tracking-tight">
-            My Learning
-          </h1>
-          <p className="text-[14px] font-medium text-text-mute">
-            Track and continue your learning journey
-          </p>
-        </div>
-        <Link
-          href="/courses"
-          className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-[#1C4ED1] px-4 py-2 text-[13px] font-semibold text-white shadow-[0px_4px_12px_rgba(28,78,209,0.15)] transition-all hover:bg-[#163fa3] active:scale-[0.98]"
-        >
-          <Plus size={18} />
-          Browse Courses
-        </Link>
-      </div>
+    <div className="mx-auto flex w-full max-w-[1728px] flex-col gap-8 p-[clamp(16px,2.78vw,48px)]">
+      <LearnerPageHeader
+        title="My Learning"
+        description="Track and continue your learning journey."
+        action={courses.length > 0 ? (
+          <Link
+            href="/courses"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <Plus size={18} aria-hidden="true" />
+            Browse Courses
+          </Link>
+        ) : undefined}
+      />
 
       {/* Student At-a-Glance Stats - Co-located perfectly at the top of My Learning */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[clamp(16px,1.39vw,24px)]">
+      {courses.length > 0 ? <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
         <StatCard
           title="Courses Enrolled"
           value={studentData.coursesEnrolled}
@@ -116,21 +120,25 @@ export default async function MyCourses() {
           value={studentData.learningStreak}
           iconSrc="/assets/dashboard/user/fire-03.svg"
         />
-      </div>
+      </div> : null}
 
       {courses.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-4">
-          <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-text-mute">
-              <path d="M12 6.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Z" fill="currentColor" opacity=".3" />
-              <path d="M12 14c-3.33 0-6 1.34-6 3v1h12v-1c0-1.66-2.67-3-6-3Z" fill="currentColor" />
-            </svg>
-          </div>
-          <p className="text-text-mute font-medium">You haven&apos;t enrolled in any courses yet.</p>
-          <p className="text-[13px] font-medium text-text-mute">
-            Use the Browse Courses button above to find your first class.
-          </p>
-        </div>
+        <EmptyState className="py-12 sm:py-16">
+          <EmptyStateIcon><BookOpen size={24} aria-hidden="true" /></EmptyStateIcon>
+          <EmptyStateTitle>Start your first course</EmptyStateTitle>
+          <EmptyStateDescription>
+            Explore the course catalog and choose a learning path that fits your goals.
+          </EmptyStateDescription>
+          <EmptyStateContent>
+            <Link
+              href="/courses"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <Plus size={18} aria-hidden="true" />
+              Browse Courses
+            </Link>
+          </EmptyStateContent>
+        </EmptyState>
       ) : (
         <MyCoursesClient courses={courses} />
       )}

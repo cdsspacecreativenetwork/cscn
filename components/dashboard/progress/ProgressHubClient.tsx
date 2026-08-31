@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import {
   AreaChart,
   Area,
@@ -25,7 +25,6 @@ import {
   Users,
   Star,
   Clock,
-  TrendingUp,
   Trophy,
   Info,
   CheckCircle2,
@@ -39,11 +38,12 @@ import {
   BarChart2,
   LineChart,
   ChevronDown,
-  Check,
   Lock,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import Button from "@/components/ui/Button";
+import { LearnerPageHeader } from "@/components/dashboard/learner/LearnerPageHeader";
+import { EmptyState, EmptyStateContent, EmptyStateDescription, EmptyStateIcon, EmptyStateTitle } from "@/components/ui/EmptyState";
 
 // Custom inline SVG icons for compile-safe execution
 const LinkedinIcon = ({ size = 15 }: { size?: number }) => (
@@ -310,7 +310,6 @@ export function ProgressHubClient({
 
     // Define unique styles based on the achievement name
     let themeClass = "bg-white border-[#E3E8F4] text-[#040B37]";
-    let highlightClass = "text-[#1C4ED1]";
     let customIllustration = null;
 
     // Generate illustration
@@ -381,7 +380,6 @@ export function ProgressHubClient({
 
     if (!isUnlocked) {
       themeClass = "bg-[#F8FAFC]/75 border-[#E2E8F0] text-[#040B37]/80 cursor-not-allowed";
-      highlightClass = "text-gray-400";
       customIllustration = (
         <div className="opacity-35 grayscale scale-[0.93] transition-all select-none pointer-events-none">
           {customIllustration}
@@ -391,27 +389,21 @@ export function ProgressHubClient({
       switch (ach.name) {
         case "First Step":
           themeClass = "bg-gradient-to-br from-[#DBE5FF]/85 to-[#DBE5FF]/45 border-[#C5D5FF] text-[#040B37] hover:border-[#1C4ED1]/40";
-          highlightClass = "text-[#1C4ED1]";
           break;
         case "Curious Mind":
           themeClass = "bg-gradient-to-br from-[#DDF5E6]/85 to-[#DDF5E6]/45 border-[#C4ECD2] text-[#040B37] hover:border-[#10B981]/40";
-          highlightClass = "text-[#10B981]";
           break;
         case "7-Day Streak":
           themeClass = "bg-gradient-to-br from-[#FFEBD3]/85 to-[#FFEBD3]/45 border-[#FCD2A9] text-[#040B37] hover:border-[#F59E0B]/40";
-          highlightClass = "text-[#F59E0B]";
           break;
         case "30-Day Streak":
           themeClass = "bg-gradient-to-br from-[#F3E8FF]/85 to-[#F3E8FF]/45 border-[#E9D5FF] text-[#040B37] hover:border-purple-400/40";
-          highlightClass = "text-purple-600";
           break;
         case "Course Completer":
           themeClass = "bg-gradient-to-br from-[#E3F5FF]/85 to-[#E3F5FF]/45 border-[#C5EBFF] text-[#040B37] hover:border-blue-400/40";
-          highlightClass = "text-blue-500";
           break;
         default: // Creator stats or published courses
           themeClass = "bg-gradient-to-br from-slate-900 to-slate-950 border-slate-800 text-white hover:border-[#1C4ED1]/40";
-          highlightClass = "text-blue-400";
       }
     }
 
@@ -640,24 +632,17 @@ export function ProgressHubClient({
   }, [activityData, timeframe]);
 
   return (
-    <div className="p-6 md:p-10 space-y-8 max-w-[1600px] mx-auto font-jakarta relative">
+    <MotionConfig reducedMotion="user">
+    <div className="relative mx-auto flex max-w-[1600px] flex-col gap-8 p-4 sm:p-6 md:p-10">
       {/* 1. Header with Glassmorphic Switcher Tab */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
-        <div className="space-y-1.5">
-          <h1 className="text-[28px] md:text-[34px] font-bold text-[#040B37] tracking-tight">
-            My Progress Hub
-          </h1>
-          <p className="text-[#6B7280] text-[15px]">
-            Empower your path, whether building knowledge or leading student success.
-          </p>
-        </div>
-
-        {/* Dynamic Segmented sliding switcher - only visible after instructor profile activation. */}
-        {canViewInstructorImpact && (
+      <LearnerPageHeader
+        title="My Progress Hub"
+        description="See your learning consistency, course completion, and earned achievements."
+        action={canViewInstructorImpact ? (
           <div className="relative flex p-1 bg-gray-100 rounded-[8px] w-full max-w-[340px]">
             <button
               onClick={() => setActiveTab("learner")}
-              className={`relative z-10 flex-1 py-2.5 text-[14px] font-bold text-center transition-colors outline-none duration-300 rounded-[6px] ${
+              className={`relative z-10 flex-1 rounded-[6px] py-2.5 text-center text-sm font-medium outline-none transition-colors duration-300 ${
                 activeTab === "learner" ? "text-[#1C4ED1]" : "text-gray-500 hover:text-gray-800"
               }`}
             >
@@ -665,7 +650,7 @@ export function ProgressHubClient({
             </button>
             <button
               onClick={() => setActiveTab("creator")}
-              className={`relative z-10 flex-1 py-2.5 text-[14px] font-bold text-center transition-colors outline-none duration-300 rounded-[6px] ${
+              className={`relative z-10 flex-1 rounded-[6px] py-2.5 text-center text-sm font-medium outline-none transition-colors duration-300 ${
                 activeTab === "creator" ? "text-[#1C4ED1]" : "text-gray-500 hover:text-gray-800"
               }`}
             >
@@ -679,8 +664,8 @@ export function ProgressHubClient({
               }`}
             />
           </div>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       <AnimatePresence mode="wait">
         {activeTab === "learner" ? (
@@ -692,6 +677,17 @@ export function ProgressHubClient({
             transition={{ duration: 0.3 }}
             className="space-y-8"
           >
+            {coursesProgress.length === 0 ? (
+              <EmptyState className="py-12 sm:py-16">
+                <EmptyStateIcon><BookOpen size={24} aria-hidden="true" /></EmptyStateIcon>
+                <EmptyStateTitle>Your progress starts with a course</EmptyStateTitle>
+                <EmptyStateDescription>Enroll in a course to unlock progress charts, learning consistency, challenges, and achievements.</EmptyStateDescription>
+                <EmptyStateContent>
+                  <Link href="/courses" className="inline-flex min-h-11 items-center rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">Browse Courses</Link>
+                </EmptyStateContent>
+              </EmptyState>
+            ) : (
+              <>
             {/* 2. Learner Streak & Stats Overview Widget */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Active Streak Card */}
@@ -1096,6 +1092,8 @@ export function ProgressHubClient({
                 </div>
               </div>
             </div>
+              </>
+            )}
           </motion.div>
         ) : (
           <motion.div
@@ -1578,5 +1576,6 @@ export function ProgressHubClient({
         )}
       </AnimatePresence>
     </div>
+    </MotionConfig>
   );
 }

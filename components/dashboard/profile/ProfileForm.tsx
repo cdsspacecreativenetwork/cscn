@@ -8,7 +8,7 @@ import { SettingsSchema } from '@/schemas';
 import { settings } from '@/actions/settings';
 import { User } from '@prisma/client';
 import { toast } from 'sonner';
-import { Plus, Trash2, Link as LinkIcon, Globe } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { Input } from '@/components/ui/Input';
@@ -38,7 +38,7 @@ const FormField = ({
   disabled?: boolean;
 }) => (
   <div className={`flex flex-col gap-2 ${className}`}>
-    <label className="text-[14px] md:text-[16px] font-semibold text-[#4B5563] tracking-tight">
+    <label className="text-sm font-medium tracking-tight text-text-body">
       {label}
     </label>
     {type === "textarea" ? (
@@ -47,7 +47,7 @@ const FormField = ({
         placeholder={placeholder}
         rows={4}
         disabled={disabled}
-        className="w-full bg-background border border-[#E3E8F4] rounded-[16px] p-4 text-[15px] md:text-[16px] text-[#040B37] placeholder:text-[#9CA3AF] outline-none focus:border-[#1C4ED1] focus:ring-4 focus:ring-[#1C4ED1]/5 transition-all resize-none font-medium disabled:opacity-50"
+        className="w-full resize-none rounded-[16px] border border-stroke bg-background p-4 text-sm font-normal text-navy outline-none transition-[border-color,box-shadow] placeholder:text-text-mute focus:border-primary focus:ring-4 focus:ring-primary/5 disabled:opacity-50"
       />
     ) : (
       <Input
@@ -73,16 +73,6 @@ const getPlatformFromUrl = (url: string) => {
   if (lowerUrl.includes("dribbble.com")) return "dribbble";
   if (lowerUrl.includes("youtube.com")) return "youtube";
   return "website";
-};
-
-// Helper to render platform icon
-const uPlatformIcon = ({ platform }: { platform: string }) => {
-  switch (platform) {
-    case "twitter": return <LinkIcon size={18} className="text-[#1DA1F2]" />;
-    case "linkedin": return <LinkIcon size={18} className="text-[#0A66C2]" />;
-    case "github": return <LinkIcon size={18} className="text-[#181717]" />;
-    default: return <Globe size={18} className="text-[#9CA3AF]" />;
-  }
 };
 
 const explicitSocialFields = [
@@ -144,7 +134,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
     if (user.socials) {
       try {
         parsed = typeof user.socials === 'string' ? JSON.parse(user.socials) : user.socials;
-      } catch (e) {
+      } catch {
         parsed = [];
       }
     }
@@ -192,10 +182,11 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
   useEffect(() => {
     const btn = document.getElementById('save-profile-btn') as HTMLButtonElement;
     if (btn) {
+      btn.hidden = !(isDirty || saveStatus === 'error');
       btn.disabled = !isDirty || isPending;
-      btn.textContent = isPending ? 'Saving...' : isDirty ? 'Save Now' : 'Saved';
+      btn.textContent = isPending ? 'Saving...' : 'Save Now';
     }
-  }, [isDirty, isPending]);
+  }, [isDirty, isPending, saveStatus]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -269,11 +260,11 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
     'All changes saved';
 
   return (
-    <form id="profile-form" onSubmit={form.handleSubmit((values) => onSubmit(values))} className="w-full space-y-12 md:space-y-10">
+    <form id="profile-form" onSubmit={form.handleSubmit((values) => onSubmit(values))} className="flex w-full flex-col gap-10">
       <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white">
         {/* Form Header */}
         <div className="pb-5 md:border-b md:border-[#E3E8F4] md:px-8 md:py-5">
-          <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
+          <h3 className="text-lg font-semibold tracking-tight text-navy sm:text-xl">
             Personal Information
           </h3>
           <p className={`mt-1 text-xs font-bold ${
@@ -322,7 +313,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
           />
 
           <div className="md:col-span-2 flex flex-col gap-2">
-            <label className="text-[14px] md:text-[16px] font-semibold text-[#4B5563] tracking-tight">
+            <label className="text-sm font-medium tracking-tight text-text-body">
               Location and timezone
             </label>
             <CustomSelect
@@ -368,7 +359,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
           />
 
           <div className="md:col-span-2 flex flex-col gap-2">
-            <label className="text-[14px] md:text-[16px] font-semibold text-[#4B5563] tracking-tight">
+            <label className="text-sm font-medium tracking-tight text-text-body">
               Expertise tags
             </label>
             <Input
@@ -390,11 +381,11 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
 
       <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white">
         <div className="pb-5 md:border-b md:border-[#E3E8F4] md:px-8 md:py-5">
-          <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
-            Public Profile Links
+          <h3 className="text-lg font-semibold tracking-tight text-navy sm:text-xl">
+            Profile links
           </h3>
           <p className="mt-1 text-xs font-semibold text-[#9CA3AF]">
-            Use explicit links so the public profile can render the correct social icons.
+            Add the links you want displayed on your public profile.
           </p>
         </div>
 
@@ -410,18 +401,16 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
             />
           ))}
         </div>
-      </div>
 
-      {/* Dynamic Social Links Section */}
-      <div className="w-full md:overflow-hidden md:rounded-[24px] md:border md:border-[#E3E8F4] md:bg-white">
-        <div className="flex items-center justify-between gap-4 pb-5 md:border-b md:border-[#E3E8F4] md:px-8 md:py-5">
-          <h3 className="text-[16px] md:text-[18px] font-bold text-[#040B37] tracking-tight font-jakarta">
-            Social Links
-          </h3>
+        <div className="flex items-center justify-between gap-4 border-t border-stroke pb-5 pt-6 md:px-8 md:py-5">
+          <div>
+            <h4 className="text-base font-semibold tracking-tight text-navy">Additional links</h4>
+            <p className="mt-1 text-xs font-normal text-text-mute">Add any other public profile or community URL.</p>
+          </div>
           <button
             type="button"
             onClick={() => append({ platform: "website", url: "" })}
-            className="flex items-center gap-2 text-[14px] font-bold text-[#1C4ED1] hover:text-[#163BB1] transition-colors"
+            className="flex min-h-10 items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
           >
             <Plus size={16} />
             Add Link
@@ -432,7 +421,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {fields.map((field, index) => {
               // Get current value to detect platform for icon
-              const currentUrl = form.watch(`socials.${index}.url`);
+              const currentUrl = watchedValues.socials?.[index]?.url;
               const platform = getPlatformFromUrl(currentUrl ?? '');
 
               return (
@@ -457,7 +446,8 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
                   <button
                     type="button"
                     onClick={() => remove(index)}
-                    className="w-[56px] h-[56px] flex items-center justify-center text-[#9CA3AF] hover:text-red-500 hover:bg-red-50 rounded-[16px] transition-colors shrink-0"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-xl text-text-mute transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    aria-label={`Remove ${platform} link`}
                   >
                     <Trash2 size={20} />
                   </button>

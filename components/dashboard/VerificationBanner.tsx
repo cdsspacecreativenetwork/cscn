@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2, Send, Rocket } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AlertCircle, CheckCircle2, Loader2, Send } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { resendVerificationEmailAction } from "@/actions/mail";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ export const VerificationBanner = () => {
   const [isSent, setIsSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [isBoostModalOpen, setIsBoostModalOpen] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   if (status !== "authenticated" || !session?.user) return null;
 
@@ -60,48 +61,38 @@ export const VerificationBanner = () => {
     <>
       <AnimatePresence>
         <motion.div
-          initial={{ height: 0, opacity: 0 }}
+          initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          className={isPendingInstructor ? "bg-[#EEF3FF] border-b border-[#D4E2FF] overflow-hidden font-jakarta" : "bg-[#FFF4ED] border-b border-[#FFE4D1] overflow-hidden font-jakarta"}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
+          className="overflow-hidden border-b border-[#FFE4D1] bg-[#FFF4ED] motion-reduce:transition-none font-jakarta"
         >
-          <div className="max-w-[1600px] mx-auto px-[clamp(16px,2.78vw,48px)] py-3">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className={isPendingInstructor ? "w-8 h-8 rounded-full bg-[#1C4ED1]/10 flex items-center justify-center shrink-0" : "w-8 h-8 rounded-full bg-[#FF7E21]/10 flex items-center justify-center shrink-0"}>
-                  {isPendingInstructor ? (
-                    <Rocket size={18} className="text-[#1C4ED1]" />
-                  ) : (
-                    <AlertCircle size={18} className="text-[#FF7E21]" />
-                  )}
+          <div className="mx-auto max-w-[1600px] px-[clamp(16px,2.78vw,48px)] py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#FF7E21]/10">
+                  <AlertCircle size={18} className="text-[#FF7E21]" />
                 </div>
-                <div>
-                  <p className={isPendingInstructor ? "text-[14px] font-bold text-[#040B37]" : "text-[14px] font-medium text-[#7A3E15]"}>
-                    {isPendingInstructor
-                      ? "Your instructor profile is pending approval."
-                      : "Your email is not verified yet. Please verify to unlock certificates and full course features."}
-                  </p>
-                  {isPendingInstructor && (
-                    <p className="text-[12px] font-medium text-[#4B5563] mt-0.5">
-                      Fast-track review by adding your CV, demo video, or course pitch.
-                    </p>
-                  )}
-                </div>
+                <p className="text-xs font-medium leading-5 text-[#7A3E15] sm:text-sm">
+                  {isPendingInstructor
+                    ? "Your instructor profile is pending approval."
+                    : "Your email is not verified yet. Please verify to unlock certificates and full course features."}
+                </p>
               </div>
 
               {isPendingInstructor ? (
                 <button
                   onClick={() => setIsBoostModalOpen(true)}
-                  className="cursor-pointer flex items-center gap-2 px-5 py-2 rounded-[8px] text-[13px] font-bold bg-[#1C4ED1] text-white hover:bg-[#163BB1] transition-all shadow-sm shrink-0 active:scale-[0.98]"
+                  className="flex min-h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] bg-[#FF7E21] px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#E66D1A] sm:px-4 sm:text-sm active:scale-[0.98]"
                 >
-                  <Rocket size={14} />
-                  Boost Application
+                  <Send size={14} />
+                  <span>Boost Application</span>
                 </button>
               ) : (
                 <button
                   disabled={isResending || isSent || cooldown > 0}
                   onClick={handleResend}
-                  className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-[8px] text-[13px] font-bold transition-all shrink-0
+                  className={`flex min-h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-xs font-semibold transition-colors sm:px-4 sm:text-sm
                     ${isSent 
                       ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
                       : "bg-[#FF7E21] text-white hover:bg-[#E66D1A] shadow-sm"}
@@ -111,21 +102,22 @@ export const VerificationBanner = () => {
                   {isResending ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
-                      Resending...
+                      <span className="hidden sm:inline">Resending...</span>
                     </>
                   ) : isSent ? (
                     <>
                       <CheckCircle2 size={16} />
-                      Link Sent!
+                      <span className="hidden sm:inline">Link Sent!</span>
                     </>
                   ) : cooldown > 0 ? (
                     <>
-                      Resend in {cooldown}s
+                      <span className="hidden sm:inline">Resend in </span>{cooldown}s
                     </>
                   ) : (
                     <>
                       <Send size={14} />
-                      Resend Verification Link
+                      <span className="hidden sm:inline">Resend Verification Link</span>
+                      <span className="sm:hidden">Resend</span>
                     </>
                   )}
                 </button>

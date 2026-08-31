@@ -34,7 +34,7 @@ const EmptyStateTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttribute
     <h3
       ref={ref}
       data-slot="empty-title"
-      className={cn('mt-5 font-jakarta text-xl font-semibold text-navy', className)}
+      className={cn('mt-5 text-base font-semibold leading-snug text-navy', className)}
       {...props}
     />
   )
@@ -46,7 +46,7 @@ const EmptyStateDescription = React.forwardRef<HTMLParagraphElement, React.HTMLA
     <p
       ref={ref}
       data-slot="empty-description"
-      className={cn('mt-2 max-w-md font-inter text-sm font-medium leading-6 text-text-body', className)}
+      className={cn('mt-2 max-w-md text-sm font-normal leading-6 text-text-body', className)}
       {...props}
     />
   )

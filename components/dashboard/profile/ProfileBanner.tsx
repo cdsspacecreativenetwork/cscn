@@ -142,17 +142,15 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
   return (
     <>
       <div className="relative w-full">
-        {/* Blue Banner Background - Fixed height 130px as per design */}
-        <div className="w-full h-[130px] bg-[#1C4ED1] rounded-t-[24px] overflow-hidden relative">
+        <div className="relative h-24 w-full overflow-hidden rounded-t-[24px] bg-primary">
            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/20 to-transparent"></div>
         </div>
 
-        {/* Profile Image Overlap - Exact 164x164 diameter */}
-        <div className="absolute top-[40px] left-1/2 -translate-x-1/2 sm:left-10 sm:translate-x-0 group/avatar">
+        <div className="group/avatar absolute left-1/2 top-8 -translate-x-1/2 sm:left-10 sm:translate-x-0">
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="relative block w-[164px] h-[164px] rounded-full border-[6px] border-white overflow-hidden shadow-sm bg-[#F4F6FB] transition-all outline-none focus-visible:ring-4 focus-visible:ring-[#1C4ED1]/20"
+            className="relative block size-[120px] overflow-hidden rounded-full border-[5px] border-white bg-background shadow-sm outline-none transition-shadow focus-visible:ring-4 focus-visible:ring-primary/20 sm:size-32"
             aria-label="Update profile picture"
             title="Click to update profile picture"
           >
@@ -166,13 +164,13 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
               className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer backdrop-blur-[2px] rounded-full"
             >
               <Camera className="text-white mb-1" size={28} />
-              <span className="text-white text-xs font-bold tracking-wider">UPDATE</span>
+              <span className="text-xs font-semibold text-white">Update</span>
             </div>
-            <span className="absolute bottom-2 right-2 flex h-11 w-11 items-center justify-center rounded-full border-[4px] border-white bg-[#1C4ED1] text-white shadow-lg md:opacity-0 md:transition-opacity md:group-hover/avatar:opacity-100">
+            <span className="absolute bottom-1 right-1 flex size-9 items-center justify-center rounded-full border-[3px] border-white bg-primary text-primary-foreground shadow-lg md:opacity-0 md:transition-opacity md:group-hover/avatar:opacity-100">
               <Camera size={18} />
             </span>
           </button>
-          <p className="mt-3 py-1 text-center text-[8px] font-bold tracking-[0.12em] text-[#1C4ED1] sm:hidden">
+          <p className="mt-2 py-1 text-center text-xs font-medium text-primary sm:hidden">
             Tap photo to update
           </p>
         </div>
@@ -184,15 +182,19 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
           onClick={() => setIsModalOpen(false)}
         >
-          <div 
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="avatar-dialog-title"
             className="bg-white rounded-[24px] w-full max-w-[600px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-6 border-b border-[#E3E8F4] shrink-0">
-              <h3 className="text-[20px] font-bold text-[#040B37] font-jakarta">Choose Avatar</h3>
+              <h3 id="avatar-dialog-title" className="text-xl font-semibold text-navy">Choose avatar</h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F4F6FB] transition-colors text-[#9CA3AF]"
+                aria-label="Close avatar picker"
               >
                 <X size={20} />
               </button>
@@ -203,7 +205,7 @@ export const ProfileBanner = ({ user }: ProfileBannerProps) => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2.5 rounded-[12px] text-[14px] font-bold capitalize transition-all whitespace-nowrap ${
+                  className={`whitespace-nowrap rounded-[12px] px-4 py-2.5 text-sm font-medium capitalize transition-colors ${
                     activeTab === tab 
                       ? 'bg-[#1C4ED1] text-white' 
                       : 'bg-[#F4F6FB] text-[#7F858F] hover:bg-[#E3E8F4]'

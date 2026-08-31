@@ -9,6 +9,7 @@ import { getInstructorOnboardingStatusByUserId } from '@/lib/instructor-onboardi
 import { ProfileHeaderActions } from '@/components/dashboard/profile/ProfileHeaderActions';
 import { getLocationTimezoneOptions } from '@/lib/location-timezones.server';
 import { getStudentPublicProfileEligibility } from '@/lib/profile-eligibility';
+import { LearnerPageHeader } from '@/components/dashboard/learner/LearnerPageHeader';
 
 export default async function ProfilePage() {
   const user = await currentUser();
@@ -160,28 +161,22 @@ export default async function ProfilePage() {
       ];
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-8 p-4 pb-28 font-jakarta sm:p-6 md:space-y-10 md:p-10 md:pb-20">
+    <div className="mx-auto flex max-w-[1400px] flex-col gap-8 p-4 pb-28 sm:p-6 md:gap-10 md:p-10 md:pb-20">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <h1 className="text-[24px] md:text-[32px] font-bold text-[#040B37] tracking-tight leading-tight">
-            Profile
-          </h1>
-          <p className="text-[#9CA3AF] text-[15px] md:text-[16px] font-medium tracking-tight">
-            Manage your personal information and preferences
-          </p>
-        </div>
-        
-        {/* The button is controlled by ProfileForm.tsx using vanilla JS to avoid context/portal overhead */}
+      <LearnerPageHeader
+        title="Profile"
+        description="Manage your personal information and preferences."
+        action={
         <button 
           id="save-profile-btn"
           type="submit"
           form="profile-form"
-          className="bg-[#1C4ED1] hover:bg-[#163BB1] text-white px-8 py-3.5 rounded-[8px] text-[15px] md:text-[16px] font-bold transition-all shadow-md active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#9CA3AF] disabled:shadow-none"
+          hidden
+          className="min-h-11 cursor-pointer rounded-[8px] bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Saved
-        </button>
-      </div>
+        </button>}
+      />
 
       {/* Main Profile Card Container */}
       <div className="bg-white border border-[#E3E8F4] rounded-[24px] overflow-hidden shadow-sm flex flex-col">
@@ -189,15 +184,15 @@ export default async function ProfilePage() {
         <ProfileBanner user={mergedUser} />
 
         {/* User Identity Section - Exactly under the pfp */}
-        <div className="flex flex-col gap-8 px-5 pb-8 pt-[128px] sm:px-10 sm:pt-[96px] sm:pb-10 md:gap-10">
+        <div className="flex flex-col gap-8 px-5 pb-8 pt-[76px] sm:px-10 sm:pb-10 sm:pt-[68px] md:gap-10">
           {/* Name, Role & Bio */}
           <div className="space-y-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-1">
-                <h2 className="text-[20px] md:text-[24px] font-bold text-[#040B37] tracking-tight">
+                <h2 className="text-xl font-semibold tracking-tight text-navy">
                   {displayName}
                 </h2>
-                <p className="text-[#1C4ED1] text-[14px] font-bold uppercase tracking-wider">
+                <p className="text-sm font-medium text-primary">
                   {roleLabel}
                 </p>
               </div>
@@ -210,7 +205,7 @@ export default async function ProfilePage() {
                 canRequestVerification={onboardingStatus.canRequestVerification}
               />
             </div>
-            <p className="text-[#9CA3AF] text-[15px] md:text-[16px] font-medium max-w-[800px] leading-relaxed">
+            <p className="max-w-[800px] text-sm font-normal leading-6 text-text-body">
               {mergedUser.bio || "No bio yet."}
             </p>
           </div>

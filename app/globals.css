@@ -32,7 +32,7 @@
   --color-stroke: #E3E8F4;
   --color-stroke-ii: #C8D1E0;
 
-  --font-inter: "Inter", sans-serif;
+  --font-inter: "Plus Jakarta Sans", sans-serif;
   --font-jakarta: "Plus Jakarta Sans", sans-serif;
 
   --radius-sm: 0.5rem;
@@ -70,7 +70,7 @@
   --design-width: 1728;
   color: #dc262629;
   /* Colors from Figma */
-  --primary: oklch(0.205 0 0);
+  --primary: #1C4ED1;
   --navy: #040B37;
   --card-bg: #FFFFFF;
   --text-title: #040B37;
@@ -92,7 +92,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary-foreground: #FFFFFF;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -102,7 +102,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: #1C4ED1;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -111,7 +111,7 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: #1C4ED1;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
@@ -133,7 +133,7 @@
 }
 
 body {
-  @apply bg-background text-text-body font-inter;
+  @apply bg-background text-text-body font-sans;
   overflow-x: hidden;
   width: 100%;
 }
@@ -165,7 +165,7 @@ body {
   background-color: #fff;
   padding-inline: 1rem;
   color: var(--navy);
-  font-family: "Inter", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-size: 0.875rem;
   font-weight: 500;
   outline: none;
@@ -755,7 +755,7 @@ body {
   border-radius: 14px;
   background: #FFFFFF;
   color: #040B37;
-  font-family: "Inter", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-size: 0.875rem;
   font-weight: 500;
   outline: none;
@@ -772,8 +772,8 @@ body {
 }
 
 @theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
+  --font-heading: "Plus Jakarta Sans", sans-serif;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -857,5 +857,68 @@ body {
   }
   html {
     @apply font-sans;
+  }
+}
+
+.learner-dashboard {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.learner-dashboard :is(h1, h2, h3) {
+  text-wrap: balance;
+}
+
+.learner-dashboard :is([class~="text-[7px]"], [class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"]) {
+  font-size: 0.75rem;
+}
+
+.learner-dashboard :is([class~="text-[13px]"], [class~="text-[15px]"]) {
+  font-size: 0.875rem;
+}
+
+.learner-dashboard [class~="text-[17px]"] {
+  font-size: 1rem;
+}
+
+.learner-dashboard [class~="text-[22px]"] {
+  font-size: 1.25rem;
+}
+
+.learner-dashboard [class~="text-[34px]"] {
+  font-size: 2rem;
+}
+
+.learner-dashboard :is([class~="text-[36px]"], [class~="text-[40px]"], [class~="text-[42px]"]) {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.learner-dashboard :is([class~="font-black"], [class~="font-extrabold"]) {
+  font-weight: 600;
+}
+
+.learner-dashboard [class~="uppercase"] {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+@media (min-width: 1024px) and (max-width: 1728px) {
+  html:has(.learner-dashboard) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learner-dashboard,
+  .learner-dashboard *,
+  .learner-dashboard *::before,
+  .learner-dashboard *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

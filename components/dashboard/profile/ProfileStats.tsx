@@ -3,11 +3,11 @@
 import React from 'react';
 
 const StatCard = ({ value, label }: { value: string; label: string }) => (
-  <div className="min-h-[62px] flex-1 bg-white border border-[#E3E8F4] rounded-[18px] p-4 flex flex-col items-center justify-center gap-2 transition-all group md:min-h-[68px]">
-    <span className="text-[14px] md:text-[18px] font-black leading-none text-[#040B37] transition-colors font-jakarta">
+  <div className="group flex min-h-[62px] flex-1 flex-col items-center justify-center gap-2 rounded-[18px] border border-stroke bg-card-bg p-4 transition-colors md:min-h-[68px]">
+    <span className="text-xl font-bold leading-none text-navy transition-colors">
       {value}
     </span>
-    <span className="text-center text-[10px] md:text-[12px] font-bold text-[#9CA3AF] tracking-tight uppercase">
+    <span className="text-center text-xs font-medium tracking-tight text-text-mute">
       {label}
     </span>
   </div>

@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { X, Upload, Link as LinkIcon, Image as ImageIcon, FileText, Loader2, CheckCircle2, Globe, GraduationCap, DollarSign } from 'lucide-react';
 import { createMarketplaceResourceAction, updateMarketplaceResourceAction } from '@/actions/marketplace-resources';
 import { CustomSelect } from '@/components/ui/CustomSelect';
-import { Input } from "@/components/ui/Input";
+import { Input } from '@/components/ui/Input';
 import { Resource, InstructorCourseOption } from '@/lib/resourceService';
 
 interface CreateResourceModalProps {

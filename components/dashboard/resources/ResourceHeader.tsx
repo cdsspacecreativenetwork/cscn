@@ -6,6 +6,7 @@ import { FileText, Link as LinkIcon, Folder, LayoutGrid, GraduationCap, UserRoun
 
 import { Plus } from 'lucide-react';
 import SearchField from '@/components/ui/SearchField';
+import { LearnerPageHeader } from '@/components/dashboard/learner/LearnerPageHeader';
 
 interface ResourceHeaderProps {
   onSearch: (query: string) => void;
@@ -39,8 +40,8 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
   const [course, setCourse] = React.useState("All Courses");
 
   const courseOptions = React.useMemo(() => {
-    const uniqueCourses = Array.from(new Set(courses));
-    return uniqueCourses.map((item) => ({
+    const uniqueCourses = Array.from(new Set(courses.filter((item) => item !== 'All Courses')));
+    return ['All Courses', ...uniqueCourses].map((item) => ({
       value: item,
       label: item,
       icon: item === 'All Courses' ? <GraduationCap size={16} /> : undefined,
@@ -49,8 +50,10 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
 
   React.useEffect(() => {
     if (course !== "All Courses" && !courses.includes(course)) {
-      setCourse("All Courses");
-      onCourseChange("All Courses");
+      queueMicrotask(() => {
+        setCourse("All Courses");
+        onCourseChange("All Courses");
+      });
     }
   }, [course, courses, onCourseChange]);
 
@@ -65,31 +68,24 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-8 md:gap-10">
+    <div className="flex flex-col gap-6 md:gap-8">
       {/* Title & Actions Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-[32px] font-bold text-[#040B37] tracking-tight leading-tight font-jakarta">
-            Resources
-          </h1>
-          <p className="text-[#9CA3AF] text-[16px] font-medium tracking-tight">
-            {canViewTeachingResources
-              ? 'Learning downloads and teaching materials in one place'
-              : 'Downloads and links from your enrolled courses'}
-          </p>
-        </div>
-
-        {scope === 'instructor' && onCreateClick && (
+      <LearnerPageHeader
+        title="Resources"
+        description={canViewTeachingResources
+          ? 'Learning downloads and teaching materials in one place.'
+          : 'Downloads and links from your enrolled courses.'}
+        action={scope === 'instructor' && onCreateClick ? (
           <button
             type="button"
             onClick={onCreateClick}
-            className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#1C4ED1] hover:bg-[#153eb2] text-white px-5 py-3 text-[15px] font-bold transition-all shadow-md shrink-0 self-start sm:self-auto"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <Plus size={18} strokeWidth={2.5} />
             Create Resource
           </button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {canViewTeachingResources && (
         <div className="flex flex-wrap gap-2">
@@ -104,7 +100,7 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
                 key={item.value}
                 type="button"
                 onClick={() => onScopeChange(item.value)}
-                className={`inline-flex items-center gap-2 rounded-[8px] px-4 py-2.5 text-base font-bold transition-colors ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-[8px] px-4 py-2.5 text-sm font-medium transition-colors ${
                   active ? 'bg-[#1C4ED1] text-white' : 'bg-white border border-[#E3E8F4] text-[#4B5563] hover:text-[#1C4ED1]'
                 }`}
               >
@@ -128,6 +124,7 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
         {/* Custom Styled Dropdown Filters */}
         <div className="flex flex-row gap-4 items-center">
           <CustomSelect
+            ariaLabel="Filter resources by type"
             size="default"
             options={TYPE_OPTIONS}
             value={type}
@@ -135,6 +132,7 @@ export const ResourceHeader: React.FC<ResourceHeaderProps> = ({
             className="flex-1 lg:flex-none lg:min-w-[200px]"
           />
           <CustomSelect
+            ariaLabel="Filter resources by course"
             size="default"
             options={courseOptions}
             value={course}
