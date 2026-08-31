@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Send } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { resendVerificationEmailAction } from "@/actions/mail";
 import { toast } from "sonner";
 import BoostApplicationModal from "@/components/dashboard/instructor/BoostApplicationModal";
@@ -16,14 +17,18 @@ export const VerificationBanner = () => {
   const [isBoostModalOpen, setIsBoostModalOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
+  const pathname = usePathname();
   if (status !== "authenticated" || !session?.user) return null;
 
+  const isAdminPath = pathname.startsWith("/dashboard/admin") || pathname.startsWith("/admin");
+  if (isAdminPath) return null;
+
   const role = session.user.role;
-  const isInstructor = role === "INSTRUCTOR" || role === "ADMIN" || role === "SUPER_ADMIN";
+  const isInstructorRole = role === "INSTRUCTOR";
   const isEmailVerified = !!session.user.emailVerified;
 
-  // Show instructor pending banner if role is INSTRUCTOR (or pending verification)
-  const isPendingInstructor = isInstructor;
+  // Show instructor pending banner if role is INSTRUCTOR (pending verification)
+  const isPendingInstructor = isInstructorRole;
 
   // If user is verified and not an instructor pending approval, don't render banner
   if (isEmailVerified && !isPendingInstructor) return null;

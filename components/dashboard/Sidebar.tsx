@@ -24,9 +24,12 @@ import {
 } from '@/components/ui/sheet';
 import {
   NavItem,
-  studentNavItems,
-  instructorNavItems,
-  adminNavItems,
+  studentMainItems,
+  studentAccountItems,
+  instructorStudioItems,
+  instructorAccountItems,
+  adminOperationItems,
+  adminAccountItems,
 } from '@/lib/nav-config';
 
 interface SidebarProps {
@@ -91,46 +94,57 @@ function RailItem({
 }
 
 function MobileNavigation({
-  items,
+  mainItems,
+  accountItems,
   workspaceTitle,
   pathname,
   onNavigate,
   onLogout,
 }: {
-  items: NavItem[];
+  mainItems: NavItem[];
+  accountItems: NavItem[];
   workspaceTitle: string;
   pathname: string;
   onNavigate: () => void;
   onLogout: () => void;
 }) {
+  const renderGroup = (items: NavItem[]) =>
+    items.map((item) => {
+      const active = isActivePath(pathname, item.href);
+      return (
+        <Link
+          key={item.name}
+          href={item.href}
+          onClick={onNavigate}
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+            active ? 'bg-[#1C4ED1]/10 text-[#1C4ED1]' : 'text-[#4B5563] hover:bg-[#F4F6FB] hover:text-[#040B37]',
+          )}
+        >
+          <RailIcon item={item} active={active} />
+          <span>{item.name}</span>
+        </Link>
+      );
+    });
+
   return (
     <>
       <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-5">
-        <section aria-labelledby="mobile-navigation-title" className="flex flex-col gap-2">
-          <h2 id="mobile-navigation-title" className="px-3 text-xs font-semibold text-[#64748B]">
-            {workspaceTitle}
-          </h2>
-          <nav aria-label="Mobile navigation" className="flex flex-col gap-1">
-            {items.map((item) => {
-              const active = isActivePath(pathname, item.href);
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={onNavigate}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
-                    active ? 'bg-[#1C4ED1]/10 text-[#1C4ED1]' : 'text-[#4B5563] hover:bg-[#F4F6FB] hover:text-[#040B37]',
-                  )}
-                >
-                  <RailIcon item={item} active={active} />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
+        <section aria-label="Primary Navigation" className="flex flex-col gap-2">
+          <h2 className="px-3 text-xs font-semibold text-[#64748B]">{workspaceTitle}</h2>
+          <nav aria-label="Main navigation" className="flex flex-col gap-1">
+            {renderGroup(mainItems)}
           </nav>
         </section>
+        {accountItems.length > 0 && (
+          <section aria-label="Account Navigation" className="flex flex-col gap-2">
+            <h2 className="px-3 text-xs font-semibold text-[#64748B]">Account</h2>
+            <nav aria-label="Account navigation" className="flex flex-col gap-1">
+              {renderGroup(accountItems)}
+            </nav>
+          </section>
+        )}
       </div>
       <div className="border-t border-[#E3E8F4] p-4">
         <button
@@ -167,18 +181,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const isAdminPath = pathname.startsWith('/dashboard/admin') || pathname.startsWith('/admin');
   const isInstructorPath = pathname.startsWith('/dashboard/instructor') || pathname.startsWith('/instructor');
 
-  let activeNavItems: NavItem[] = studentNavItems;
-  let workspaceTitle = 'Learner workspace';
+  let mainItems: NavItem[] = studentMainItems;
+  let accountItems: NavItem[] = studentAccountItems;
+  let workspaceTitle = 'Learner Workspace';
 
   if (isAdminPath && isAdmin) {
-    activeNavItems = adminNavItems.filter((item) => {
+    mainItems = adminOperationItems.filter((item) => {
       if (!item.permissions) return true;
       return hasAnyAdminPermission(session?.user, item.permissions);
     });
-    workspaceTitle = 'Admin command center';
+    accountItems = adminAccountItems;
+    workspaceTitle = 'Admin Command Center';
   } else if (isInstructorPath) {
-    activeNavItems = instructorNavItems;
-    workspaceTitle = 'Instructor workspace';
+    mainItems = instructorStudioItems;
+    accountItems = instructorAccountItems;
+    workspaceTitle = 'Instructor Workspace';
   }
 
   return (
@@ -194,13 +211,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             >
               <Image src="/assets/dashboard/user/Group 162.svg" alt="CSCN home" width={30} height={30} />
             </Link>
-            <div>
+            <div className="ml-3">
               <SheetTitle className="text-base font-semibold text-[#040B37]">{workspaceTitle}</SheetTitle>
               <SheetDescription className="text-xs font-normal">CSCN Platform Workspace</SheetDescription>
             </div>
           </SheetHeader>
           <MobileNavigation
-            items={activeNavItems}
+            mainItems={mainItems}
+            accountItems={accountItems}
             workspaceTitle={workspaceTitle}
             pathname={pathname}
             onNavigate={handleNavClick}
@@ -231,7 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
           <div className="custom-scrollbar flex-1 overflow-y-auto py-4">
             <nav className="flex flex-col gap-1">
-              {activeNavItems.map((item) => (
+              {mainItems.map((item) => (
                 <RailItem
                   key={item.name}
                   item={item}
@@ -239,6 +257,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   onClick={handleNavClick}
                 />
               ))}
+              {accountItems.length > 0 && (
+                <>
+                  <div className="mx-auto my-2 h-px w-8 bg-[#E3E8F4]" />
+                  {accountItems.map((item) => (
+                    <RailItem
+                      key={item.name}
+                      item={item}
+                      active={isActivePath(pathname, item.href)}
+                      onClick={handleNavClick}
+                    />
+                  ))}
+                </>
+              )}
             </nav>
           </div>
 
