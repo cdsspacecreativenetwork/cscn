@@ -10,7 +10,56 @@ export type AdminUsersFilter = {
 
 export const getUserByEmail = async (email: string) => {
   try {
-    return await db.user.findUnique({ where: { email } });
+    const user = await db.user.findUnique({
+      where: { email },
+      include: {
+        profile: true,
+        learnerProfile: true,
+        instructorProfile: true,
+        mentorProfile: true,
+        adminPermission: true,
+        userSecurity: true,
+        payoutConfig: true,
+      },
+    });
+    if (!user) return null;
+    return {
+      ...user,
+      bio: user.profile?.bio,
+      headline: user.profile?.headline,
+      location: user.profile?.location,
+      timezone: user.profile?.timezone ?? "Africa/Lagos",
+      socials: user.profile?.socials,
+      publicProfileSlug: user.profile?.publicProfileSlug,
+      publicProfileStatus: user.profile?.publicProfileStatus,
+      websiteUrl: user.profile?.websiteUrl,
+      portfolioUrl: user.profile?.portfolioUrl,
+      linkedinUrl: user.profile?.linkedinUrl,
+      twitterUrl: user.profile?.twitterUrl,
+      instagramUrl: user.profile?.instagramUrl,
+      youtubeUrl: user.profile?.youtubeUrl,
+      githubUrl: user.profile?.githubUrl,
+      behanceUrl: user.profile?.behanceUrl,
+      dribbbleUrl: user.profile?.dribbbleUrl,
+      telegramUrl: user.profile?.telegramUrl,
+      expertise: user.profile?.expertise,
+      learningFocus: user.learnerProfile?.learningFocus,
+      onboardingIntent: user.learnerProfile?.onboardingIntent,
+      instructorProfileEnabled: user.instructorProfile?.isEnabled ?? false,
+      instructorVerificationStatus: user.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+      instructorVerifiedAt: user.instructorProfile?.verifiedAt ?? null,
+      instructorFeatured: user.instructorProfile?.isFeatured ?? false,
+      instructorFeaturedOrder: user.instructorProfile?.featuredOrder ?? null,
+      mentorshipEligible: user.mentorProfile?.isEligible ?? false,
+      mentorshipEnabled: user.mentorProfile?.isEnabled ?? false,
+      mentorshipApprovedAt: user.mentorProfile?.approvedAt ?? null,
+      mentorshipPrice: user.mentorProfile?.price ?? null,
+      mentorshipCurrency: user.mentorProfile?.currency ?? "NGN",
+      mentorshipFree: user.mentorProfile?.isFree ?? true,
+      mentorshipBio: user.mentorProfile?.bio ?? null,
+      mentorshipTopics: user.mentorProfile?.topics ?? null,
+      mentorshipInstructions: user.mentorProfile?.instructions ?? null,
+    };
   } catch {
     return null;
   }
@@ -18,7 +67,56 @@ export const getUserByEmail = async (email: string) => {
 
 export const getUserById = async (id: string) => {
   try {
-    return await db.user.findUnique({ where: { id } });
+    const user = await db.user.findUnique({
+      where: { id },
+      include: {
+        profile: true,
+        learnerProfile: true,
+        instructorProfile: true,
+        mentorProfile: true,
+        adminPermission: true,
+        userSecurity: true,
+        payoutConfig: true,
+      },
+    });
+    if (!user) return null;
+    return {
+      ...user,
+      bio: user.profile?.bio,
+      headline: user.profile?.headline,
+      location: user.profile?.location,
+      timezone: user.profile?.timezone ?? "Africa/Lagos",
+      socials: user.profile?.socials,
+      publicProfileSlug: user.profile?.publicProfileSlug,
+      publicProfileStatus: user.profile?.publicProfileStatus,
+      websiteUrl: user.profile?.websiteUrl,
+      portfolioUrl: user.profile?.portfolioUrl,
+      linkedinUrl: user.profile?.linkedinUrl,
+      twitterUrl: user.profile?.twitterUrl,
+      instagramUrl: user.profile?.instagramUrl,
+      youtubeUrl: user.profile?.youtubeUrl,
+      githubUrl: user.profile?.githubUrl,
+      behanceUrl: user.profile?.behanceUrl,
+      dribbbleUrl: user.profile?.dribbbleUrl,
+      telegramUrl: user.profile?.telegramUrl,
+      expertise: user.profile?.expertise,
+      learningFocus: user.learnerProfile?.learningFocus,
+      onboardingIntent: user.learnerProfile?.onboardingIntent,
+      instructorProfileEnabled: user.instructorProfile?.isEnabled ?? false,
+      instructorVerificationStatus: user.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+      instructorVerifiedAt: user.instructorProfile?.verifiedAt ?? null,
+      instructorFeatured: user.instructorProfile?.isFeatured ?? false,
+      instructorFeaturedOrder: user.instructorProfile?.featuredOrder ?? null,
+      mentorshipEligible: user.mentorProfile?.isEligible ?? false,
+      mentorshipEnabled: user.mentorProfile?.isEnabled ?? false,
+      mentorshipApprovedAt: user.mentorProfile?.approvedAt ?? null,
+      mentorshipPrice: user.mentorProfile?.price ?? null,
+      mentorshipCurrency: user.mentorProfile?.currency ?? "NGN",
+      mentorshipFree: user.mentorProfile?.isFree ?? true,
+      mentorshipBio: user.mentorProfile?.bio ?? null,
+      mentorshipTopics: user.mentorProfile?.topics ?? null,
+      mentorshipInstructions: user.mentorProfile?.instructions ?? null,
+    };
   } catch {
     return null;
   }
@@ -52,6 +150,47 @@ const USER_SELECT = {
   canViewAuditLogs: true,
   canManageSettings: true,
   canViewAnalytics: true,
+  profile: {
+    select: {
+      headline: true,
+      bio: true,
+      location: true,
+      timezone: true,
+      socials: true,
+    },
+  },
+  instructorProfile: {
+    select: {
+      isEnabled: true,
+      verificationStatus: true,
+      isFeatured: true,
+      featuredOrder: true,
+    },
+  },
+  mentorProfile: {
+    select: {
+      isEnabled: true,
+    },
+  },
+  adminPermission: {
+    select: {
+      canManageUsers: true,
+      canManageCourses: true,
+      canReviewCourses: true,
+      canPublishCourses: true,
+      canManageLearners: true,
+      canManageInstructors: true,
+      canVerifyInstructors: true,
+      canManageInvites: true,
+      canManageAnnouncements: true,
+      canManageBilling: true,
+      canManageMarketing: true,
+      canManagePermissions: true,
+      canViewAuditLogs: true,
+      canManageSettings: true,
+      canViewAnalytics: true,
+    },
+  },
   taughtCourses: {
     where: { status: "PUBLISHED" as const },
     select: {
@@ -120,7 +259,31 @@ export const getAllUsers = async (filters: AdminUsersFilter = {}) => {
       db.user.count({ where }),
     ]);
     const sorted = sortUsers(allUsers, filters.sort);
-    const users = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const sliced = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const users = sliced.map((u: any) => ({
+      ...u,
+      headline: u.profile?.headline ?? u.headline,
+      instructorProfileEnabled: u.instructorProfile?.isEnabled ?? u.instructorProfileEnabled,
+      instructorVerificationStatus: u.instructorProfile?.verificationStatus ?? u.instructorVerificationStatus,
+      instructorFeatured: u.instructorProfile?.isFeatured ?? u.instructorFeatured,
+      instructorFeaturedOrder: u.instructorProfile?.featuredOrder ?? u.instructorFeaturedOrder,
+      mentorshipEnabled: u.mentorProfile?.isEnabled ?? u.mentorshipEnabled,
+      canManageUsers: u.adminPermission?.canManageUsers ?? u.canManageUsers ?? false,
+      canManageCourses: u.adminPermission?.canManageCourses ?? u.canManageCourses ?? false,
+      canReviewCourses: u.adminPermission?.canReviewCourses ?? u.canReviewCourses ?? false,
+      canPublishCourses: u.adminPermission?.canPublishCourses ?? u.canPublishCourses ?? false,
+      canManageLearners: u.adminPermission?.canManageLearners ?? u.canManageLearners ?? false,
+      canManageInstructors: u.adminPermission?.canManageInstructors ?? u.canManageInstructors ?? false,
+      canVerifyInstructors: u.adminPermission?.canVerifyInstructors ?? u.canVerifyInstructors ?? false,
+      canManageInvites: u.adminPermission?.canManageInvites ?? u.canManageInvites ?? false,
+      canManageAnnouncements: u.adminPermission?.canManageAnnouncements ?? u.canManageAnnouncements ?? false,
+      canManageBilling: u.adminPermission?.canManageBilling ?? u.canManageBilling ?? false,
+      canManageMarketing: u.adminPermission?.canManageMarketing ?? u.canManageMarketing ?? false,
+      canManagePermissions: u.adminPermission?.canManagePermissions ?? u.canManagePermissions ?? false,
+      canViewAuditLogs: u.adminPermission?.canViewAuditLogs ?? u.canViewAuditLogs ?? false,
+      canManageSettings: u.adminPermission?.canManageSettings ?? u.canManageSettings ?? false,
+      canViewAnalytics: u.adminPermission?.canViewAnalytics ?? u.canViewAnalytics ?? false,
+    }));
     return { users, total, page, totalPages: Math.ceil(total / PAGE_SIZE) };
   } catch {
     return { users: [], total: 0, page: 1, totalPages: 1 };
@@ -133,7 +296,7 @@ export const getUserStats = async () => {
       db.user.count(),
       db.user.count({ where: { role: "SUPER_ADMIN" as UserRole } }),
       db.user.count({ where: { role: "ADMIN" as UserRole } }),
-      db.user.count({ where: { instructorProfileEnabled: true } }),
+      db.user.count({ where: { instructorProfile: { isEnabled: true } } }),
       db.user.count({ where: { role: "USER" as UserRole } }),
     ]);
     return { total, superAdmins, admins, instructors, students };

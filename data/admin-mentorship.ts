@@ -46,12 +46,11 @@ export async function getAdminMentorshipConsole() {
     activeMentorRows,
     recentBookings,
   ] = await Promise.all([
-    db.user.count({ where: { mentorshipEligible: true } }),
-    db.user.count({ where: { mentorshipEligible: true, mentorshipEnabled: true } }),
+    db.user.count({ where: { mentorProfile: { isEligible: true } } }),
+    db.user.count({ where: { mentorProfile: { isEligible: true, isEnabled: true } } }),
     db.user.count({
       where: {
-        mentorshipEligible: true,
-        mentorshipEnabled: true,
+        mentorProfile: { isEligible: true, isEnabled: true },
         mentorAvailabilities: { none: { status: "ACTIVE" } },
       },
     }),
@@ -91,10 +90,9 @@ export async function getAdminMentorshipConsole() {
             name: true,
             email: true,
             image: true,
-            headline: true,
-            instructorVerificationStatus: true,
-            publicProfileSlug: true,
-            payoutSetup: true,
+            profile: { select: { headline: true, publicProfileSlug: true } },
+            instructorProfile: { select: { verificationStatus: true } },
+            payoutConfig: { select: { isSetup: true } },
             mentorAvailabilities: {
               where: { status: "ACTIVE" },
               select: { id: true },
@@ -111,21 +109,19 @@ export async function getAdminMentorshipConsole() {
     }),
     db.user.findMany({
       where: {
-        instructorProfileEnabled: true,
-        instructorVerificationStatus: "VERIFIED",
-        mentorshipEligible: false,
+        instructorProfile: { isEnabled: true, verificationStatus: "VERIFIED" },
+        mentorProfile: { isEligible: false },
       },
-      orderBy: [{ instructorVerifiedAt: "desc" }, { updatedAt: "desc" }],
+      orderBy: [{ instructorProfile: { verifiedAt: "desc" } }, { updatedAt: "desc" }],
       take: 8,
       select: {
         id: true,
         name: true,
         email: true,
         image: true,
-        headline: true,
-        mentorshipBio: true,
-        mentorshipTopics: true,
-        payoutSetup: true,
+        profile: { select: { headline: true } },
+        mentorProfile: { select: { bio: true, topics: true } },
+        payoutConfig: { select: { isSetup: true } },
         mentorAvailabilities: {
           where: { status: "ACTIVE" },
           select: { id: true },
@@ -139,22 +135,26 @@ export async function getAdminMentorshipConsole() {
       },
     }),
     db.user.findMany({
-      where: { mentorshipEligible: true },
-      orderBy: [{ mentorshipEnabled: "desc" }, { mentorshipApprovedAt: "desc" }, { updatedAt: "desc" }],
+      where: { mentorProfile: { isEligible: true } },
+      orderBy: [{ mentorProfile: { isEnabled: "desc", approvedAt: "desc" } }, { updatedAt: "desc" }],
       take: 10,
       select: {
         id: true,
         name: true,
         email: true,
         image: true,
-        headline: true,
-        mentorshipEligible: true,
-        mentorshipEnabled: true,
-        mentorshipFree: true,
-        mentorshipPrice: true,
-        mentorshipCurrency: true,
-        mentorshipTopics: true,
-        payoutSetup: true,
+        profile: { select: { headline: true } },
+        mentorProfile: {
+          select: {
+            isEligible: true,
+            isEnabled: true,
+            isFree: true,
+            price: true,
+            currency: true,
+            topics: true,
+          },
+        },
+        payoutConfig: { select: { isSetup: true } },
         mentorAvailabilities: {
           where: { status: "ACTIVE" },
           select: { id: true },
@@ -231,14 +231,38 @@ export async function getAdminMentorshipConsole() {
       submittedAt: application.submittedAt.toISOString(),
       instructor: {
         ...application.instructor,
+        headline: application.instructor.profile?.headline,
+        instructorVerificationStatus: application.instructor.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+        publicProfileSlug: application.instructor.profile?.publicProfileSlug,
+        payoutSetup: application.instructor.payoutConfig?.isSetup ?? false,
         activeAvailability: application.instructor.mentorAvailabilities.length,
       },
     })),
-    requests: requests.map((mentor) => ({
-      ...mentor,
-      readiness: hasMentorshipReadiness(mentor),
-      mentorshipTopics: Array.isArray(mentor.mentorshipTopics) ? mentor.mentorshipTopics : [],
-    })),
+    requests: requests.map((mentor) => {
+      const mentorshipBio = mentor.mentorProfile?.bio ?? null;
+      const mentorshipTopics = mentor.mentorProfile?.topics ?? null;
+      const payoutSetup = mentor.payoutConfig?.isSetup ?? false;
+      const readiness = hasMentorshipReadiness({
+        mentorshipBio,
+        mentorshipTopics,
+        mentorAvailabilities: mentor.mentorAvailabilities,
+        payoutSetup,
+      });
+
+      return {
+        id: mentor.id,
+        name: mentor.name,
+        email: mentor.email,
+        image: mentor.image,
+        headline: mentor.profile?.headline,
+        mentorshipBio,
+        mentorshipTopics: Array.isArray(mentorshipTopics) ? mentorshipTopics : [],
+        payoutSetup,
+        mentorAvailabilities: mentor.mentorAvailabilities,
+        _count: mentor._count,
+        readiness,
+      };
+    }),
     activeMentors: activeMentorRows.map((mentor) => {
       const confirmed = mentor.mentorBookings.filter((booking) => booking.status === "CONFIRMED").length;
       const completed = mentor.mentorBookings.filter((booking) => booking.status === "COMPLETED").length;
@@ -246,10 +270,21 @@ export async function getAdminMentorshipConsole() {
         (booking) => ["CONFIRMED", "COMPLETED"].includes(booking.status) && Number(booking.price ?? 0) > 0
       ).length;
 
+      const mentorProfile = mentor.mentorProfile;
+
       return {
-        ...mentor,
-        mentorshipPrice: mentor.mentorshipPrice?.toString() ?? null,
-        mentorshipTopics: Array.isArray(mentor.mentorshipTopics) ? mentor.mentorshipTopics : [],
+        id: mentor.id,
+        name: mentor.name,
+        email: mentor.email,
+        image: mentor.image,
+        headline: mentor.profile?.headline,
+        mentorshipEligible: mentorProfile?.isEligible ?? false,
+        mentorshipEnabled: mentorProfile?.isEnabled ?? false,
+        mentorshipFree: mentorProfile?.isFree ?? true,
+        mentorshipPrice: mentorProfile?.price?.toString() ?? null,
+        mentorshipCurrency: mentorProfile?.currency ?? "NGN",
+        mentorshipTopics: Array.isArray(mentorProfile?.topics) ? mentorProfile.topics : [],
+        payoutSetup: mentor.payoutConfig?.isSetup ?? false,
         activeAvailability: mentor.mentorAvailabilities.length,
         bookings: mentor.mentorBookings.length,
         confirmed,

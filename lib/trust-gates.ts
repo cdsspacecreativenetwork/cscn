@@ -101,25 +101,52 @@ export async function getCreatorReadinessByUserId(userId: string) {
       name: true,
       emailVerified: true,
       image: true,
-      headline: true,
-      bio: true,
-      yearsExperience: true,
-      expertise: true,
-      websiteUrl: true,
-      portfolioUrl: true,
-      linkedinUrl: true,
-      twitterUrl: true,
-      instagramUrl: true,
-      youtubeUrl: true,
-      githubUrl: true,
-      behanceUrl: true,
-      dribbbleUrl: true,
-      telegramUrl: true,
+      profile: {
+        select: {
+          headline: true,
+          bio: true,
+          expertise: true,
+          websiteUrl: true,
+          portfolioUrl: true,
+          linkedinUrl: true,
+          twitterUrl: true,
+          instagramUrl: true,
+          youtubeUrl: true,
+          githubUrl: true,
+          behanceUrl: true,
+          dribbbleUrl: true,
+          telegramUrl: true,
+        },
+      },
+      instructorProfile: {
+        select: {
+          yearsExperience: true,
+          expertise: true,
+          bio: true,
+        },
+      },
     },
   });
 
   if (!user) throw new Error("User not found");
-  return getCreatorReadiness(user);
+  const mergedUser = {
+    ...user,
+    headline: user.profile?.headline,
+    bio: user.profile?.bio ?? user.instructorProfile?.bio,
+    yearsExperience: user.instructorProfile?.yearsExperience,
+    expertise: user.instructorProfile?.expertise ?? user.profile?.expertise,
+    websiteUrl: user.profile?.websiteUrl,
+    portfolioUrl: user.profile?.portfolioUrl,
+    linkedinUrl: user.profile?.linkedinUrl,
+    twitterUrl: user.profile?.twitterUrl,
+    instagramUrl: user.profile?.instagramUrl,
+    youtubeUrl: user.profile?.youtubeUrl,
+    githubUrl: user.profile?.githubUrl,
+    behanceUrl: user.profile?.behanceUrl,
+    dribbbleUrl: user.profile?.dribbbleUrl,
+    telegramUrl: user.profile?.telegramUrl,
+  };
+  return getCreatorReadiness(mergedUser);
 }
 
 export async function assertCreatorReadyForReview(userId: string) {

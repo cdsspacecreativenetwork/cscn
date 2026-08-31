@@ -40,6 +40,26 @@ export async function activateInstructorProfileAction() {
       publicProfileStatus: "PUBLIC",
       instructorVerificationStatus: "VERIFIED",
       instructorVerifiedAt: new Date(),
+      profile: {
+        upsert: {
+          create: { publicProfileStatus: "PUBLIC" },
+          update: { publicProfileStatus: "PUBLIC" },
+        },
+      },
+      instructorProfile: {
+        upsert: {
+          create: {
+            isEnabled: true,
+            verificationStatus: "VERIFIED",
+            verifiedAt: new Date(),
+          },
+          update: {
+            isEnabled: true,
+            verificationStatus: "VERIFIED",
+            verifiedAt: new Date(),
+          },
+        },
+      },
     },
   });
   const session = await auth();
@@ -92,6 +112,18 @@ export async function submitInstructorVerificationAction() {
     data: {
       instructorVerificationStatus: "PENDING",
       publicProfileStatus: "PUBLIC",
+      profile: {
+        upsert: {
+          create: { publicProfileStatus: "PUBLIC" },
+          update: { publicProfileStatus: "PUBLIC" },
+        },
+      },
+      instructorProfile: {
+        upsert: {
+          create: { verificationStatus: "PENDING" },
+          update: { verificationStatus: "PENDING" },
+        },
+      },
     },
   });
 
@@ -125,6 +157,24 @@ export async function approveInstructorVerificationAction(targetUserId: string) 
       instructorVerificationStatus: "VERIFIED",
       instructorVerifiedAt: new Date(),
       publicProfileStatus: "PUBLIC",
+      profile: {
+        upsert: {
+          create: { publicProfileStatus: "PUBLIC" },
+          update: { publicProfileStatus: "PUBLIC" },
+        },
+      },
+      instructorProfile: {
+        upsert: {
+          create: {
+            verificationStatus: "VERIFIED",
+            verifiedAt: new Date(),
+          },
+          update: {
+            verificationStatus: "VERIFIED",
+            verifiedAt: new Date(),
+          },
+        },
+      },
     },
     select: { id: true, name: true, email: true },
   });
@@ -168,6 +218,22 @@ export async function rejectInstructorVerificationAction(targetUserId: string) {
       instructorVerifiedAt: null,
       instructorFeatured: false,
       instructorFeaturedOrder: null,
+      instructorProfile: {
+        upsert: {
+          create: {
+            verificationStatus: "REJECTED",
+            verifiedAt: null,
+            isFeatured: false,
+            featuredOrder: null,
+          },
+          update: {
+            verificationStatus: "REJECTED",
+            verifiedAt: null,
+            isFeatured: false,
+            featuredOrder: null,
+          },
+        },
+      },
     },
     select: { id: true, name: true, email: true },
   });
@@ -188,3 +254,52 @@ export async function rejectInstructorVerificationAction(targetUserId: string) {
 
   return { success: "Instructor verification rejected." };
 }
+
+export async function boostInstructorApplicationAction(data: {
+  resumeUrl?: string;
+  boostNote?: string;
+  certificationLinks?: string[];
+}) {
+  const { userId } = await requireCurrentUser();
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true },
+  });
+
+  if (!user) return { error: "User not found." };
+
+  await db.instructorProfile.upsert({
+    where: { userId },
+    create: {
+      userId,
+      resumeUrl: data.resumeUrl || null,
+      boostNote: data.boostNote || null,
+      certificationLinks: data.certificationLinks || [],
+    },
+    update: {
+      resumeUrl: data.resumeUrl || undefined,
+      boostNote: data.boostNote || undefined,
+      certificationLinks: data.certificationLinks || undefined,
+    },
+  });
+
+  const session = await auth();
+  await createAuditLog({
+    actorId: userId,
+    actorName: session?.user?.name,
+    actorEmail: session?.user?.email,
+    action: "instructor.application_boosted",
+    entityType: "USER",
+    entityId: userId,
+    entityName: user.name ?? user.email,
+    metadata: { resumeUrl: data.resumeUrl, boostNote: data.boostNote },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard/admin/instructors");
+
+  return { success: "Your application details have been boosted for admin review!" };
+}
+

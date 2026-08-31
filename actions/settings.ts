@@ -52,14 +52,54 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
     ? dbUser.image
     : null;
 
-  // Update user in database
+  const normalizedTimezone = values.timezone
+    ? normalizeScheduleTimeZone(values.timezone)
+    : dbUser.timezone ?? "Africa/Lagos";
+
+  const profileData = {
+    bio: values.bio,
+    headline: values.headline,
+    location: values.location,
+    timezone: normalizedTimezone,
+    socials: values.socials,
+    publicProfileSlug: values.publicProfileSlug,
+    publicProfileStatus: values.publicProfileStatus,
+    websiteUrl: values.websiteUrl,
+    portfolioUrl: values.portfolioUrl,
+    linkedinUrl: values.linkedinUrl,
+    twitterUrl: values.twitterUrl,
+    instagramUrl: values.instagramUrl,
+    youtubeUrl: values.youtubeUrl,
+    githubUrl: values.githubUrl,
+    behanceUrl: values.behanceUrl,
+    dribbbleUrl: values.dribbbleUrl,
+    telegramUrl: values.telegramUrl,
+    expertise: values.expertise,
+  };
+
+  const learnerData = {
+    learningFocus: values.learningFocus,
+    onboardingIntent: values.onboardingIntent,
+  };
+
+  // Update user in database along with Profile and LearnerProfile
   await db.user.update({
     where: { id: dbUser.id },
     data: {
       ...values,
-      timezone: values.timezone
-        ? normalizeScheduleTimeZone(values.timezone)
-        : dbUser.timezone ?? "Africa/Lagos",
+      timezone: normalizedTimezone,
+      profile: {
+        upsert: {
+          create: profileData,
+          update: profileData,
+        },
+      },
+      learnerProfile: {
+        upsert: {
+          create: learnerData,
+          update: learnerData,
+        },
+      },
     },
   });
 
@@ -171,6 +211,20 @@ export const updatePayoutSettings = async (data: {
       payoutSetup: true,
       payoutMethod: data.payoutMethod,
       payoutDetails: nextDetails,
+      payoutConfig: {
+        upsert: {
+          create: {
+            isSetup: true,
+            method: data.payoutMethod,
+            details: nextDetails,
+          },
+          update: {
+            isSetup: true,
+            method: data.payoutMethod,
+            details: nextDetails,
+          },
+        },
+      },
     }
   });
 
@@ -195,12 +249,23 @@ export const updateDisplayCurrency = async (currency: string) => {
   if (!dbUser) return { error: "User not found" };
 
   const details = (dbUser.payoutDetails as Record<string, unknown> | null) ?? {};
+  const updatedDetails = {
+    ...details,
+    preferredDisplayCurrency: normalized,
+  };
   await db.user.update({
     where: { id: dbUser.id },
     data: {
-      payoutDetails: {
-        ...details,
-        preferredDisplayCurrency: normalized,
+      payoutDetails: updatedDetails,
+      payoutConfig: {
+        upsert: {
+          create: {
+            details: updatedDetails,
+          },
+          update: {
+            details: updatedDetails,
+          },
+        },
       },
     },
   });
@@ -315,7 +380,15 @@ export const changePassword = async (values: {
 
   await db.user.update({
     where: { id: dbUser.id },
-    data: { password: hashed }
+    data: {
+      password: hashed,
+      userSecurity: {
+        upsert: {
+          create: { passwordHash: hashed },
+          update: { passwordHash: hashed },
+        },
+      },
+    }
   });
 
   // Delete the used token
@@ -346,7 +419,15 @@ export const generate2FASetup = async () => {
     secret = generateBase32Secret();
     await db.user.update({
       where: { id: dbUser.id },
-      data: { twoFactorSecret: secret }
+      data: {
+        twoFactorSecret: secret,
+        userSecurity: {
+          upsert: {
+            create: { twoFactorSecret: secret },
+            update: { twoFactorSecret: secret },
+          },
+        },
+      }
     });
   }
 
@@ -387,7 +468,13 @@ export const toggle2FA = async (enable: boolean, code?: string) => {
     await db.user.update({
       where: { id: dbUser.id },
       data: {
-        twoFactorEnabled: true
+        twoFactorEnabled: true,
+        userSecurity: {
+          upsert: {
+            create: { twoFactorEnabled: true },
+            update: { twoFactorEnabled: true },
+          },
+        },
       }
     });
     return { success: "Two-factor authentication enabled successfully!" };
@@ -396,7 +483,13 @@ export const toggle2FA = async (enable: boolean, code?: string) => {
       where: { id: dbUser.id },
       data: {
         twoFactorEnabled: false,
-        twoFactorSecret: null
+        twoFactorSecret: null,
+        userSecurity: {
+          upsert: {
+            create: { twoFactorEnabled: false, twoFactorSecret: null },
+            update: { twoFactorEnabled: false, twoFactorSecret: null },
+          },
+        },
       }
     });
     return { success: "Two-factor authentication disabled." };
@@ -416,6 +509,8 @@ export const getUserSecurityDetails = async () => {
       payoutDetails: true,
       role: true,
       password: true,
+      userSecurity: true,
+      payoutConfig: true,
       accounts: {
         select: {
           provider: true,
@@ -427,7 +522,7 @@ export const getUserSecurityDetails = async () => {
 
   if (!dbUser) return null;
 
-  const details = getSettingsDetails(dbUser.payoutDetails);
+  const details = getSettingsDetails(dbUser.payoutConfig?.details ?? dbUser.payoutDetails);
   let sessions = details._sessions;
   if (!sessions) {
     sessions = [
@@ -445,14 +540,14 @@ export const getUserSecurityDetails = async () => {
   };
 
   return {
-    twoFactorEnabled: dbUser.twoFactorEnabled,
-    payoutSetup: dbUser.payoutSetup,
-    payoutMethod: dbUser.payoutMethod,
+    twoFactorEnabled: dbUser.userSecurity?.twoFactorEnabled ?? dbUser.twoFactorEnabled,
+    payoutSetup: dbUser.payoutConfig?.isSetup ?? dbUser.payoutSetup,
+    payoutMethod: dbUser.payoutConfig?.method ?? dbUser.payoutMethod,
     payoutDetails: details,
     role: dbUser.role,
     sessions,
     notifications,
-    hasPassword: !!dbUser.password,
+    hasPassword: !!(dbUser.userSecurity?.passwordHash ?? dbUser.password),
     accounts: dbUser.accounts.map(acc => ({
       provider: acc.provider,
       createdAt: acc.createdAt.toISOString()

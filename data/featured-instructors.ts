@@ -36,28 +36,39 @@ const instructorSelect = {
   name: true,
   email: true,
   image: true,
-  headline: true,
-  bio: true,
   firstName: true,
   lastName: true,
-  yearsExperience: true,
-  expertise: true,
-  websiteUrl: true,
-  portfolioUrl: true,
-  linkedinUrl: true,
-  twitterUrl: true,
-  instagramUrl: true,
-  youtubeUrl: true,
-  githubUrl: true,
-  behanceUrl: true,
-  dribbbleUrl: true,
-  telegramUrl: true,
-  publicProfileSlug: true,
-  publicProfileStatus: true,
-  instructorProfileEnabled: true,
-  instructorVerificationStatus: true,
-  instructorFeatured: true,
-  instructorFeaturedOrder: true,
+  profile: {
+    select: {
+      headline: true,
+      bio: true,
+      expertise: true,
+      websiteUrl: true,
+      portfolioUrl: true,
+      linkedinUrl: true,
+      twitterUrl: true,
+      instagramUrl: true,
+      youtubeUrl: true,
+      githubUrl: true,
+      behanceUrl: true,
+      dribbbleUrl: true,
+      telegramUrl: true,
+      publicProfileSlug: true,
+      publicProfileStatus: true,
+    },
+  },
+  instructorProfile: {
+    select: {
+      isEnabled: true,
+      verificationStatus: true,
+      verifiedAt: true,
+      isFeatured: true,
+      featuredOrder: true,
+      yearsExperience: true,
+      expertise: true,
+      bio: true,
+    },
+  },
   taughtCourses: {
     where: { status: "PUBLISHED" as const },
     select: {
@@ -74,8 +85,9 @@ function displayName(user: { name: string | null; firstName?: string | null; las
   return user.name || [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || user.email;
 }
 
-function publicSlug(user: { publicProfileSlug: string | null; id: string; name: string | null; email: string }) {
-  if (user.publicProfileSlug) return user.publicProfileSlug;
+function publicSlug(user: { publicProfileSlug?: string | null; profile?: { publicProfileSlug?: string | null } | null; id: string; name: string | null; email: string }) {
+  const slug = user.profile?.publicProfileSlug ?? user.publicProfileSlug;
+  if (slug) return slug;
   if (user.name) return user.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return user.id;
 }
@@ -87,7 +99,28 @@ function formatCardName(name: string) {
 }
 
 function mapInstructor(user: FeaturedInstructorRecord): FeaturedInstructorRow {
-  const eligibility = getInstructorPublicProfileEligibility(user);
+  const mergedUser = {
+    ...user,
+    headline: user.profile?.headline,
+    bio: user.profile?.bio ?? user.instructorProfile?.bio,
+    yearsExperience: user.instructorProfile?.yearsExperience,
+    expertise: user.instructorProfile?.expertise ?? user.profile?.expertise,
+    websiteUrl: user.profile?.websiteUrl,
+    portfolioUrl: user.profile?.portfolioUrl,
+    linkedinUrl: user.profile?.linkedinUrl,
+    twitterUrl: user.profile?.twitterUrl,
+    instagramUrl: user.profile?.instagramUrl,
+    youtubeUrl: user.profile?.youtubeUrl,
+    githubUrl: user.profile?.githubUrl,
+    behanceUrl: user.profile?.behanceUrl,
+    dribbbleUrl: user.profile?.dribbbleUrl,
+    telegramUrl: user.profile?.telegramUrl,
+    publicProfileSlug: user.profile?.publicProfileSlug,
+    publicProfileStatus: user.profile?.publicProfileStatus,
+    instructorVerificationStatus: user.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+    instructorFeaturedOrder: user.instructorProfile?.featuredOrder ?? null,
+  };
+  const eligibility = getInstructorPublicProfileEligibility(mergedUser);
   const publishedCourses = user.taughtCourses.length;
   const totalStudents = user.taughtCourses.reduce((sum, course) => sum + course._count.enrollments, 0);
   const ratings = user.taughtCourses.flatMap((course) => course.ratings.map((rating) => rating.rating));
@@ -107,10 +140,10 @@ function mapInstructor(user: FeaturedInstructorRecord): FeaturedInstructorRow {
     name,
     email: user.email,
     image: user.image || generateTapbackAvatar(name),
-    headline: user.headline || "CSCN Instructor",
+    headline: mergedUser.headline || "CSCN Instructor",
     slug: publicSlug(user),
-    verificationStatus: user.instructorVerificationStatus,
-    featuredOrder: user.instructorFeaturedOrder,
+    verificationStatus: mergedUser.instructorVerificationStatus,
+    featuredOrder: mergedUser.instructorFeaturedOrder,
     checklist: eligibility.items.map((item) => ({ label: item.label, complete: item.complete })),
     missingLabels: eligibility.missingLabels,
     publishedCourses,
@@ -124,17 +157,36 @@ function mapInstructor(user: FeaturedInstructorRecord): FeaturedInstructorRow {
 export async function getFeaturedInstructorAdminData() {
   const users = await db.user.findMany({
     where: {
-      instructorProfileEnabled: true,
+      instructorProfile: { isEnabled: true },
     },
     select: instructorSelect,
     orderBy: [
-      { instructorFeaturedOrder: "asc" },
+      { instructorProfile: { featuredOrder: "asc" } },
       { updatedAt: "desc" },
     ],
   });
 
   const eligible = users
-    .filter((user) => isInstructorFeatureEligible(user))
+    .filter((user) => isInstructorFeatureEligible({
+      ...user,
+      headline: user.profile?.headline,
+      bio: user.profile?.bio ?? user.instructorProfile?.bio,
+      yearsExperience: user.instructorProfile?.yearsExperience,
+      expertise: user.instructorProfile?.expertise ?? user.profile?.expertise,
+      websiteUrl: user.profile?.websiteUrl,
+      portfolioUrl: user.profile?.portfolioUrl,
+      linkedinUrl: user.profile?.linkedinUrl,
+      twitterUrl: user.profile?.twitterUrl,
+      instagramUrl: user.profile?.instagramUrl,
+      youtubeUrl: user.profile?.youtubeUrl,
+      githubUrl: user.profile?.githubUrl,
+      behanceUrl: user.profile?.behanceUrl,
+      dribbbleUrl: user.profile?.dribbbleUrl,
+      telegramUrl: user.profile?.telegramUrl,
+      publicProfileSlug: user.profile?.publicProfileSlug,
+      publicProfileStatus: user.profile?.publicProfileStatus,
+      instructorVerificationStatus: user.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+    }))
     .map(mapInstructor)
     .sort((a, b) => {
       const aFeatured = a.featuredOrder ?? 999;
@@ -157,24 +209,47 @@ export async function getFeaturedInstructorAdminData() {
 export async function getHomepageFeaturedInstructors(): Promise<HomepageFeaturedInstructor[]> {
   const users = await db.user.findMany({
     where: {
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: "VERIFIED",
-      publicProfileStatus: "PUBLIC",
-      instructorFeatured: true,
-      instructorFeaturedOrder: { not: null },
+      instructorProfile: {
+        isEnabled: true,
+        verificationStatus: "VERIFIED",
+        isFeatured: true,
+        featuredOrder: { not: null },
+      },
+      profile: {
+        publicProfileStatus: "PUBLIC",
+      },
     },
     select: instructorSelect,
-    orderBy: { instructorFeaturedOrder: "asc" },
+    orderBy: { instructorProfile: { featuredOrder: "asc" } },
     take: 4,
   });
 
   return users
-    .filter((user) => isInstructorFeatureEligible(user))
+    .filter((user) => isInstructorFeatureEligible({
+      ...user,
+      headline: user.profile?.headline,
+      bio: user.profile?.bio ?? user.instructorProfile?.bio,
+      yearsExperience: user.instructorProfile?.yearsExperience,
+      expertise: user.instructorProfile?.expertise ?? user.profile?.expertise,
+      websiteUrl: user.profile?.websiteUrl,
+      portfolioUrl: user.profile?.portfolioUrl,
+      linkedinUrl: user.profile?.linkedinUrl,
+      twitterUrl: user.profile?.twitterUrl,
+      instagramUrl: user.profile?.instagramUrl,
+      youtubeUrl: user.profile?.youtubeUrl,
+      githubUrl: user.profile?.githubUrl,
+      behanceUrl: user.profile?.behanceUrl,
+      dribbbleUrl: user.profile?.dribbbleUrl,
+      telegramUrl: user.profile?.telegramUrl,
+      publicProfileSlug: user.profile?.publicProfileSlug,
+      publicProfileStatus: user.profile?.publicProfileStatus,
+      instructorVerificationStatus: user.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+    }))
     .map((user) => {
       const name = displayName(user);
       return {
         name: formatCardName(name),
-        role: user.headline || "CSCN Instructor",
+        role: user.profile?.headline || "CSCN Instructor",
         image: user.image || generateTapbackAvatar(name),
         slug: publicSlug(user),
       };

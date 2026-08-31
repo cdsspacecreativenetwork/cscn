@@ -1,164 +1,122 @@
 import { db } from "@/lib/db";
+import { checkAndAwardAchievements } from "@/lib/services/achievements.service";
+import type { CourseStatus, Prisma } from "@prisma/client";
 
-export async function getCourseAnalyticsAdmin(courseId: string) {
-  const [enrollments, lessonProgressRows, lessons, watchSegments] = await Promise.all([
-    db.enrollment.findMany({
-      where: { courseId },
-      select: { status: true, enrolledAt: true },
-      orderBy: { enrolledAt: "asc" },
-    }),
-    db.lessonProgress.findMany({
-      where: {
-        percentComplete: { gte: 100 },
-        lesson: { module: { courseId } },
+export type AdminCoursesFilter = {
+  page?: number;
+  query?: string;
+  status?: string;
+  sort?: string;
+};
+
+export const ADMIN_COURSES_PAGE_SIZE = 15;
+
+function getSort(sort?: string): Prisma.CourseOrderByWithRelationInput | Prisma.CourseOrderByWithRelationInput[] {
+  if (sort === "oldest") return { createdAt: "asc" };
+  if (sort === "title") return { title: "asc" };
+  if (sort === "status") return [{ status: "asc" }, { updatedAt: "desc" }];
+  if (sort === "price-desc") return [{ price: "desc" }, { createdAt: "desc" }];
+  return { updatedAt: "desc" };
+}
+
+export async function getAdminCoursesConsole(filters: AdminCoursesFilter = {}) {
+  const page = Math.max(1, filters.page ?? 1);
+  const query = filters.query?.trim();
+  const statusFilter = filters.status?.toUpperCase() as CourseStatus | undefined;
+
+  const where: Prisma.CourseWhereInput = {
+    ...(statusFilter && statusFilter !== ("ALL" as any) ? { status: statusFilter } : {}),
+    ...(query
+      ? {
+          OR: [
+            { title: { contains: query, mode: "insensitive" } },
+            { slug: { contains: query, mode: "insensitive" } },
+            { instructor: { name: { contains: query, mode: "insensitive" } } },
+            { instructor: { email: { contains: query, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+  };
+
+  const [courses, total, statusCounts] = await Promise.all([
+    db.course.findMany({
+      where,
+      orderBy: getSort(filters.sort),
+      skip: (page - 1) * ADMIN_COURSES_PAGE_SIZE,
+      take: ADMIN_COURSES_PAGE_SIZE,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        shortDesc: true,
+        thumbnail: true,
+        status: true,
+        difficulty: true,
+        featuredOrder: true,
+        createdAt: true,
+        updatedAt: true,
+        instructorId: true,
+        instructor: { select: { id: true, name: true, image: true, payoutConfig: { select: { isSetup: true, payoutDetails: true } } } },
+        price: true,
+        baseCurrency: true,
+        pricingProposals: {
+          where: { status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            proposedPrice: true,
+            currentPriceSnapshot: true,
+            currency: true,
+            status: true,
+            adminNote: true,
+            createdAt: true,
+          },
+        },
+        _count: { select: { enrollments: true, modules: true, reviews: true } },
       },
-      select: { lessonId: true },
     }),
-    db.lesson.findMany({
-      where: { module: { courseId } },
-      orderBy: [{ module: { position: "asc" } }, { position: "asc" }],
-      select: { id: true, title: true, contentType: true, module: { select: { title: true } } },
-    }),
-    db.lessonWatchSegment.groupBy({
-      by: ["lessonId", "segmentIndex"],
-      where: { lesson: { module: { courseId } } },
-      _count: { userId: true },
-      _sum: { secondsWatched: true },
-      orderBy: [{ lessonId: "asc" }, { segmentIndex: "asc" }],
+    db.course.count({ where }),
+    db.course.groupBy({
+      by: ["status"],
+      _count: { status: true },
     }),
   ]);
 
-  const totalEnrollments = enrollments.length;
-  const completedEnrollments = enrollments.filter((e) => e.status === "COMPLETED").length;
-  const activeEnrollments = enrollments.filter((e) => e.status === "ACTIVE").length;
-  const completionRate =
-    totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0;
-
-  const completionMap = new Map<string, number>();
-  for (const row of lessonProgressRows) {
-    completionMap.set(row.lessonId, (completionMap.get(row.lessonId) ?? 0) + 1);
-  }
-  const lessonCompletions = lessons.map((l) => ({
-    lessonId: l.id,
-    title: l.title,
-    moduleTitle: l.module.title,
-    count: completionMap.get(l.id) ?? 0,
-  }));
-
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const dailyMap = new Map<string, number>();
-  for (let d = new Date(thirtyDaysAgo); d <= now; d.setDate(d.getDate() + 1)) {
-    dailyMap.set(d.toISOString().slice(0, 10), 0);
-  }
-  for (const e of enrollments) {
-    if (e.enrolledAt >= thirtyDaysAgo) {
-      const key = e.enrolledAt.toISOString().slice(0, 10);
-      dailyMap.set(key, (dailyMap.get(key) ?? 0) + 1);
-    }
-  }
-  const enrollmentsOverTime = Array.from(dailyMap.entries()).map(([date, count]) => ({
-    date,
-    count,
-  }));
-
-  const watchSegmentMap = new Map<string, { segmentIndex: number; label: string; viewers: number; secondsWatched: number }[]>();
-  for (const segment of watchSegments) {
-    const startSeconds = segment.segmentIndex * 30;
-    const endSeconds = startSeconds + 30;
-    const label = `${Math.floor(startSeconds / 60)}:${String(startSeconds % 60).padStart(2, "0")}-${Math.floor(endSeconds / 60)}:${String(endSeconds % 60).padStart(2, "0")}`;
-    const current = watchSegmentMap.get(segment.lessonId) ?? [];
-    current.push({
-      segmentIndex: segment.segmentIndex,
-      label,
-      viewers: segment._count.userId,
-      secondsWatched: segment._sum.secondsWatched ?? 0,
-    });
-    watchSegmentMap.set(segment.lessonId, current);
-  }
-
-  const watchDropOff = lessons
-    .filter((lesson) => lesson.contentType === "VIDEO")
-    .map((lesson) => ({
-      lessonId: lesson.id,
-      title: lesson.title,
-      moduleTitle: lesson.module.title,
-      segments: watchSegmentMap.get(lesson.id) ?? [],
-    }));
+  const countsMap = statusCounts.reduce<Record<string, number>>((acc, row) => {
+    acc[row.status] = row._count.status;
+    return acc;
+  }, {});
 
   return {
-    totalEnrollments,
-    activeEnrollments,
-    completedEnrollments,
-    completionRate,
-    lessonCompletions,
-    enrollmentsOverTime,
-    watchDropOff,
+    courses: courses.map((course) => ({
+      ...course,
+      price: course.price?.toString() ?? null,
+      pendingProposal: course.pricingProposals[0]
+        ? {
+            ...course.pricingProposals[0],
+            proposedPrice: course.pricingProposals[0].proposedPrice?.toString() ?? "0",
+            currentPriceSnapshot: course.pricingProposals[0].currentPriceSnapshot?.toString() ?? null,
+            submittedAt: course.pricingProposals[0].createdAt.toISOString(),
+          }
+        : null,
+    })),
+    total,
+    page,
+    totalPages: Math.max(1, Math.ceil(total / ADMIN_COURSES_PAGE_SIZE)),
+    counts: {
+      ALL: Object.values(countsMap).reduce((sum, val) => sum + val, 0),
+      DRAFT: countsMap.DRAFT ?? 0,
+      PENDING_REVIEW: countsMap.PENDING_REVIEW ?? 0,
+      PUBLISHED: countsMap.PUBLISHED ?? 0,
+      CHANGES_REQUESTED: countsMap.CHANGES_REQUESTED ?? 0,
+      REJECTED: countsMap.REJECTED ?? 0,
+      ARCHIVED: countsMap.ARCHIVED ?? 0,
+    },
   };
 }
 
-export async function getAllCoursesAdmin(adminId: string) {
-  return db.course.findMany({
-    where: {
-      OR: [
-        { status: { not: "DRAFT" } },
-        { instructorId: adminId },
-        { instructors: { some: { userId: adminId } } },
-      ],
-    },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      thumbnail: true,
-      status: true,
-      difficulty: true,
-      featuredOrder: true,
-      createdAt: true,
-      updatedAt: true,
-      instructorId: true,
-      instructor: { select: { id: true, name: true, image: true, payoutSetup: true, payoutDetails: true } },
-      price: true,
-      baseCurrency: true,
-      pricingProposals: {
-        where: { status: "PENDING" },
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: {
-          id: true,
-          proposedPrice: true,
-          currentPriceSnapshot: true,
-          currency: true,
-          status: true,
-          createdAt: true,
-          submittedBy: { select: { name: true, email: true } },
-        },
-      },
-      revisions: {
-        where: { status: "PENDING_REVIEW" },
-        orderBy: { submittedAt: "desc" },
-        take: 1,
-        select: {
-          id: true,
-          version: true,
-          status: true,
-          changeSummary: true,
-          liveSnapshot: true,
-          draftSnapshot: true,
-          submittedAt: true,
-        },
-      },
-      category: { select: { name: true } },
-      _count: { select: { enrollments: true } },
-      modules: { select: { _count: { select: { lessons: true } } } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
-}
-
-import { checkAndAwardAchievements } from "@/lib/services/achievements.service";
-
-export async function adminToggleCoursePublish(courseId: string) {
+export async function toggleAdminCoursePublishStatus(courseId: string) {
   const course = await db.course.findUnique({
     where: { id: courseId },
     select: {
@@ -167,7 +125,7 @@ export async function adminToggleCoursePublish(courseId: string) {
       thumbnail: true,
       promoVideo: true,
       price: true,
-      instructor: { select: { payoutSetup: true, payoutDetails: true } },
+      instructor: { select: { payoutConfig: { select: { isSetup: true, payoutDetails: true } } } },
       modules: {
         where: { isPublished: true },
         take: 1,
@@ -203,12 +161,13 @@ export async function adminToggleCoursePublish(courseId: string) {
   }
 
   if (newStatus === "PUBLISHED" && course.price && Number(course.price) > 0) {
-    const payoutDetails = (course.instructor.payoutDetails as { payoutCountry?: unknown; preferredCurrency?: unknown }) || {};
-    if (!course.instructor.payoutSetup || !payoutDetails.payoutCountry || !payoutDetails.preferredCurrency) {
+    const payoutConfig = course.instructor.payoutConfig;
+    const payoutDetails = (payoutConfig?.payoutDetails as { payoutCountry?: unknown; preferredCurrency?: unknown }) || {};
+    if (!payoutConfig?.isSetup || !payoutDetails.payoutCountry || !payoutDetails.preferredCurrency) {
       throw new Error("Complete the instructor payout region and payout setup before publishing a paid course.");
     }
   }
-  
+
   const updated = await db.course.update({
     where: { id: courseId },
     data: { status: newStatus },
@@ -216,11 +175,9 @@ export async function adminToggleCoursePublish(courseId: string) {
   });
 
   if (newStatus === "PUBLISHED") {
-    // A: Check lifetime published courses count for this instructor
     const publishedCount = await db.course.count({
       where: { instructorId: course.instructorId, status: "PUBLISHED" },
     });
-    // B: Trigger PUBLISH_COURSE achievements check
     await checkAndAwardAchievements(course.instructorId, "PUBLISH_COURSE", publishedCount);
   }
 
@@ -251,7 +208,7 @@ export async function getStudioCourseAdmin(courseId: string) {
       metaDescription: true,
       price: true,
       baseCurrency: true,
-      instructor: { select: { id: true, name: true, email: true, image: true, payoutSetup: true, payoutDetails: true } },
+      instructor: { select: { id: true, name: true, email: true, image: true, payoutConfig: { select: { isSetup: true, payoutDetails: true } } } },
       category: { select: { name: true } },
       _count: { select: { enrollments: true } },
       pricingProposals: {
@@ -265,83 +222,6 @@ export async function getStudioCourseAdmin(courseId: string) {
           status: true,
           adminNote: true,
           createdAt: true,
-          reviewedAt: true,
-          submittedBy: { select: { name: true, email: true } },
-        },
-      },
-      revisions: {
-        where: { status: "PENDING_REVIEW" },
-        orderBy: { submittedAt: "desc" },
-        take: 1,
-        select: {
-          id: true,
-          version: true,
-          status: true,
-          changeSummary: true,
-          liveSnapshot: true,
-          draftSnapshot: true,
-          submittedAt: true,
-        },
-      },
-      finalExamId: true,
-      modules: {
-        orderBy: { position: "asc" },
-        select: {
-          id: true,
-          title: true,
-          position: true,
-          isPublished: true,
-          isDefault: true,
-          lessons: {
-            orderBy: { position: "asc" },
-            select: {
-              id: true,
-              title: true,
-              position: true,
-              videoUrl: true,
-              overview: true,
-              duration: true,
-              isPublished: true,
-              isPreview: true,
-              transcript: true,
-              bodyContent: true,
-              contentType: true,
-              quiz: {
-                select: {
-                  id: true,
-                  mode: true,
-                  instructions: true,
-                  passingScore: true,
-                  maxAttempts: true,
-                  showAnswers: true,
-                  gateUntilPassed: true,
-                  shuffleQuestions: true,
-                  timeLimitMinutes: true,
-                  questions: {
-                    orderBy: { position: "asc" },
-                    select: {
-                      id: true,
-                      type: true,
-                      prompt: true,
-                      explanation: true,
-                      points: true,
-                      position: true,
-                      required: true,
-                      options: {
-                        orderBy: { position: "asc" },
-                        select: { id: true, text: true, isCorrect: true, position: true },
-                      },
-                    },
-                  },
-                },
-              },
-              muxStatus: true,
-              muxPlaybackId: true,
-              resources: {
-                select: { id: true, title: true, url: true, type: true },
-              },
-            },
-          },
         },
       },
     },

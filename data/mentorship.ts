@@ -10,18 +10,26 @@ export async function getInstructorMentorshipDashboard(userId: string) {
         id: true,
         role: true,
         name: true,
-        timezone: true,
-        instructorProfileEnabled: true,
-        instructorVerificationStatus: true,
-        mentorshipEligible: true,
-        mentorshipEnabled: true,
-        mentorshipApprovedAt: true,
-        mentorshipFree: true,
-        mentorshipPrice: true,
-        mentorshipCurrency: true,
-        mentorshipBio: true,
-        mentorshipTopics: true,
-        mentorshipInstructions: true,
+        profile: { select: { timezone: true } },
+        instructorProfile: {
+          select: {
+            isEnabled: true,
+            verificationStatus: true,
+          },
+        },
+        mentorProfile: {
+          select: {
+            isEligible: true,
+            isEnabled: true,
+            approvedAt: true,
+            isFree: true,
+            price: true,
+            currency: true,
+            bio: true,
+            topics: true,
+            instructions: true,
+          },
+        },
       },
     }),
     db.mentorAvailability.findMany({
@@ -105,8 +113,25 @@ export async function getInstructorMentorshipDashboard(userId: string) {
     }),
   ]);
 
+  const mergedProfile = profile
+    ? {
+        ...profile,
+        instructorProfileEnabled: profile.instructorProfile?.isEnabled ?? false,
+        instructorVerificationStatus: profile.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+        mentorshipEligible: profile.mentorProfile?.isEligible ?? false,
+        mentorshipEnabled: profile.mentorProfile?.isEnabled ?? false,
+        mentorshipApprovedAt: profile.mentorProfile?.approvedAt ?? null,
+        mentorshipFree: profile.mentorProfile?.isFree ?? true,
+        mentorshipPrice: profile.mentorProfile?.price ?? null,
+        mentorshipCurrency: profile.mentorProfile?.currency ?? "NGN",
+        mentorshipBio: profile.mentorProfile?.bio ?? null,
+        mentorshipTopics: profile.mentorProfile?.topics ?? null,
+        mentorshipInstructions: profile.mentorProfile?.instructions ?? null,
+      }
+    : null;
+
   return {
-    profile,
+    profile: mergedProfile,
     availability,
     upcomingBookings,
     latestApplication,

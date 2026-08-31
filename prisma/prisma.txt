@@ -20,8 +20,65 @@ model User {
   sessions       Session[]
   authenticators Authenticator[]
 
+  bio                          String?                      @db.Text
+  headline                     String?
+  location                     String?
+  timezone                     String?                      @default("Africa/Lagos")
+  socials                      Json?
+  publicProfileSlug            String?                      @unique
+  publicProfileStatus          PublicProfileStatus          @default(DRAFT)
+  websiteUrl                   String?
+  portfolioUrl                 String?
+  linkedinUrl                  String?
+  twitterUrl                   String?
+  instagramUrl                 String?
+  youtubeUrl                   String?
+  githubUrl                    String?
+  behanceUrl                   String?
+  dribbbleUrl                  String?
+  telegramUrl                  String?
+  expertise                    Json?
+  learningFocus                String?
+  onboardingIntent             String?
+  yearsExperience              Int?
+  instructorProfileEnabled     Boolean                      @default(false)
+  instructorVerificationStatus InstructorVerificationStatus @default(NOT_STARTED)
+  instructorVerifiedAt         DateTime?
+  instructorFeatured           Boolean                      @default(false)
+  instructorFeaturedOrder      Int?
   instructorApplication        InstructorApplication?       @relation("InstructorApplicationApplicant")
   instructorApplicationsReviewed InstructorApplication[]    @relation("InstructorApplicationReviewer")
+  mentorshipEligible           Boolean                      @default(false)
+  mentorshipEnabled            Boolean                      @default(false)
+  mentorshipApprovedAt         DateTime?
+  mentorshipPrice              Decimal?                     @db.Decimal(10, 2)
+  mentorshipCurrency           String                       @default("NGN")
+  mentorshipFree               Boolean                      @default(true)
+  mentorshipBio                String?                      @db.Text
+  mentorshipTopics             Json?
+  mentorshipInstructions       String?                      @db.Text
+
+  // Admin permission scopes — only relevant when role == ADMIN
+  // SUPER_ADMIN implicitly has all permissions
+  canManageUsers         Boolean @default(false)
+  canManageCourses       Boolean @default(false)
+  canReviewCourses       Boolean @default(false)
+  canPublishCourses      Boolean @default(false)
+  canManageLearners      Boolean @default(false)
+  canManageInstructors   Boolean @default(false)
+  canVerifyInstructors   Boolean @default(false)
+  canManageInvites       Boolean @default(false)
+  canManageAnnouncements Boolean @default(false)
+  canManageBilling       Boolean @default(false)
+  canManageMarketing     Boolean @default(false)
+  canManagePermissions   Boolean @default(false)
+  canViewAuditLogs       Boolean @default(false)
+  canManageSettings      Boolean @default(false)
+  canViewAnalytics       Boolean @default(false)
+
+  marketingConsent Boolean   @default(false)
+  onboardingCohort String?
+  pioneerJoinedAt  DateTime?
 
   // Course relations
   taughtCourses                   Course[]                         @relation("InstructorCourses")
@@ -92,11 +149,23 @@ model User {
   examAttempts                    ExamAttempt[]
   pricingProposals                CoursePricingProposal[]          @relation("PricingProposalSubmitter")
   reviewedPricingProposals        CoursePricingProposal[]          @relation("PricingProposalReviewer")
+  // Streak & Gamification relations
+  currentStreak                   Int                              @default(0)
+  longestStreak                   Int                              @default(0)
   achievements                    UserAchievement[]
   questProgress                   UserQuestProgress[]
   leaderboardRecord               LeaderboardCache?
 
-  // Modular Extension Relations
+  // Payout Configuration
+  payoutSetup   Boolean @default(false)
+  payoutMethod  String?
+  payoutDetails Json?
+
+  // Security (2FA)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+
+  // New Modular Extension Relations
   profile                         Profile?
   learnerProfile                  LearnerProfile?
   instructorProfile               InstructorProfile?
@@ -107,6 +176,11 @@ model User {
 
   createdAt DateTime  @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([publicProfileStatus])
+  @@index([instructorProfileEnabled, instructorVerificationStatus])
+  @@index([instructorFeatured, instructorFeaturedOrder])
+  @@index([onboardingCohort])
 }
 
 model Account {
@@ -235,9 +309,6 @@ model InstructorProfile {
   videoReadiness       String?
   audienceSize         String?
   gender               String?
-  resumeUrl            String?
-  boostNote            String?                      @db.Text
-  certificationLinks   Json?
   expertise            Json?
   bio                  String?                      @db.Text
 

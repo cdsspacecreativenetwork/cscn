@@ -50,14 +50,31 @@ async function upsertInstructor(data: {
   headline: string;
   bio: string;
 }) {
+  const profileData = {
+    headline: data.headline,
+    bio: data.bio,
+    publicProfileStatus: "PUBLIC" as const,
+  };
   const existing = await db.user.findUnique({ where: { email: data.email } });
   if (existing) {
     return db.user.update({
       where: { email: data.email },
-      data: { name: data.name, headline: data.headline, bio: data.bio },
+      data: {
+        name: data.name,
+        profile: { upsert: { create: profileData, update: profileData } },
+        instructorProfile: { upsert: { create: { isEnabled: true, verificationStatus: "VERIFIED" }, update: { isEnabled: true, verificationStatus: "VERIFIED" } } },
+      },
     });
   }
-  return db.user.create({ data: { ...data, role: "INSTRUCTOR" } });
+  return db.user.create({
+    data: {
+      email: data.email,
+      name: data.name,
+      role: "INSTRUCTOR",
+      profile: { create: profileData },
+      instructorProfile: { create: { isEnabled: true, verificationStatus: "VERIFIED" } },
+    },
+  });
 }
 
 async function seedCourse(

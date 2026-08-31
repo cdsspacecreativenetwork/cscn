@@ -55,6 +55,20 @@ export async function toggleInstructorMentorshipAction(instructorId: string, ena
       mentorshipEligible: enabled,
       mentorshipApprovedAt: enabled ? new Date() : null,
       ...(enabled ? {} : { mentorshipEnabled: false }),
+      mentorProfile: {
+        upsert: {
+          create: {
+            isEligible: enabled,
+            approvedAt: enabled ? new Date() : null,
+            ...(enabled ? {} : { isEnabled: false }),
+          },
+          update: {
+            isEligible: enabled,
+            approvedAt: enabled ? new Date() : null,
+            ...(enabled ? {} : { isEnabled: false }),
+          },
+        },
+      },
     },
   });
 

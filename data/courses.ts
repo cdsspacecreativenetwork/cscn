@@ -50,7 +50,7 @@ export async function getPublishedCourses(page = 1, categorySlug?: string) {
         price: true,
         baseCurrency: true,
         category: { select: { name: true, slug: true } },
-        instructor: { select: { id: true, name: true, image: true, headline: true } },
+        instructor: { select: { id: true, name: true, image: true, profile: { select: { headline: true } } } },
         _count: { select: { modules: true, enrollments: true } },
         modules: {
           select: {
@@ -97,7 +97,7 @@ export async function getFeaturedPublishedCourses(limit = 8) {
       price: true,
       baseCurrency: true,
       category: { select: { name: true, slug: true } },
-      instructor: { select: { id: true, name: true, image: true, headline: true } },
+      instructor: { select: { id: true, name: true, image: true, profile: { select: { headline: true } } } },
       _count: { select: { modules: true, enrollments: true } },
       modules: {
         select: {
@@ -146,9 +146,7 @@ export async function getCourseBySlug(slug: string) {
           id: true,
           name: true,
           image: true,
-          headline: true,
-          bio: true,
-          publicProfileSlug: true,
+          profile: { select: { headline: true, bio: true, publicProfileSlug: true } },
         },
       },
       instructors: {
@@ -159,8 +157,7 @@ export async function getCourseBySlug(slug: string) {
               id: true,
               name: true,
               image: true,
-              headline: true,
-              publicProfileSlug: true,
+              profile: { select: { headline: true, publicProfileSlug: true } },
             },
           },
         },

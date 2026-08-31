@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Plus, Trash2, Link as LinkIcon, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { CustomSelect } from '@/components/ui/CustomSelect';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import {
   FALLBACK_LOCATION_TIMEZONE_OPTIONS,
   getLocationTimezoneOption,
@@ -112,7 +112,7 @@ function splitExpertise(value: string) {
 }
 
 interface ProfileFormProps {
-  user: User;
+  user: any;
   locationTimezoneOptions?: LocationTimezoneOption[];
 }
 
@@ -180,7 +180,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
       dribbbleUrl: user.dribbbleUrl || '',
       telegramUrl: user.telegramUrl || '',
       expertise: normalizeExpertise(user.expertise),
-      learningFocus: user.learningFocus || '',
+      learningFocus: user.learnerProfile?.learningFocus || user.learningFocus || '',
       socials: defaultSocials,
     }
   });

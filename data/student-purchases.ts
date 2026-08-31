@@ -33,7 +33,7 @@ export async function getStudentPurchasesDashboard(userId: string) {
   const [user, orders, enrollments] = await Promise.all([
     db.user.findUnique({
       where: { id: userId },
-      select: { payoutDetails: true },
+      select: { payoutConfig: true },
     }),
     db.purchaseOrder.findMany({
       where: { userId, type: "COURSE" },
@@ -113,7 +113,7 @@ export async function getStudentPurchasesDashboard(userId: string) {
   const paidOrders = orders.filter((order) => order.status === "PAID" || order.status === "PARTIALLY_REFUNDED");
   const pendingOrders = orders.filter((order) => order.status === "PENDING");
   const refundOrders = orders.filter((order) => order.status === "REFUNDED" || order.status === "PARTIALLY_REFUNDED" || order.refunds.length > 0);
-  const displayCurrency = getUserDisplayCurrency(user, paidOrders[0]?.currency ?? orders[0]?.currency ?? "NGN");
+  const displayCurrency = getUserDisplayCurrency(user?.payoutConfig ?? null, paidOrders[0]?.currency ?? orders[0]?.currency ?? "NGN");
   const convertedPaidOrders = await Promise.all(
     paidOrders.map((order) => convertCurrency(money(order.amount), order.currency, displayCurrency))
   );

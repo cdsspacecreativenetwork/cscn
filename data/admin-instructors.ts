@@ -47,22 +47,22 @@ export async function getAdminInstructorApplications(filters: AdminInstructorsFi
 function getSort(sort?: string): Prisma.UserOrderByWithRelationInput | Prisma.UserOrderByWithRelationInput[] {
   if (sort === "oldest") return { createdAt: "asc" as const };
   if (sort === "name") return { name: "asc" as const };
-  if (sort === "featured") return [{ instructorFeaturedOrder: "asc" as const }, { createdAt: "desc" as const }];
+  if (sort === "featured") return [{ instructorProfile: { featuredOrder: "asc" as const } }, { createdAt: "desc" as const }];
   return { createdAt: "desc" as const };
 }
 
 function getTabWhere(tab?: string) {
-  if (tab === "pending") return { instructorVerificationStatus: "PENDING" as const };
-  if (tab === "verified") return { instructorVerificationStatus: "VERIFIED" as const };
-  if (tab === "featured") return { instructorFeatured: true };
-  if (tab === "mentorship") return { mentorshipEligible: true };
-  if (tab === "rejected") return { instructorVerificationStatus: "REJECTED" as const };
-  return {};
+  if (tab === "pending") return { instructorProfile: { isEnabled: true, verificationStatus: "PENDING" as const } };
+  if (tab === "verified") return { instructorProfile: { isEnabled: true, verificationStatus: "VERIFIED" as const } };
+  if (tab === "featured") return { instructorProfile: { isEnabled: true, isFeatured: true } };
+  if (tab === "mentorship") return { mentorProfile: { isEligible: true } };
+  if (tab === "rejected") return { instructorProfile: { isEnabled: true, verificationStatus: "REJECTED" as const } };
+  return { instructorProfile: { isEnabled: true } };
 }
 
-function publicSlug(user: { publicProfileSlug: string | null; id: string; name: string | null }) {
+function publicSlug(user: { profile?: { publicProfileSlug?: string | null } | null; id: string; name: string | null }) {
   return (
-    user.publicProfileSlug ||
+    user.profile?.publicProfileSlug ||
     user.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
     user.id
   );
@@ -72,14 +72,13 @@ export async function getAdminInstructors(filters: AdminInstructorsFilter = {}) 
   const page = Math.max(1, filters.page ?? 1);
   const query = filters.query?.trim();
   const baseWhere = {
-    instructorProfileEnabled: true,
     ...getTabWhere(filters.tab),
     ...(query
       ? {
           OR: [
             { name: { contains: query, mode: "insensitive" as const } },
             { email: { contains: query, mode: "insensitive" as const } },
-            { headline: { contains: query, mode: "insensitive" as const } },
+            { profile: { headline: { contains: query, mode: "insensitive" as const } } },
           ],
         }
       : {}),
@@ -97,38 +96,51 @@ export async function getAdminInstructors(filters: AdminInstructorsFilter = {}) 
         name: true,
         email: true,
         image: true,
-        headline: true,
-        bio: true,
         firstName: true,
         lastName: true,
-        yearsExperience: true,
-        expertise: true,
-        websiteUrl: true,
-        portfolioUrl: true,
-        linkedinUrl: true,
-        twitterUrl: true,
-        instagramUrl: true,
-        youtubeUrl: true,
-        githubUrl: true,
-        behanceUrl: true,
-        dribbbleUrl: true,
-        telegramUrl: true,
-        publicProfileSlug: true,
-        publicProfileStatus: true,
-        instructorProfileEnabled: true,
-        instructorVerificationStatus: true,
-        instructorVerifiedAt: true,
-        instructorFeatured: true,
-        instructorFeaturedOrder: true,
-        mentorshipEligible: true,
-        mentorshipEnabled: true,
-        mentorshipApprovedAt: true,
-        mentorshipFree: true,
-        mentorshipPrice: true,
-        mentorshipCurrency: true,
-        payoutSetup: true,
-        payoutDetails: true,
         createdAt: true,
+        profile: {
+          select: {
+            headline: true,
+            bio: true,
+            expertise: true,
+            websiteUrl: true,
+            portfolioUrl: true,
+            linkedinUrl: true,
+            twitterUrl: true,
+            instagramUrl: true,
+            youtubeUrl: true,
+            githubUrl: true,
+            behanceUrl: true,
+            dribbbleUrl: true,
+            telegramUrl: true,
+            publicProfileSlug: true,
+            publicProfileStatus: true,
+          },
+        },
+        instructorProfile: {
+          select: {
+            isEnabled: true,
+            verificationStatus: true,
+            verifiedAt: true,
+            isFeatured: true,
+            featuredOrder: true,
+            yearsExperience: true,
+            expertise: true,
+            bio: true,
+          },
+        },
+        mentorProfile: {
+          select: {
+            isEligible: true,
+            isEnabled: true,
+            approvedAt: true,
+            isFree: true,
+            price: true,
+            currency: true,
+          },
+        },
+        payoutConfig: { select: { isSetup: true, payoutDetails: true } },
         taughtCourses: {
           where: { status: "PUBLISHED" },
           select: {
@@ -144,15 +156,36 @@ export async function getAdminInstructors(filters: AdminInstructorsFilter = {}) 
 
   const instructors = rows
     .map((user) => {
-      const eligibility = getInstructorPublicProfileEligibility(user);
+      const mergedUser = {
+        ...user,
+        headline: user.profile?.headline,
+        bio: user.profile?.bio ?? user.instructorProfile?.bio,
+        yearsExperience: user.instructorProfile?.yearsExperience,
+        expertise: user.instructorProfile?.expertise ?? user.profile?.expertise,
+        websiteUrl: user.profile?.websiteUrl,
+        portfolioUrl: user.profile?.portfolioUrl,
+        linkedinUrl: user.profile?.linkedinUrl,
+        twitterUrl: user.profile?.twitterUrl,
+        instagramUrl: user.profile?.instagramUrl,
+        youtubeUrl: user.profile?.youtubeUrl,
+        githubUrl: user.profile?.githubUrl,
+        behanceUrl: user.profile?.behanceUrl,
+        dribbbleUrl: user.profile?.dribbbleUrl,
+        telegramUrl: user.profile?.telegramUrl,
+        publicProfileSlug: user.profile?.publicProfileSlug,
+        publicProfileStatus: user.profile?.publicProfileStatus,
+        instructorVerificationStatus: user.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+      };
+
+      const eligibility = getInstructorPublicProfileEligibility(mergedUser);
       const students = user.taughtCourses.reduce((sum, course) => sum + course._count.enrollments, 0);
       const ratings = user.taughtCourses.flatMap((course) => course.ratings.map((rating) => rating.rating));
       const averageRating =
         ratings.length > 0 ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null;
       const payoutDetails =
-        (user.payoutDetails as { payoutCountry?: unknown; preferredCurrency?: unknown } | null) ?? {};
-      const payoutReady = Boolean(user.payoutSetup && payoutDetails.payoutCountry && payoutDetails.preferredCurrency);
-      const featureEligible = isInstructorFeatureEligible(user);
+        (user.payoutConfig?.payoutDetails as { payoutCountry?: unknown; preferredCurrency?: unknown } | null) ?? {};
+      const payoutReady = Boolean(user.payoutConfig?.isSetup && payoutDetails.payoutCountry && payoutDetails.preferredCurrency);
+      const featureEligible = isInstructorFeatureEligible(mergedUser);
 
       return {
         id: user.id,
@@ -160,19 +193,19 @@ export async function getAdminInstructors(filters: AdminInstructorsFilter = {}) 
         name: user.name,
         email: user.email,
         image: user.image,
-        headline: user.headline,
-        publicProfileStatus: user.publicProfileStatus,
+        headline: user.profile?.headline,
+        publicProfileStatus: user.profile?.publicProfileStatus ?? "DRAFT",
         publicProfileUrl: eligibility.eligible ? `/instructor/${publicSlug(user)}` : null,
-        verificationStatus: user.instructorVerificationStatus,
-        verifiedAt: user.instructorVerifiedAt,
-        featured: user.instructorFeatured,
-        featuredOrder: user.instructorFeaturedOrder,
-        mentorshipEligible: user.mentorshipEligible,
-        mentorshipEnabled: user.mentorshipEnabled,
-        mentorshipApprovedAt: user.mentorshipApprovedAt,
-        mentorshipFree: user.mentorshipFree,
-        mentorshipPrice: user.mentorshipPrice,
-        mentorshipCurrency: user.mentorshipCurrency,
+        verificationStatus: user.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+        verifiedAt: user.instructorProfile?.verifiedAt ?? null,
+        featured: user.instructorProfile?.isFeatured ?? false,
+        featuredOrder: user.instructorProfile?.featuredOrder ?? null,
+        mentorshipEligible: user.mentorProfile?.isEligible ?? false,
+        mentorshipEnabled: user.mentorProfile?.isEnabled ?? false,
+        mentorshipApprovedAt: user.mentorProfile?.approvedAt ?? null,
+        mentorshipFree: user.mentorProfile?.isFree ?? true,
+        mentorshipPrice: user.mentorProfile?.price ?? null,
+        mentorshipCurrency: user.mentorProfile?.currency ?? "NGN",
         profileComplete: eligibility.eligible,
         missingLabels: eligibility.missingLabels,
         publishedCourses: user.taughtCourses.length,
@@ -197,11 +230,11 @@ export async function getAdminInstructors(filters: AdminInstructorsFilter = {}) 
 export async function getAdminInstructorStats() {
   const now = new Date();
   const [total, pending, verified, featured, mentorship, pendingApplications, overdueApplications] = await Promise.all([
-    db.user.count({ where: { instructorProfileEnabled: true } }),
-    db.user.count({ where: { instructorProfileEnabled: true, instructorVerificationStatus: "PENDING" } }),
-    db.user.count({ where: { instructorProfileEnabled: true, instructorVerificationStatus: "VERIFIED" } }),
-    db.user.count({ where: { instructorProfileEnabled: true, instructorFeatured: true } }),
-    db.user.count({ where: { instructorProfileEnabled: true, mentorshipEligible: true } }),
+    db.user.count({ where: { instructorProfile: { isEnabled: true } } }),
+    db.user.count({ where: { instructorProfile: { isEnabled: true, verificationStatus: "PENDING" } } }),
+    db.user.count({ where: { instructorProfile: { isEnabled: true, verificationStatus: "VERIFIED" } } }),
+    db.user.count({ where: { instructorProfile: { isEnabled: true, isFeatured: true } } }),
+    db.user.count({ where: { mentorProfile: { isEligible: true } } }),
     db.instructorApplication.count({ where: { status: "PENDING" } }),
     db.instructorApplication.count({ where: { status: "PENDING", reviewDueAt: { lt: now } } }),
   ]);

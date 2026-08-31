@@ -18,6 +18,8 @@ type ProfileSubject = {
   behanceUrl?: string | null;
   dribbbleUrl?: string | null;
   telegramUrl?: string | null;
+  publicProfileSlug?: string | null;
+  publicProfileStatus?: string | null;
 };
 
 export type EligibilityItemId =

@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 
 const fieldGroupClass = "space-y-2";
 const labelClass = "block text-sm sm:text-base font-medium text-[#4B5563] font-jakarta";
-const inputClass = "h-12 sm:h-14 w-full px-4.5 text-sm sm:text-base font-medium bg-[#F4F6FB] border border-[#E3E8F4] !rounded-lg text-[#040B37] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] focus:bg-white focus:ring-2 focus:ring-[#1C4ED1]/15 transition-all outline-none disabled:opacity-50 font-jakarta !bg-[#F4F6FB]";
+const inputClass = "h-12 sm:h-14 w-full px-4.5 text-base sm:text-lg! font-medium bg-[#F4F6FB] border border-[#E3E8F4] !rounded-lg text-[#040B37] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] focus:bg-white focus:ring-2 focus:ring-[#1C4ED1]/15 transition-all outline-none disabled:opacity-50 font-jakarta !bg-[#F4F6FB]";
 
 export type CreateAccountVariant = "learner" | "instructor";
 
@@ -303,7 +303,7 @@ export function CreateAccountScreen({ variant = "learner" }: CreateAccountScreen
               onChange={(e) => setAgreed(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1C4ED1] focus:ring-[#1C4ED1] cursor-pointer shrink-0"
             />
-            <label htmlFor="terms" className="text-xs sm:text-xs text-[#6B7280] font-normal leading-normal select-none">
+            <label htmlFor="terms" className="text-xs sm:text-sm! text-[#6B7280] font-normal leading-normal select-none">
               I agree to CSCN&apos;s{" "}
               <Link href="/terms" className="text-[#1C4ED1] font-medium underline hover:text-[#1C4ED1]/80">
                 Terms of Service

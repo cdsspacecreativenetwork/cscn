@@ -16,7 +16,7 @@ import { Social } from "@/components/auth/Social";
 
 const fieldGroupClass = "space-y-2";
 const labelClass = "block text-sm sm:text-base font-medium text-[#4B5563] font-jakarta";
-const inputClass = "h-12 sm:h-14 w-full px-4.5 text-sm sm:text-base font-medium bg-[#F4F6FB] border border-[#E3E8F4] !rounded-lg text-[#040B37] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] focus:bg-white focus:ring-2 focus:ring-[#1C4ED1]/15 transition-all outline-none disabled:opacity-50 font-jakarta !bg-[#F4F6FB]";
+const inputClass = "h-12 sm:h-14 w-full px-4.5 text-base sm:text-lg font-medium bg-[#F4F6FB] border border-[#E3E8F4] !rounded-lg text-[#040B37] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] focus:bg-white focus:ring-2 focus:ring-[#1C4ED1]/15 transition-all outline-none disabled:opacity-50 font-jakarta !bg-[#F4F6FB]";
 const inputWithIconClass = `${inputClass} pr-14`;
 const subtextClass = "text-[#4B5563] font-medium";
 

@@ -59,6 +59,17 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
       image: avatarUrl,
       onboardingCohort: shouldAwardPioneer ? PIONEER_COHORT : null,
       pioneerJoinedAt: shouldAwardPioneer ? new Date() : null,
+      profile: {
+        create: {
+          timezone: "Africa/Lagos",
+        },
+      },
+      learnerProfile: {
+        create: {
+          onboardingCohort: shouldAwardPioneer ? PIONEER_COHORT : null,
+          pioneerJoinedAt: shouldAwardPioneer ? new Date() : null,
+        },
+      },
     },
     select: { id: true },
   });

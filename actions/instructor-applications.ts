@@ -110,6 +110,30 @@ export async function submitInstructorApplicationAction(input: InstructorApplica
         portfolioUrl: parsed.data.portfolioUrl,
         expertise,
         yearsExperience: experienceLevelToYears(parsed.data.experienceLevel),
+        profile: {
+          upsert: {
+            create: {
+              portfolioUrl: parsed.data.portfolioUrl,
+              expertise,
+            },
+            update: {
+              portfolioUrl: parsed.data.portfolioUrl,
+              expertise,
+            },
+          },
+        },
+        instructorProfile: {
+          upsert: {
+            create: {
+              yearsExperience: experienceLevelToYears(parsed.data.experienceLevel),
+              expertise,
+            },
+            update: {
+              yearsExperience: experienceLevelToYears(parsed.data.experienceLevel),
+              expertise,
+            },
+          },
+        },
       },
     });
 
@@ -197,6 +221,30 @@ export async function approveInstructorApplicationAction(applicationId: string) 
         instructorVerifiedAt: null,
         instructorFeatured: false,
         instructorFeaturedOrder: null,
+        profile: {
+          upsert: {
+            create: { publicProfileStatus: 'DRAFT' },
+            update: { publicProfileStatus: 'DRAFT' },
+          },
+        },
+        instructorProfile: {
+          upsert: {
+            create: {
+              isEnabled: true,
+              verificationStatus: 'NOT_STARTED',
+              verifiedAt: null,
+              isFeatured: false,
+              featuredOrder: null,
+            },
+            update: {
+              isEnabled: true,
+              verificationStatus: 'NOT_STARTED',
+              verifiedAt: null,
+              isFeatured: false,
+              featuredOrder: null,
+            },
+          },
+        },
       },
     });
     return true;

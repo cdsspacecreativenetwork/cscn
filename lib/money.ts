@@ -12,10 +12,11 @@ export function formatCurrency(amount: number | null | undefined, currency = "NG
 }
 
 export function getUserDisplayCurrency(
-  user?: { payoutDetails?: unknown } | null,
+  user?: { payoutConfig?: { payoutDetails?: unknown } | null; payoutDetails?: unknown } | null,
   fallback = "NGN"
 ) {
-  const details = (user?.payoutDetails ?? {}) as {
+  const payoutDetails = user?.payoutConfig?.payoutDetails ?? user?.payoutDetails;
+  const details = (payoutDetails ?? {}) as {
     preferredDisplayCurrency?: unknown;
     preferredCurrency?: unknown;
   };

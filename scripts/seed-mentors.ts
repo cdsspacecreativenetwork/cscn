@@ -509,6 +509,35 @@ async function main() {
   for (let i = 0; i < INSTRUCTORS_DATA.length; i++) {
     const data = INSTRUCTORS_DATA[i];
 
+    const profileData = {
+      headline: data.headline,
+      bio: data.bio,
+      location: data.location,
+      publicProfileSlug: data.slug,
+      publicProfileStatus: 'PUBLIC' as const,
+    };
+
+    const instructorProfileData = {
+      isEnabled: true,
+      verificationStatus: 'VERIFIED' as const,
+      verifiedAt: new Date(),
+      isFeatured: i < 8,
+      featuredOrder: i + 1,
+      bio: data.bio,
+    };
+
+    const mentorProfileData = {
+      isEligible: true,
+      isEnabled: true,
+      approvedAt: new Date(),
+      isFree: data.free,
+      price: data.price > 0 ? data.price : null,
+      currency: data.currency,
+      bio: data.bio,
+      topics: data.topics,
+      instructions: 'Please come prepared with your portfolio, specific questions, or project links to get maximum value from our 1:1 session.',
+    };
+
     const user = await db.user.upsert({
       where: { email: data.email },
       create: {
@@ -518,40 +547,16 @@ async function main() {
         role: 'INSTRUCTOR',
         emailVerified: new Date(),
         image: data.image,
-        headline: data.headline,
-        bio: data.bio,
-        location: data.location,
-        publicProfileSlug: data.slug,
-        publicProfileStatus: 'PUBLIC',
-        instructorProfileEnabled: true,
-        instructorVerificationStatus: 'VERIFIED',
-        instructorVerifiedAt: new Date(),
-        instructorFeatured: i < 8,
-        instructorFeaturedOrder: i + 1,
-        mentorshipEligible: true,
-        mentorshipEnabled: true,
-        mentorshipApprovedAt: new Date(),
-        mentorshipFree: data.free,
-        mentorshipPrice: data.price > 0 ? data.price : null,
-        mentorshipCurrency: data.currency,
-        mentorshipBio: data.bio,
-        mentorshipTopics: data.topics,
-        mentorshipInstructions: 'Please come prepared with your portfolio, specific questions, or project links to get maximum value from our 1:1 session.',
+        profile: { create: profileData },
+        instructorProfile: { create: instructorProfileData },
+        mentorProfile: { create: mentorProfileData },
       },
       update: {
         name: data.name,
         image: data.image,
-        headline: data.headline,
-        bio: data.bio,
-        location: data.location,
-        publicProfileStatus: 'PUBLIC',
-        instructorProfileEnabled: true,
-        instructorVerificationStatus: 'VERIFIED',
-        mentorshipEligible: true,
-        mentorshipEnabled: true,
-        mentorshipFree: data.free,
-        mentorshipPrice: data.price > 0 ? data.price : null,
-        mentorshipTopics: data.topics,
+        profile: { upsert: { create: profileData, update: profileData } },
+        instructorProfile: { upsert: { create: instructorProfileData, update: instructorProfileData } },
+        mentorProfile: { upsert: { create: mentorProfileData, update: mentorProfileData } },
       },
     });
 

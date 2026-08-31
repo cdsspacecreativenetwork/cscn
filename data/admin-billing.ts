@@ -27,9 +27,9 @@ export async function getAdminBillingOverview(adminId?: string) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const admin = adminId
-    ? await db.user.findUnique({ where: { id: adminId }, select: { payoutDetails: true } })
+    ? await db.user.findUnique({ where: { id: adminId }, select: { payoutConfig: true } })
     : null;
-  const displayCurrency = getUserDisplayCurrency(admin, "NGN");
+  const displayCurrency = getUserDisplayCurrency(admin?.payoutConfig ?? null, "NGN");
 
   const [
     paidOrders,
@@ -96,7 +96,7 @@ export async function getAdminBillingOverview(adminId?: string) {
         payoutMethod: true,
         payoutDetails: true,
         requestedAt: true,
-        instructor: { select: { name: true, email: true, payoutSetup: true } },
+        instructor: { select: { name: true, email: true, payoutConfig: { select: { isSetup: true } } } },
       },
     }),
     db.refund.findMany({
@@ -170,7 +170,7 @@ export async function getInstructorEarningsSummary(instructorId: string) {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [instructor, lifetime, monthly, available, pending, requested, recent] = await Promise.all([
-    db.user.findUnique({ where: { id: instructorId }, select: { payoutDetails: true } }),
+    db.user.findUnique({ where: { id: instructorId }, select: { payoutConfig: true } }),
     db.instructorEarning.aggregate({
       where: { instructorId, status: { not: "REVERSED" } },
       _sum: { instructorAmount: true },
@@ -214,7 +214,7 @@ export async function getInstructorEarningsSummary(instructorId: string) {
       },
     }),
   ]);
-  const displayCurrency = getUserDisplayCurrency(instructor, "NGN");
+  const displayCurrency = getUserDisplayCurrency(instructor?.payoutConfig ?? null, "NGN");
 
   return {
     lifetime: await convertCurrency(money(lifetime._sum.instructorAmount), "NGN", displayCurrency),

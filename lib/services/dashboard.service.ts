@@ -458,7 +458,11 @@ export async function getStudentDashboardData(userId: string, role?: string | nu
     getLearnerInterestProfileByUserId(userId),
     db.user.findUnique({
       where: { id: userId },
-      select: { onboardingCohort: true, pioneerJoinedAt: true },
+      select: {
+        learnerProfile: {
+          select: { onboardingCohort: true, pioneerJoinedAt: true },
+        },
+      },
     }),
   ]);
 
@@ -607,7 +611,7 @@ export async function getStudentDashboardData(userId: string, role?: string | nu
     marketingSettings,
     hasLearnerInterestProfile: Boolean(learnerInterestProfile),
     hasCompletedLearnerOnboarding: Boolean(learnerInterestProfile?.onboardingCompletedAt),
-    isPioneer: Boolean(learner?.onboardingCohort),
-    pioneerJoinedAt: learner?.pioneerJoinedAt ?? null,
+    isPioneer: Boolean(learner?.learnerProfile?.onboardingCohort),
+    pioneerJoinedAt: learner?.learnerProfile?.pioneerJoinedAt ?? null,
   };
 }

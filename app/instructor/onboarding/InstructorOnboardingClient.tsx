@@ -562,7 +562,7 @@ export default function InstructorOnboardingClient() {
                   placeholder="Enter first and last name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="h-12 text-base bg-[#F8FAFC] border-[#E3E8F4] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 rounded-[14px]"
+                  className="h-12 text-base bg-[#F8FAFC] border-[#E3E8F4] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 rounded-lg"
                 />
               </motion.div>
 
@@ -572,7 +572,7 @@ export default function InstructorOnboardingClient() {
                   What gender do you identify as? <span className="text-[#1C4ED1]">*</span>
                 </label>
                 <Select value={gender} onValueChange={(val) => setGender(val as 'Male' | 'Female')}>
-                  <SelectTrigger className="w-full h-12 text-base">
+                  <SelectTrigger className="w-full h-12 text-base rounded-lg">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
@@ -594,7 +594,7 @@ export default function InstructorOnboardingClient() {
                       type="button"
                       role="combobox"
                       aria-expanded={countryOpen}
-                      className={`flex h-12 w-full items-center justify-between rounded-[14px] border border-[#E3E8F4] bg-[#F8FAFC] px-4 py-3 text-base focus:border-[#1C4ED1] focus:outline-none focus:ring-0 outline-none cursor-pointer transition-colors ${country ? 'font-medium text-[#040B37]' : 'font-normal text-[#9CA3AF]'
+                      className={`flex h-12 w-full items-center justify-between rounded-lg border border-[#E3E8F4] bg-[#F8FAFC] px-4 py-3 text-base focus:border-[#1C4ED1] focus:outline-none focus:ring-0 outline-none cursor-pointer transition-colors ${country ? 'font-medium text-[#040B37]' : 'font-normal text-[#9CA3AF]'
                         }`}
                     >
                       <span className="truncate">
@@ -689,7 +689,7 @@ export default function InstructorOnboardingClient() {
                   placeholder="Eg. Apple, UCLA, Freelance, etc."
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
-                  className="h-12 text-base bg-[#F8FAFC] border-[#E3E8F4] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 rounded-[14px]"
+                  className="h-12 text-base bg-[#F8FAFC] border-[#E3E8F4] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 rounded-lg"
                 />
               </motion.div>
 
@@ -703,7 +703,7 @@ export default function InstructorOnboardingClient() {
                   placeholder="Eg. Product Designer, Student, Senior Software Engineer, etc."
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
-                  className="h-12 text-base bg-[#F8FAFC] border-[#E3E8F4] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 rounded-[14px]"
+                  className="h-12 text-base bg-[#F8FAFC] border-[#E3E8F4] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 rounded-lg"
                 />
               </motion.div>
 
@@ -715,7 +715,7 @@ export default function InstructorOnboardingClient() {
                 <div className="grid grid-cols-2 gap-4">
                   {/* Years Select */}
                   <Select value={expYears} onValueChange={(val) => setExpYears(val)}>
-                    <SelectTrigger className="w-full h-12 text-base">
+                    <SelectTrigger className="w-full h-12 text-base rounded-lg">
                       <SelectValue placeholder="Years" />
                     </SelectTrigger>
                     <SelectContent>
@@ -748,7 +748,7 @@ export default function InstructorOnboardingClient() {
                 <label className="text-base font-semibold text-[#040B37]">
                   LinkedIn URL label <span className="text-[#1C4ED1]">*</span>
                 </label>
-                <div className="flex items-center rounded-[14px] border border-[#E3E8F4] bg-[#F8FAFC] overflow-hidden focus-within:border-[#1C4ED1] transition-all">
+                <div className="flex items-center rounded-lg border border-[#E3E8F4] bg-[#F8FAFC] overflow-hidden focus-within:border-[#1C4ED1] transition-all">
                   <span className="px-4 py-3 bg-[#EAEFF8]/60 text-[14px] font-medium text-[#6B7280] border-r border-[#E3E8F4] shrink-0 select-none">
                     linkedin.com/in/
                   </span>
@@ -757,7 +757,7 @@ export default function InstructorOnboardingClient() {
                     placeholder="username"
                     value={linkedinHandle}
                     onChange={(e) => setLinkedinHandle(e.target.value.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, ''))}
-                    className="h-12 border-0 shadow-none bg-transparent focus-visible:ring-0 focus-visible:border-0 rounded-none text-base outline-none focus:outline-none"
+                    className="h-12 border-0 shadow-none bg-transparent focus-visible:ring-0 focus-visible:border-0 rounded-none text-lg outline-none focus:outline-none"
                   />
                 </div>
                 <a
@@ -781,7 +781,7 @@ export default function InstructorOnboardingClient() {
                   placeholder="https://myportfolio.com or https://dribbble.com/username"
                   value={portfolioUrl}
                   onChange={(e) => setPortfolioUrl(e.target.value)}
-                  className="h-12 text-base bg-[#F8FAFC] border-[#E3E8F4] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 rounded-[14px]"
+                  className="h-12 text-base bg-[#F8FAFC] border-[#E3E8F4] placeholder:text-[#9CA3AF] placeholder:font-normal focus:border-[#1C4ED1] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 rounded-lg"
                 />
               </motion.div>
 
@@ -839,7 +839,7 @@ export default function InstructorOnboardingClient() {
                   Select primary expertise <span className="text-[#1C4ED1]">*</span>
                 </label>
                 <Select value={primaryExpertise} onValueChange={(val) => setPrimaryExpertise(val)}>
-                  <SelectTrigger className="w-full h-12 text-base">
+                  <SelectTrigger className="w-full h-12 text-base rounded-lg">
                     <SelectValue placeholder="Eg: Design, Product, Engineering" />
                   </SelectTrigger>
                   <SelectContent>
@@ -858,7 +858,7 @@ export default function InstructorOnboardingClient() {
                   <button
                     type="button"
                     onClick={() => setShowSecondaryExpertise(true)}
-                    className="w-full h-12 rounded-[14px] border border-dashed border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[14px] font-semibold text-[#040B37] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="w-full h-12 rounded-lg border border-dashed border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[14px] font-semibold text-[#040B37] flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
                     <Plus size={16} className="text-[#1C4ED1]" />
                     <span>Add secondary expertise</span>
@@ -910,7 +910,7 @@ export default function InstructorOnboardingClient() {
                       type="button"
                       role="combobox"
                       aria-expanded={industryOpen}
-                      className={`flex h-12 w-full items-center justify-between rounded-[14px] border border-[#E3E8F4] bg-[#F8FAFC] px-4 py-3 text-base focus:border-[#1C4ED1] focus:outline-none focus:ring-0 outline-none cursor-pointer transition-colors ${industrySector ? 'font-medium text-[#040B37]' : 'font-normal text-[#9CA3AF]'
+                      className={`flex h-12 w-full items-center justify-between rounded-lg border border-[#E3E8F4] bg-[#F8FAFC] px-4 py-3 text-base focus:border-[#1C4ED1] focus:outline-none focus:ring-0 outline-none cursor-pointer transition-colors ${industrySector ? 'font-medium text-[#040B37]' : 'font-normal text-[#9CA3AF]'
                         }`}
                     >
                       <span className="truncate">
@@ -1174,7 +1174,7 @@ export default function InstructorOnboardingClient() {
                         key={opt.id}
                         type="button"
                         onClick={() => setTeachingExperience(opt.id)}
-                        className={`flex items-center gap-3.5 p-4 rounded-[14px] border text-left cursor-pointer transition-all ${isSelected
+                        className={`flex items-center gap-3.5 p-4 rounded-lg border text-left cursor-pointer transition-all ${isSelected
                           ? 'border-[#1C4ED1] bg-[#1C4ED1]/5 shadow-2xs'
                           : 'border-[#E3E8F4] bg-[#F8FAFC] hover:bg-[#F1F5F9] hover:border-[#CBD5E1]'
                           }`}
@@ -1207,7 +1207,7 @@ export default function InstructorOnboardingClient() {
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
                       className="overflow-hidden"
                     >
-                      <div className="flex flex-col gap-2 p-4 bg-[#F8FAFC] border border-[#E3E8F4] rounded-[14px]">
+                      <div className="flex flex-col gap-2 p-4 bg-[#F8FAFC] border border-[#E3E8F4] rounded-lg">
                         <label className="text-sm font-semibold text-[#040B37]">
                           Please specify your teaching experience <span className="text-[#1C4ED1]">*</span>
                         </label>
@@ -1291,7 +1291,7 @@ export default function InstructorOnboardingClient() {
                         key={opt.id}
                         type="button"
                         onClick={() => setVideoReadiness(opt.id)}
-                        className={`flex items-center gap-3.5 p-4 rounded-[14px] border text-left cursor-pointer transition-all ${isSelected
+                        className={`flex items-center gap-3.5 p-4 rounded-lg border text-left cursor-pointer transition-all ${isSelected
                           ? 'border-[#1C4ED1] bg-[#1C4ED1]/5 shadow-2xs'
                           : 'border-[#E3E8F4] bg-[#F8FAFC] hover:bg-[#F1F5F9] hover:border-[#CBD5E1]'
                           }`}
@@ -1381,7 +1381,7 @@ export default function InstructorOnboardingClient() {
                         key={opt.id}
                         type="button"
                         onClick={() => setAudienceSize(opt.id)}
-                        className={`flex items-center gap-3.5 p-4 rounded-[14px] border text-left cursor-pointer transition-all ${isSelected
+                        className={`flex items-center gap-3.5 p-4 rounded-lg border text-left cursor-pointer transition-all ${isSelected
                           ? 'border-[#1C4ED1] bg-[#1C4ED1]/5 shadow-2xs'
                           : 'border-[#E3E8F4] bg-[#F8FAFC] hover:bg-[#F1F5F9] hover:border-[#CBD5E1]'
                           }`}

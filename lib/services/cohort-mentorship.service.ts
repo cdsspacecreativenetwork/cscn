@@ -16,7 +16,10 @@ export async function getCohortMentorshipForLearner(cohortId: string, userId: st
       where: {
         cohortId,
         status: "ACTIVE",
-        mentor: { mentorshipEligible: true, mentorshipEnabled: true, publicProfileStatus: "PUBLIC" },
+        mentor: {
+          mentorProfile: { isEligible: true, isEnabled: true },
+          profile: { publicProfileStatus: "PUBLIC" },
+        },
       },
       orderBy: [{ assignedAt: "asc" }],
       select: {
@@ -25,9 +28,20 @@ export async function getCohortMentorshipForLearner(cohortId: string, userId: st
         focusAreas: true,
         mentor: {
           select: {
-            id: true, name: true, image: true, headline: true, publicProfileSlug: true,
-            mentorshipFree: true, mentorshipPrice: true, mentorshipCurrency: true,
-            mentorshipBio: true, mentorshipTopics: true, mentorshipInstructions: true,
+            id: true,
+            name: true,
+            image: true,
+            profile: { select: { headline: true, publicProfileSlug: true } },
+            mentorProfile: {
+              select: {
+                isFree: true,
+                price: true,
+                currency: true,
+                bio: true,
+                topics: true,
+                instructions: true,
+              },
+            },
             mentorAvailabilities: {
               where: { status: "ACTIVE" },
               orderBy: [{ type: "asc" }, { weekday: "asc" }, { date: "asc" }, { startTime: "asc" }],
@@ -54,19 +68,20 @@ export async function getCohortMentorshipForLearner(cohortId: string, userId: st
     mentors: assignments.map((assignment) => {
       const mentor = assignment.mentor;
       const name = mentor.name ?? "CSCN mentor";
-      const topics = Array.isArray(mentor.mentorshipTopics) ? mentor.mentorshipTopics.filter((item): item is string => typeof item === "string") : [];
+      const mentorProfile = mentor.mentorProfile;
+      const topics = Array.isArray(mentorProfile?.topics) ? mentorProfile.topics.filter((item): item is string => typeof item === "string") : [];
       return {
         assignmentId: assignment.id,
         id: mentor.id,
-        slug: mentor.publicProfileSlug ?? mentor.id,
+        slug: mentor.profile?.publicProfileSlug ?? mentor.id,
         name,
-        role: assignment.role || mentor.headline || "Cohort mentor",
+        role: assignment.role || mentor.profile?.headline || "Cohort mentor",
         image: mentor.image ?? generateTapbackAvatar(name),
         courses: 0,
         students: "Cohort",
-        priceLabel: mentor.mentorshipFree ? "Included" : mentor.mentorshipPrice ? `${mentor.mentorshipCurrency} ${mentor.mentorshipPrice.toString()}` : "Paid",
-        intro: mentor.mentorshipBio,
-        instructions: mentor.mentorshipInstructions,
+        priceLabel: mentorProfile?.isFree ? "Included" : mentorProfile?.price ? `${mentorProfile.currency} ${mentorProfile.price.toString()}` : "Paid",
+        intro: mentorProfile?.bio,
+        instructions: mentorProfile?.instructions,
         topics,
         focusAreas: Array.isArray(assignment.focusAreas) ? assignment.focusAreas.filter((item): item is string => typeof item === "string") : [],
         availability: mentor.mentorAvailabilities,
@@ -94,8 +109,33 @@ export async function validateCohortMentorshipBookingContext({ cohortId, mentorI
 export async function getAdminCohortMentorship() {
   const [cohorts, mentors, assignments] = await Promise.all([
     db.cohort.findMany({ orderBy: { startsAt: "desc" }, take: 40, select: { id: true, title: true, slug: true, startsAt: true, program: { select: { title: true } } } }),
-    db.user.findMany({ where: { mentorshipEligible: true, mentorshipEnabled: true, publicProfileStatus: "PUBLIC" }, orderBy: { name: "asc" }, select: { id: true, name: true, email: true, headline: true, mentorshipTopics: true, mentorAvailabilities: { where: { status: "ACTIVE" }, select: { id: true } } } }),
-    db.cohortMentorAssignment.findMany({ orderBy: { assignedAt: "desc" }, select: { id: true, status: true, role: true, focusAreas: true, assignedAt: true, cohort: { select: { id: true, title: true, slug: true, program: { select: { title: true } } } }, mentor: { select: { id: true, name: true, email: true, headline: true } } } }),
+    db.user.findMany({
+      where: {
+        mentorProfile: { isEligible: true, isEnabled: true },
+        profile: { publicProfileStatus: "PUBLIC" },
+      },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profile: { select: { headline: true } },
+        mentorProfile: { select: { topics: true } },
+        mentorAvailabilities: { where: { status: "ACTIVE" }, select: { id: true } },
+      },
+    }),
+    db.cohortMentorAssignment.findMany({
+      orderBy: { assignedAt: "desc" },
+      select: {
+        id: true,
+        status: true,
+        role: true,
+        focusAreas: true,
+        assignedAt: true,
+        cohort: { select: { id: true, title: true, slug: true, program: { select: { title: true } } } },
+        mentor: { select: { id: true, name: true, email: true, profile: { select: { headline: true } } } },
+      },
+    }),
   ]);
   return { cohorts, mentors, assignments };
 }

@@ -9,7 +9,8 @@ import { useDashboardStore } from '@/lib/store/dashboardStore';
 import { ResumeCourseModal, GetStartedModal } from '@/components/dashboard/CourseModals';
 import { InstructorDashboardData } from '@/lib/services/dashboard.service';
 import { toast } from 'sonner';
-import CreatorReadinessCard from '@/components/dashboard/CreatorReadinessCard';
+import PendingApprovalBanner from '@/components/dashboard/instructor/PendingApprovalBanner';
+import GetStartedChecklistCard from '@/components/dashboard/instructor/GetStartedChecklistCard';
 import type { CreatorReadiness } from '@/lib/trust-gates';
 import Button from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/money';
@@ -72,8 +73,13 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
     setBrokenThumbnailIds((current) => current.includes(courseId) ? current : [...current, courseId]);
   };
 
+  const verificationStatus = user?.instructorProfile?.verificationStatus || user?.instructorVerificationStatus;
+
   return (
     <div className="p-[clamp(16px,2.78vw,48px)] space-y-[clamp(32px,4.6vw,80px)] max-w-[1728px] mx-auto font-jakarta">
+      {/* Pending Approval Banner */}
+      <PendingApprovalBanner verificationStatus={verificationStatus} />
+
       {/* Header section - Fluid Scaling */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
         <div className="space-y-1 w-full">
@@ -96,8 +102,6 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
           Manage Studio
         </Button>
       </div>
-
-      {creatorReadiness && <CreatorReadinessCard readiness={creatorReadiness} />}
 
       {/* Stats section - Creator At-a-Glance with curated premium Lucide icons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[clamp(16px,1.39vw,24px)]">
@@ -129,84 +133,10 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
         />
       </div>
 
-      {data.isNewInstructor ? (
-        /* Onboarding welcome & checklist for new instructors */
-        <div className="bg-[#FFFFFF] border border-[#E3E8F4] rounded-[16px] p-8 shadow-sm flex flex-col lg:flex-row gap-8 items-center justify-between">
-          <div className="space-y-4 max-w-4xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F4F6FB] rounded-full text-[12px] font-semibold text-[#1C4ED1]">
-              <Compass size={14} />
-              <span>Instructor Setup Guide</span>
-            </div>
-            <h2 className="text-[22px] md:text-[26px] font-bold text-[#040B37] leading-tight">
-              Welcome to the CSCN Instructor Portal!
-            </h2>
-            <p className="text-[15px] font-medium text-[#4B5563] leading-relaxed">
-              {"Let's launch your teaching presence. Complete these quick steps to set up your profile and publish your first course. Once published, your students will see your courses here."}
-            </p>
-            
-            {/* Checklist items */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-[#F4F6FB] border border-[#1C4ED1]/30 flex items-center justify-center text-[#1C4ED1] shrink-0 mt-0.5 font-bold text-[11px]">
-                  1
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold text-[#040B37]">Create your course draft in the studio</p>
-                  <p className="text-[13px] font-medium text-[#9CA3AF]">
-                    Go to the Course Studio and draft your syllabus, modules, and lessons.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-[#F4F6FB] border border-[#1C4ED1]/30 flex items-center justify-center text-[#1C4ED1] shrink-0 mt-0.5 font-bold text-[11px]">
-                  2
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold text-[#040B37]">Complete your instructor profile biography</p>
-                  <p className="text-[13px] font-medium text-[#9CA3AF]">
-                    Add your bio, locations, and social media handles in your Profile settings.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-[#F4F6FB] border border-[#1C4ED1]/30 flex items-center justify-center text-[#1C4ED1] shrink-0 mt-0.5 font-bold text-[11px]">
-                  3
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold text-[#040B37]">Configure your payout details</p>
-                  <p className="text-[13px] font-medium text-[#9CA3AF]">
-                    Link your payout account in Settings to start earning from enrollments.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-4 w-full lg:w-auto shrink-0">
-            <Button
-              variant="primary"
-              size="md"
-              rounded="[10px]"
-              hasBorder={false}
-              onClick={() => router.push('/dashboard/instructor/courses')}
-              leftIcon={<Plus size={18} />}
-            >
-              Create Course Draft
-            </Button>
-            <Button
-              variant="outline"
-              size="md"
-              rounded="[10px]"
-              hasBorder={false}
-              onClick={() => router.push('/dashboard/profile')}
-            >
-              Edit Profile Bio
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Row 1: My Courses (Horizontal Scroll Container) */}
+      {/* ADPList-style Get Started Checklist Card (positioned below Stats, auto-hides at 100%) */}
+      <GetStartedChecklistCard user={user} />
+
+      {/* Row 1: My Courses (Horizontal Scroll Container) */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-[18px] xl:text-[20px] font-semibold text-[#040B37]">My Courses</h2>
@@ -423,8 +353,6 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
               </div>
             </div>
           )}
-        </>
-      )}
 
       {/* Row 3: Recommended For You (Discovery Row) */}
       <div className="space-y-6">
