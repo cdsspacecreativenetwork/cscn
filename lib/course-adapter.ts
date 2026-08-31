@@ -17,7 +17,7 @@ type DbPublicCourse = {
     id: string;
     name: string | null;
     image: string | null;
-    headline: string | null;
+    headline?: string | null;
   };
   _count: { enrollments: number };
   modules: { _count: { lessons: number } }[];

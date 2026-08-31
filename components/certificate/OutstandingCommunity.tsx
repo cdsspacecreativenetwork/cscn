@@ -114,7 +114,7 @@ export const OutstandingCommunity = ({ members }: Props) => {
   const renderAvatar = (member: CertificateCommunityMember, index: number, row: number) => (
     <Link
       key={`${member.id}-${row}-${index}`}
-      href={member.href}
+      href={member.profileUrl ?? '#'}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`View ${member.name}'s profile`}

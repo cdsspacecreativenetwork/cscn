@@ -54,7 +54,7 @@ export async function submitInstructorApplicationAction(input: InstructorApplica
       role: true,
       name: true,
       email: true,
-      expertise: true,
+      profile: { select: { expertise: true } },
       instructorApplication: true,
     },
   });
@@ -72,7 +72,7 @@ export async function submitInstructorApplicationAction(input: InstructorApplica
     ? existingApplication.reviewDueAt
     : getInstructorReviewDueAt(now);
   const fullName = getInstructorFullName(parsed.data);
-  const expertise = Array.from(new Set([...stringArray(user.expertise), parsed.data.industry]));
+  const expertise = Array.from(new Set([...stringArray(user.profile?.expertise), parsed.data.industry]));
 
   const application = await db.$transaction(async (tx) => {
     const saved = await tx.instructorApplication.upsert({
@@ -107,9 +107,6 @@ export async function submitInstructorApplicationAction(input: InstructorApplica
         name: fullName,
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
-        portfolioUrl: parsed.data.portfolioUrl,
-        expertise,
-        yearsExperience: experienceLevelToYears(parsed.data.experienceLevel),
         profile: {
           upsert: {
             create: {
@@ -145,7 +142,7 @@ export async function submitInstructorApplicationAction(input: InstructorApplica
       where: {
         OR: [
           { role: 'SUPER_ADMIN' },
-          { role: 'ADMIN', canManageInstructors: true },
+          { role: 'ADMIN', adminPermission: { canManageInstructors: true } },
         ],
       },
       select: { id: true },
@@ -215,12 +212,6 @@ export async function approveInstructorApplicationAction(applicationId: string) 
       where: { id: application.userId },
       data: {
         role: 'INSTRUCTOR',
-        instructorProfileEnabled: true,
-        publicProfileStatus: 'DRAFT',
-        instructorVerificationStatus: 'NOT_STARTED',
-        instructorVerifiedAt: null,
-        instructorFeatured: false,
-        instructorFeaturedOrder: null,
         profile: {
           upsert: {
             create: { publicProfileStatus: 'DRAFT' },

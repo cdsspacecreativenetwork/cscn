@@ -75,32 +75,36 @@ function firstStringFromJson(value: unknown) {
 function profileMatchScore(
   user: {
     id: string;
-    name: string | null;
-    firstName: string | null;
-    lastName: string | null;
+    name?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
     email: string;
-    role: string;
-    publicProfileSlug: string | null;
-    headline: string | null;
-    bio: string | null;
-    image: string | null;
-    taughtCourses: unknown[];
-    courseInstructors: unknown[];
+    role?: string;
+    profile?: { publicProfileSlug?: string | null; headline?: string | null; bio?: string | null } | null;
+    publicProfileSlug?: string | null;
+    headline?: string | null;
+    bio?: string | null;
+    image?: string | null;
+    taughtCourses?: unknown[];
+    courseInstructors?: unknown[];
   },
   slug: string
 ) {
+  const publicSlug = user.profile?.publicProfileSlug || user.publicProfileSlug;
+  const headline = user.profile?.headline || user.headline;
+  const bio = user.profile?.bio || user.bio;
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
   const names = [user.name, fullName, user.email.split("@")[0]].filter((value): value is string => Boolean(value));
 
   return (
-    (user.publicProfileSlug === slug ? 1000 : 0) +
+    (publicSlug === slug ? 1000 : 0) +
     (user.id === slug ? 900 : 0) +
     (names.some((value) => slugify(value) === slug) ? 500 : 0) +
     (user.role === "INSTRUCTOR" ? 120 : 0) +
-    (user.headline ? 40 : 0) +
-    (user.bio ? 40 : 0) +
+    (headline ? 40 : 0) +
+    (bio ? 40 : 0) +
     (user.image && !user.image.includes("tapback.co/api/avatar") && !user.image.includes("dicebear.com") ? 25 : 0) +
-    ((user.taughtCourses.length + user.courseInstructors.length) * 10)
+    (((user.taughtCourses?.length ?? 0) + (user.courseInstructors?.length ?? 0)) * 10)
   );
 }
 
@@ -117,15 +121,20 @@ export default async function InstructorPage({
 
   const instructorMatches = await db.user.findMany({
     where: {
-      publicProfileStatus: "PUBLIC",
+      profile: {
+        publicProfileStatus: "PUBLIC",
+      },
       OR: [
         { id: slug },
-        { publicProfileSlug: slug },
+        { profile: { publicProfileSlug: slug } },
         { email: { startsWith: slug.replace(/-/g, ".") } },
         { name: { mode: "insensitive", equals: formattedName } },
       ],
     },
     include: {
+      profile: true,
+      instructorProfile: true,
+      mentorProfile: true,
       taughtCourses: {
         where: { status: "PUBLISHED" },
         orderBy: { updatedAt: "desc" },
@@ -193,8 +202,11 @@ export default async function InstructorPage({
 
   if (!instructor) {
     const candidates = await db.user.findMany({
-      where: { publicProfileStatus: "PUBLIC" },
+      where: { profile: { publicProfileStatus: "PUBLIC" } },
       include: {
+        profile: true,
+        instructorProfile: true,
+        mentorProfile: true,
         taughtCourses: {
           where: { status: "PUBLISHED" },
           orderBy: { updatedAt: "desc" },
@@ -279,44 +291,45 @@ export default async function InstructorPage({
     "CSCN Instructor";
   const instructorImage = instructor.image ?? generateTapbackAvatar(instructorName);
   const instructorRole =
-    instructor.headline ||
-    instructor.learningFocus ||
-    firstStringFromJson(instructor.expertise) ||
+    instructor.profile?.headline ||
+    instructor.instructorProfile?.primaryExpertise ||
+    firstStringFromJson(instructor.profile?.expertise) ||
     "CSCN Instructor";
   const instructorBio =
-    instructor.bio ||
-    instructor.mentorshipBio ||
+    instructor.profile?.bio ||
+    instructor.instructorProfile?.bio ||
+    instructor.mentorProfile?.bio ||
     "This instructor is preparing their public biography. Their courses, expertise, and teaching style will appear here once they update their profile.";
-  const legacySocials = (instructor.socials as Socials | null) ?? {};
-  const isVerified = instructor.instructorVerificationStatus === "VERIFIED";
-  const mentorshipTopics = Array.isArray(instructor.mentorshipTopics)
-    ? instructor.mentorshipTopics.filter((topic): topic is string => typeof topic === "string")
+  const legacySocials = (instructor.profile?.socials as Socials | null) ?? {};
+  const isVerified = instructor.instructorProfile?.verificationStatus === "VERIFIED";
+  const mentorshipTopics = Array.isArray(instructor.mentorProfile?.topics)
+    ? (instructor.mentorProfile.topics as string[]).filter((topic): topic is string => typeof topic === "string")
     : [];
   const mentorshipIsPublic =
-    instructor.mentorshipEligible &&
-    instructor.mentorshipEnabled &&
-    instructor.instructorVerificationStatus === "VERIFIED" &&
-    instructor.publicProfileStatus === "PUBLIC";
-  const mentorshipPriceLabel = instructor.mentorshipFree
+    (instructor.mentorProfile?.isEligible ?? false) &&
+    (instructor.mentorProfile?.isEnabled ?? false) &&
+    instructor.instructorProfile?.verificationStatus === "VERIFIED" &&
+    instructor.profile?.publicProfileStatus === "PUBLIC";
+  const mentorshipPriceLabel = instructor.mentorProfile?.isFree
     ? "Free session"
-    : instructor.mentorshipPrice
-      ? `${instructor.mentorshipCurrency} ${instructor.mentorshipPrice.toString()}`
+    : instructor.mentorProfile?.price
+      ? `${instructor.mentorProfile.currency} ${instructor.mentorProfile.price.toString()}`
       : "Paid session";
   const mentorshipSlots = mentorshipIsPublic
     ? buildMentorBookingSlots(instructor.mentorAvailabilities, 12)
     : [];
 
   const socialLinks = [
-    { href: instructor.twitterUrl ?? legacySocials.twitter, label: "X", icon: FaXTwitter },
-    { href: instructor.linkedinUrl ?? legacySocials.linkedin, label: "LinkedIn", icon: FaLinkedin },
-    { href: instructor.instagramUrl, label: "Instagram", icon: FaInstagram },
-    { href: instructor.telegramUrl, label: "Telegram", icon: FaTelegram },
-    { href: instructor.githubUrl, label: "GitHub", icon: FaGithub },
-    { href: instructor.behanceUrl, label: "Behance", icon: FaBehance },
-    { href: instructor.dribbbleUrl, label: "Dribbble", icon: FaDribbble },
-    { href: instructor.youtubeUrl ?? legacySocials.youtube, label: "YouTube", icon: FaYoutube },
-    { href: instructor.websiteUrl ?? instructor.portfolioUrl ?? legacySocials.website, label: "Website", icon: Globe },
-  ].filter((item) => !!item.href);
+    { href: instructor.profile?.twitterUrl ?? legacySocials.twitter, label: "X", icon: FaXTwitter },
+    { href: instructor.profile?.linkedinUrl ?? legacySocials.linkedin, label: "LinkedIn", icon: FaLinkedin },
+    { href: instructor.profile?.instagramUrl, label: "Instagram", icon: FaInstagram },
+    { href: instructor.profile?.telegramUrl, label: "Telegram", icon: FaTelegram },
+    { href: instructor.profile?.githubUrl, label: "GitHub", icon: FaGithub },
+    { href: instructor.profile?.behanceUrl, label: "Behance", icon: FaBehance },
+    { href: instructor.profile?.dribbbleUrl, label: "Dribbble", icon: FaDribbble },
+    { href: instructor.profile?.youtubeUrl ?? legacySocials.youtube, label: "YouTube", icon: FaYoutube },
+    { href: instructor.profile?.websiteUrl ?? instructor.profile?.portfolioUrl ?? legacySocials.website, label: "Website", icon: Globe },
+  ].filter((link): link is { href: string; label: string; icon: any } => Boolean(link.href));
 
   const profileCourses = [
     ...instructor.taughtCourses,
@@ -474,8 +487,8 @@ export default async function InstructorPage({
                   image: instructorImage,
                   profileUrl: `/instructor/${slug}`,
                   priceLabel: mentorshipPriceLabel,
-                  intro: instructor.mentorshipBio,
-                  instructions: instructor.mentorshipInstructions,
+                  intro: instructor.mentorProfile?.bio,
+                  instructions: instructor.mentorProfile?.instructions,
                   topics: mentorshipTopics,
                   availability: instructor.mentorAvailabilities,
                   slots: mentorshipSlots,

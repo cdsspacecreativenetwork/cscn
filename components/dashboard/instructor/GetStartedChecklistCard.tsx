@@ -5,22 +5,33 @@ import Link from 'next/link';
 import { CheckCircle2, Circle, ArrowRight, Sparkles, CreditCard, User, MailCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import type { CreatorReadiness } from '@/lib/trust-gates';
+
 interface Props {
   user: any;
+  creatorReadiness?: CreatorReadiness;
 }
 
-export default function GetStartedChecklistCard({ user }: Props) {
-  const isEmailVerified = Boolean(user?.emailVerified);
-  const isProfileComplete = Boolean(
-    (user?.image || user?.profile?.image) &&
-    (user?.profile?.bio || user?.bio) &&
-    (user?.profile?.headline || user?.headline) &&
-    (user?.instructorProfile?.primaryExpertise || (user?.instructorProfile?.disciplines && user.instructorProfile.disciplines.length > 0) || user?.expertise) &&
-    (user?.profile?.linkedinUrl || user?.profile?.portfolioUrl || user?.profile?.websiteUrl || user?.linkedinUrl || user?.portfolioUrl)
-  );
-  const isPayoutConfigured = Boolean(
-    user?.payoutConfig?.isSetup || user?.payoutSetup
-  );
+export default function GetStartedChecklistCard({ user, creatorReadiness }: Props) {
+  const isEmailVerified = creatorReadiness
+    ? creatorReadiness.isEmailVerified
+    : Boolean(user?.emailVerified);
+
+  const isProfileComplete = creatorReadiness
+    ? creatorReadiness.isProfileComplete
+    : Boolean(
+        (user?.image || user?.profile?.image) &&
+        (user?.profile?.bio || user?.bio) &&
+        (user?.profile?.headline || user?.headline) &&
+        (user?.instructorProfile?.primaryExpertise || (user?.instructorProfile?.disciplines && user.instructorProfile.disciplines.length > 0) || user?.expertise) &&
+        (user?.profile?.linkedinUrl || user?.profile?.portfolioUrl || user?.profile?.websiteUrl || user?.linkedinUrl || user?.portfolioUrl)
+      );
+
+  const isPayoutConfigured = creatorReadiness
+    ? creatorReadiness.isPayoutConfigured
+    : Boolean(
+        user?.payoutConfig?.isSetup || user?.payoutSetup
+      );
 
   const items = [
     {

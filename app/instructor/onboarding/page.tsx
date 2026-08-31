@@ -20,10 +20,18 @@ export default async function InstructorOnboardingPage() {
     where: { id: user.id },
     select: {
       role: true,
-      learningFocus: true,
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: true,
-      bio: true,
+      instructorProfile: {
+        select: {
+          isEnabled: true,
+          verificationStatus: true,
+          bio: true,
+        },
+      },
+      profile: {
+        select: {
+          bio: true,
+        },
+      },
     },
   });
 
@@ -36,9 +44,9 @@ export default async function InstructorOnboardingPage() {
   // If user has ALREADY completed instructor onboarding or is an active instructor
   const isAlreadyInstructorOnboarded =
     role === 'INSTRUCTOR' ||
-    dbUser?.instructorVerificationStatus === 'PENDING' ||
-    dbUser?.instructorVerificationStatus === 'VERIFIED' ||
-    (dbUser?.instructorProfileEnabled && dbUser?.bio);
+    dbUser?.instructorProfile?.verificationStatus === 'PENDING' ||
+    dbUser?.instructorProfile?.verificationStatus === 'VERIFIED' ||
+    (dbUser?.instructorProfile?.isEnabled && (dbUser.instructorProfile.bio || dbUser.profile?.bio));
 
   if (isAlreadyInstructorOnboarded) {
     redirect('/dashboard');

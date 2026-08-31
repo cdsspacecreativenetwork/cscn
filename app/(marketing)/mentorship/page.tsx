@@ -54,22 +54,34 @@ export default async function MentorshipPage({
   const query = searchParams ? await searchParams : {};
   const mentors = await db.user.findMany({
     where: {
-      mentorshipEligible: true,
-      mentorshipEnabled: true,
-      publicProfileStatus: 'PUBLIC',
+      mentorProfile: {
+        isEligible: true,
+        isEnabled: true,
+      },
+      profile: {
+        publicProfileStatus: 'PUBLIC',
+      },
     },
     select: {
       id: true,
       name: true,
       image: true,
-      headline: true,
-      publicProfileSlug: true,
-      mentorshipFree: true,
-      mentorshipPrice: true,
-      mentorshipCurrency: true,
-      mentorshipBio: true,
-      mentorshipTopics: true,
-      mentorshipInstructions: true,
+      profile: {
+        select: {
+          headline: true,
+          publicProfileSlug: true,
+        },
+      },
+      mentorProfile: {
+        select: {
+          isFree: true,
+          price: true,
+          currency: true,
+          bio: true,
+          topics: true,
+          instructions: true,
+        },
+      },
       mentorAvailabilities: {
         where: { status: 'ACTIVE' },
         orderBy: [{ type: 'asc' }, { weekday: 'asc' }, { date: 'asc' }, { startTime: 'asc' }],
@@ -95,7 +107,7 @@ export default async function MentorshipPage({
         select: { _count: { select: { enrollments: true } } },
       },
     },
-    orderBy: [{ instructorFeaturedOrder: 'asc' }, { updatedAt: 'desc' }],
+    orderBy: [{ updatedAt: 'desc' }],
   });
 
   const mentorCards = mentors.map((mentor, index) => {
@@ -116,21 +128,21 @@ export default async function MentorshipPage({
 
     return {
       id: mentor.id,
-      slug: publicSlug(mentor),
+      slug: mentor.profile?.publicProfileSlug || mentor.id,
       name,
-      role: mentor.headline ?? 'CSCN Instructor',
+      role: mentor.profile?.headline ?? 'CSCN Instructor',
       image: mentor.image ?? generateTapbackAvatar(name),
       courses: mentor.taughtCourses.length,
       students: students.toLocaleString(),
-      priceLabel: mentor.mentorshipFree
+      priceLabel: mentor.mentorProfile?.isFree
         ? 'Free'
-        : mentor.mentorshipPrice
-          ? `${mentor.mentorshipCurrency} ${mentor.mentorshipPrice.toString()}`
+        : mentor.mentorProfile?.price
+          ? `${mentor.mentorProfile.currency} ${mentor.mentorProfile.price.toString()}`
           : 'Paid',
-      intro: mentor.mentorshipBio,
-      instructions: mentor.mentorshipInstructions,
-      topics: Array.isArray(mentor.mentorshipTopics)
-        ? mentor.mentorshipTopics.filter((topic): topic is string => typeof topic === 'string')
+      intro: mentor.mentorProfile?.bio,
+      instructions: mentor.mentorProfile?.instructions,
+      topics: Array.isArray(mentor.mentorProfile?.topics)
+        ? (mentor.mentorProfile.topics as string[]).filter((topic): topic is string => typeof topic === 'string')
         : [],
       availability: mentor.mentorAvailabilities,
       slots: buildMentorBookingSlots(mentor.mentorAvailabilities, 12),

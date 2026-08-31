@@ -23,16 +23,30 @@ export async function POST(req: Request) {
       await db.user.update({
         where: { id: userId },
         data: {
-          learningFocus: 'INSTRUCTOR',
-          instructorVerificationStatus: 'PENDING',
-          instructorProfileEnabled: true,
+          learnerProfile: {
+            upsert: {
+              create: { learningFocus: 'INSTRUCTOR' },
+              update: { learningFocus: 'INSTRUCTOR' },
+            },
+          },
+          instructorProfile: {
+            upsert: {
+              create: { isEnabled: true, verificationStatus: 'PENDING' },
+              update: { isEnabled: true, verificationStatus: 'PENDING' },
+            },
+          },
         },
       });
     } else {
       await db.user.update({
         where: { id: userId },
         data: {
-          learningFocus: 'LEARNER',
+          learnerProfile: {
+            upsert: {
+              create: { learningFocus: 'LEARNER' },
+              update: { learningFocus: 'LEARNER' },
+            },
+          },
         },
       });
     }

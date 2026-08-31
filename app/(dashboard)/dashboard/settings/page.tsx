@@ -47,7 +47,7 @@ export default async function SettingsPage({
       <SettingsTabsWrapper
         initialUserData={userData}
         initialIntegrations={integrations}
-        initialActiveTab={params.tab || 'Account'}
+        initialActiveTab={params.tab}
       />
     </div>
   );

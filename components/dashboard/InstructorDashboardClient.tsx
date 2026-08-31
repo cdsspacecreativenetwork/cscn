@@ -134,7 +134,7 @@ export default function InstructorDashboardClient({ data, user, creatorReadiness
       </div>
 
       {/* ADPList-style Get Started Checklist Card (positioned below Stats, auto-hides at 100%) */}
-      <GetStartedChecklistCard user={user} />
+      <GetStartedChecklistCard user={user} creatorReadiness={creatorReadiness} />
 
       {/* Row 1: My Courses (Horizontal Scroll Container) */}
           <div className="space-y-6">

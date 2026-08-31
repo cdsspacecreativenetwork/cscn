@@ -99,7 +99,8 @@ export default function OnboardingIntentClient() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <h3 className="text-lg font-semibold text-[#040B37]">
-                    Explore & Learn
+                    {/* Explore & Learn */}
+                    Become a Student
                   </h3>
                   <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
                     Access expert-led courses, master tech skills, and join a vibrant community of creators.
@@ -134,7 +135,8 @@ export default function OnboardingIntentClient() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <h3 className="text-lg font-semibold text-[#040B37]">
-                    Teach & Earn
+                    {/* Teach & Earn */}
+                    Become an Instructor
                   </h3>
                   <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
                     Share your experience, publish courses or workshops, and mentor ambitious professionals.
@@ -148,7 +150,7 @@ export default function OnboardingIntentClient() {
           <div className="flex items-center justify-end pt-2">
             <Button
               variant="gradient"
-              size="md"
+              size="default"
               hasBorder={true}
               rounded="full"
               disabled={!selectedIntent || isNavigating}
@@ -168,7 +170,7 @@ export default function OnboardingIntentClient() {
 
       {/* Footer */}
       <footer className="w-full max-w-3xl py-6 flex items-center justify-between text-xs text-[#9CA3AF]">
-        <span>© {new Date().getFullYear()} CSCN Space. All rights reserved.</span>
+        <span>© {new Date().getFullYear()} CSCN. All rights reserved.</span>
       </footer>
     </div>
   );

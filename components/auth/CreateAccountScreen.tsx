@@ -92,8 +92,10 @@ export function CreateAccountScreen({ variant = "learner" }: CreateAccountScreen
     setError("");
     setSuccess("");
 
+    const intentParam = searchParams.get("intent") || (isInstructor ? "INSTRUCTOR" : undefined);
+
     startTransition(() => {
-      register({ ...values, callbackUrl }).then((data) => {
+      register({ ...values, callbackUrl, isInstructor, intent: intentParam }).then((data) => {
         setError(data.error);
         setSuccess(data.success);
       });

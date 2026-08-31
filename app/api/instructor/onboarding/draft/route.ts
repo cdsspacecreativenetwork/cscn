@@ -15,12 +15,20 @@ export async function GET() {
       select: {
         name: true,
         image: true,
-        location: true,
-        headline: true,
-        portfolioUrl: true,
-        linkedinUrl: true,
-        expertise: true,
-        bio: true,
+        profile: {
+          select: {
+            location: true,
+            headline: true,
+            portfolioUrl: true,
+            linkedinUrl: true,
+            bio: true,
+          },
+        },
+        instructorProfile: {
+          select: {
+            expertise: true,
+          },
+        },
       },
     });
 
@@ -28,7 +36,7 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const expertiseData = (user.expertise as Record<string, any>) || {};
+    const expertiseData = (user.instructorProfile?.expertise as Record<string, any>) || {};
     const draft = expertiseData.draft || {};
 
     return NextResponse.json({
@@ -57,18 +65,30 @@ export async function POST(req: Request) {
 
     const currentUser = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { expertise: true },
+      select: { instructorProfile: { select: { expertise: true } } },
     });
 
-    const currentExpertise = (currentUser?.expertise as Record<string, any>) || {};
+    const currentExpertise = (currentUser?.instructorProfile?.expertise as Record<string, any>) || {};
 
-    // Save draft under expertise.draft in PostgreSQL
+    // Save draft under instructorProfile.expertise.draft in PostgreSQL
     await db.user.update({
       where: { id: session.user.id },
       data: {
-        expertise: {
-          ...currentExpertise,
-          draft: body,
+        instructorProfile: {
+          upsert: {
+            create: {
+              expertise: {
+                ...currentExpertise,
+                draft: body,
+              },
+            },
+            update: {
+              expertise: {
+                ...currentExpertise,
+                draft: body,
+              },
+            },
+          },
         },
       },
     });

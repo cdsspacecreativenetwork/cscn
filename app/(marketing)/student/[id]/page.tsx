@@ -93,6 +93,8 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
   const student = await db.user.findUnique({
     where: { id },
     include: {
+      profile: true,
+      learnerProfile: true,
       enrollments: {
         where: { course: { is: { status: 'PUBLISHED' } } },
         include: {
@@ -177,16 +179,16 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
   }
 
   const socialLinks: SocialLink[] = [
-    { label: 'Website', href: student.websiteUrl, icon: Globe },
-    { label: 'Portfolio', href: student.portfolioUrl, icon: BriefcaseBusiness },
-    { label: 'LinkedIn', href: student.linkedinUrl, icon: FaLinkedin },
-    { label: 'GitHub', href: student.githubUrl, icon: FaGithub },
-    { label: 'X', href: student.twitterUrl, icon: FaXTwitter },
-    { label: 'Instagram', href: student.instagramUrl, icon: FaInstagram },
-    { label: 'Telegram', href: student.telegramUrl, icon: FaTelegram },
-    { label: 'Behance', href: student.behanceUrl, icon: FaBehance },
-    { label: 'Dribbble', href: student.dribbbleUrl, icon: FaDribbble },
-    { label: 'YouTube', href: student.youtubeUrl, icon: FaYoutube },
+    { label: 'Website', href: student.profile?.websiteUrl, icon: Globe },
+    { label: 'Portfolio', href: student.profile?.portfolioUrl, icon: BriefcaseBusiness },
+    { label: 'LinkedIn', href: student.profile?.linkedinUrl, icon: FaLinkedin },
+    { label: 'GitHub', href: student.profile?.githubUrl, icon: FaGithub },
+    { label: 'X', href: student.profile?.twitterUrl, icon: FaXTwitter },
+    { label: 'Instagram', href: student.profile?.instagramUrl, icon: FaInstagram },
+    { label: 'Telegram', href: student.profile?.telegramUrl, icon: FaTelegram },
+    { label: 'Behance', href: student.profile?.behanceUrl, icon: FaBehance },
+    { label: 'Dribbble', href: student.profile?.dribbbleUrl, icon: FaDribbble },
+    { label: 'YouTube', href: student.profile?.youtubeUrl, icon: FaYoutube },
   ].flatMap((link) => (link.href ? [{ ...link, href: link.href }] : []));
   const totalCompletedLessons = student.enrollments.reduce(
     (sum, enrollment) =>
@@ -224,7 +226,7 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
                 </h1>
               </div>
               <p className="mt-2 text-[15px] font-medium text-text-body">
-                {student.headline ?? student.learningFocus ?? 'CSCN Learner'}
+                {student.profile?.headline ?? student.learnerProfile?.learningFocus ?? 'CSCN Learner'}
               </p>
 
               <hr className="mx-2 my-5 border-t border-dashed border-stroke" />
@@ -235,7 +237,7 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
                   <p className="mt-1 text-[12px] font-medium text-text-body">Completed</p>
                 </div>
                 <div>
-                  <p className="text-[22px] font-semibold text-text-title">{student.currentStreak}d</p>
+                  <p className="text-[22px] font-semibold text-text-title">{student.learnerProfile?.currentStreak ?? 0}d</p>
                   <p className="mt-1 text-[12px] font-medium text-text-body">Streak</p>
                 </div>
                 <div>
@@ -274,7 +276,7 @@ export default async function StudentPortfolioPage({ params }: { params: Promise
             </div>
 
             <div className="max-w-[850px] whitespace-pre-line text-[16px] font-medium leading-[1.65] text-text-body">
-              {student.bio ||
+              {student.profile?.bio ||
                 `${displayName} is building a visible learning portfolio on CSCN through completed courses, streaks, projects, and course participation.`}
             </div>
 

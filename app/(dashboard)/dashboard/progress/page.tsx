@@ -16,10 +16,13 @@ export default async function ProgressPage() {
 
   const userRecord = await db.user.findUnique({
     where: { id: userId },
-    select: { currentStreak: true, longestStreak: true, instructorProfileEnabled: true },
+    select: {
+      learnerProfile: { select: { currentStreak: true, longestStreak: true } },
+      instructorProfile: { select: { isEnabled: true } },
+    },
   });
 
-  const canViewInstructorImpact = Boolean(userRecord?.instructorProfileEnabled);
+  const canViewInstructorImpact = Boolean(userRecord?.instructorProfile?.isEnabled);
 
   // 1. Fetch course enrollments and calculate actual progress percentages
   const enrollments = await db.enrollment.findMany({
@@ -203,12 +206,12 @@ export default async function ProgressPage() {
   const studentHoursSaved = Math.round(totalLessonsWatched * 0.35);
 
   const instructorCandidates = await db.user.findMany({
-    where: { instructorProfileEnabled: true },
+    where: { instructorProfile: { isEnabled: true } },
     select: {
       id: true,
       name: true,
       image: true,
-      headline: true,
+      profile: { select: { headline: true } },
       _count: {
         select: {
           taughtCourses: true,
@@ -224,17 +227,18 @@ export default async function ProgressPage() {
         await db.course.findMany({
           where: {
             OR: [{ instructorId: instructor.id }, { instructors: { some: { userId: instructor.id } } }],
+            status: "PUBLISHED",
           },
           select: { id: true },
         })
-      ).map((course) => course.id);
+      ).map((c) => c.id);
 
       if (courseIds.length === 0) {
         return {
           userId: instructor.id,
           name: instructor.name || "Premium Educator",
           image: instructor.image || null,
-          headline: instructor.headline || "Instructor at CSCN",
+          headline: instructor.profile?.headline || "Instructor at CSCN",
           score: 0,
           rank: 0,
           studentCount: 0,
@@ -259,7 +263,7 @@ export default async function ProgressPage() {
         userId: instructor.id,
         name: instructor.name || "Premium Educator",
         image: instructor.image || null,
-        headline: instructor.headline || "Instructor at CSCN",
+        headline: instructor.profile?.headline || "Instructor at CSCN",
         score,
         rank: 0,
         studentCount,
@@ -280,8 +284,8 @@ export default async function ProgressPage() {
     : { rank: 0, score: 0 };
 
   const streakStats = {
-    currentStreak: userRecord?.currentStreak ?? 0,
-    longestStreak: userRecord?.longestStreak ?? 0,
+    currentStreak: userRecord?.learnerProfile?.currentStreak ?? 0,
+    longestStreak: userRecord?.learnerProfile?.longestStreak ?? 0,
   };
 
   // 8. Fetch active daily dailyActivity calendar rows for the contribution heatmap (past 180 days)

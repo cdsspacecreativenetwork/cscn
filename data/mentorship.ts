@@ -116,6 +116,7 @@ export async function getInstructorMentorshipDashboard(userId: string) {
   const mergedProfile = profile
     ? {
         ...profile,
+        timezone: profile.profile?.timezone ?? "Africa/Lagos",
         instructorProfileEnabled: profile.instructorProfile?.isEnabled ?? false,
         instructorVerificationStatus: profile.instructorProfile?.verificationStatus ?? "NOT_STARTED",
         mentorshipEligible: profile.mentorProfile?.isEligible ?? false,

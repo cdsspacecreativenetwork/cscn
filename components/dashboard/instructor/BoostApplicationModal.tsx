@@ -18,6 +18,7 @@ export default function BoostApplicationModal({ isOpen, onClose }: Props) {
   const [resumeUrl, setResumeUrl] = useState('');
   const [resumeName, setResumeName] = useState('');
   const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const [demoVideoUrl, setDemoVideoUrl] = useState('');
   const [boostNote, setBoostNote] = useState('');
   const [certLink, setCertLink] = useState('');
   const [certificationLinks, setCertificationLinks] = useState<string[]>([]);
@@ -76,11 +77,16 @@ export default function BoostApplicationModal({ isOpen, onClose }: Props) {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const allLinks = [...certificationLinks];
+    if (demoVideoUrl.trim() && (demoVideoUrl.startsWith('http://') || demoVideoUrl.startsWith('https://'))) {
+      allLinks.unshift(`Demo Video: ${demoVideoUrl.trim()}`);
+    }
+
     try {
       const res = await boostInstructorApplicationAction({
         resumeUrl: resumeUrl || undefined,
-        boostNote: boostNote.trim() || undefined,
-        certificationLinks: certificationLinks.length > 0 ? certificationLinks : undefined,
+        boostNote: boostNote.trim() ? `[First Course Topic / Pitch]: ${boostNote.trim()}` : undefined,
+        certificationLinks: allLinks.length > 0 ? allLinks : undefined,
       });
 
       if (res.error) {
@@ -98,7 +104,7 @@ export default function BoostApplicationModal({ isOpen, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#040B37]/60 backdrop-blur-xs p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#040B37]/60 backdrop-blur-xs p-4 overflow-y-auto font-jakarta">
       <div className="relative w-full max-w-lg bg-white rounded-[20px] p-6 shadow-2xl border border-[#E3E8F4] space-y-6">
         <button
           onClick={onClose}
@@ -113,15 +119,15 @@ export default function BoostApplicationModal({ isOpen, onClose }: Props) {
           </span>
           <h2 className="text-[20px] font-bold text-[#040B37]">Boost Your Application</h2>
           <p className="text-[13px] text-[#6B7280] leading-relaxed">
-            Provide additional proof of experience to help our admin team review and approve your instructor application faster.
+            Provide additional proof of experience to help our admin team review and approve your instructor profile faster.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Resume Upload */}
+          {/* 1. CV / Resume Upload */}
           <div className="space-y-2">
             <label className="block text-[14px] font-semibold text-[#040B37]">
-              Upload CV / Resume (Optional)
+              1. Upload CV / Resume (Optional)
             </label>
             <div className="relative border-2 border-dashed border-[#CBD5E1] rounded-[14px] p-4 text-center hover:border-[#1C4ED1] transition-colors bg-[#F8FAFC]">
               <input
@@ -152,10 +158,24 @@ export default function BoostApplicationModal({ isOpen, onClose }: Props) {
             </div>
           </div>
 
-          {/* Certification Links */}
+          {/* 2. Teaching / Demo Video Link */}
           <div className="space-y-2">
             <label className="block text-[14px] font-semibold text-[#040B37]">
-              External Certifications & Work Proof Links
+              2. Teaching / Demo Video Link (Optional)
+            </label>
+            <Input
+              type="url"
+              placeholder="https://youtube.com/watch?... or Loom / Google Drive link"
+              value={demoVideoUrl}
+              onChange={(e) => setDemoVideoUrl(e.target.value)}
+              className="h-11 text-[13px]"
+            />
+          </div>
+
+          {/* 3. Additional Links */}
+          <div className="space-y-2">
+            <label className="block text-[14px] font-semibold text-[#040B37]">
+              3. Additional Links (Certifications, Portfolio, GitHub, Dribbble)
             </label>
             <div className="flex gap-2">
               <Input
@@ -197,10 +217,10 @@ export default function BoostApplicationModal({ isOpen, onClose }: Props) {
             )}
           </div>
 
-          {/* Pitch / Boost Note */}
+          {/* 4. First Course Topic / Pitch */}
           <div className="space-y-2">
             <label className="block text-[14px] font-semibold text-[#040B37]">
-              Note to Reviewing Admin
+              4. First Course Topic / Pitch
             </label>
             <Textarea
               rows={3}

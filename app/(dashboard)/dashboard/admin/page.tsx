@@ -43,8 +43,8 @@ export default async function AdminPage() {
   const data = await getAdminDashboardData();
   const user = session.user;
 
-  const visibleQueue = data.reviewQueue.filter((item) => hasAnyAdminPermission(user, item.permissions));
-  const visibleSignals = data.platformSignals.filter((item) => hasAnyAdminPermission(user, item.permissions));
+  const visibleQueue = data.reviewQueue;
+  const visibleSignals = data.platformSignals;
   const canSeeCourseQuality = hasAnyAdminPermission(user, ["canManageCourses", "canReviewCourses", "canPublishCourses"]);
   const visibleActivity = data.recentActivity.filter((item) => hasAnyAdminPermission(user, item.permissions));
 
@@ -151,18 +151,18 @@ export default async function AdminPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {visibleQueue.map((item) => (
                 <Link
-                  key={item.label}
+                  key={item.title}
                   href={item.href}
                   className="group rounded-[14px] border border-[#E3E8F4] bg-[#F8FAFF] p-5 transition hover:-translate-y-0.5 hover:border-[#1C4ED1]/40 hover:bg-white hover:shadow-sm"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] ${toneStyles[item.tone]}`}>
-                      {item.label}
+                    <span className="rounded-full bg-[#1C4ED1]/10 text-[#1C4ED1] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em]">
+                      {item.badge}
                     </span>
                     <ArrowRight size={16} className="text-[#9CA3AF] transition group-hover:translate-x-1 group-hover:text-[#1C4ED1]" />
                   </div>
-                  <p className="mt-5 text-[34px] font-black leading-none text-[#040B37]">{formatNumber(item.value)}</p>
-                  <p className="mt-2 text-[13px] font-semibold text-[#4B5563]">Open operational items</p>
+                  <p className="mt-5 text-[34px] font-black leading-none text-[#040B37]">{formatNumber(item.count)}</p>
+                  <p className="mt-2 text-[13px] font-semibold text-[#4B5563]">{item.title}</p>
                 </Link>
               ))}
             </div>
@@ -187,7 +187,7 @@ export default async function AdminPage() {
               <div key={signal.label} className="flex items-center justify-between rounded-[12px] bg-[#F8FAFF] px-4 py-3">
                 <span className="text-[13px] font-bold text-[#4B5563]">{signal.label}</span>
                 <span className="text-[16px] font-black text-[#040B37]">
-                  {signal.label === "Completion rate" ? `${signal.value}%` : formatNumber(signal.value)}
+                  {signal.value}
                 </span>
               </div>
             ))}

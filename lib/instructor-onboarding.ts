@@ -105,8 +105,8 @@ export function getInstructorRoleTransitionData(role: string) {
     return {
       instructorProfile: {
         upsert: {
-          create: { isEnabled: true, verificationStatus: "VERIFIED", verifiedAt: new Date() },
-          update: { isEnabled: true, verificationStatus: "VERIFIED", verifiedAt: new Date() },
+          create: { isEnabled: true, verificationStatus: "VERIFIED" as const, verifiedAt: new Date() },
+          update: { isEnabled: true, verificationStatus: "VERIFIED" as const, verifiedAt: new Date() },
         },
       },
     };

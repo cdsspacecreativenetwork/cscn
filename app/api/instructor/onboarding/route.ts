@@ -60,6 +60,9 @@ export async function POST(req: Request) {
       gender: gender || undefined,
       portfolioUrl: portfolioUrl || undefined,
       linkedinUrl,
+      expertise: primaryExpertise
+        ? [primaryExpertise, secondaryExpertise].filter(Boolean)
+        : (selectedDisciplines || []),
     };
 
     const instructorProfileData = {
@@ -78,6 +81,18 @@ export async function POST(req: Request) {
       audienceSize: audienceSize || undefined,
       gender: gender || undefined,
       bio: bio || undefined,
+      expertise: {
+        primaryExpertise: primaryExpertise || null,
+        secondaryExpertise: secondaryExpertise || null,
+        industrySector: industrySector || null,
+        selectedDisciplines: selectedDisciplines || [],
+        selectedTools: selectedTools || [],
+        teachingExperience: teachingExperience || null,
+        videoReadiness: videoReadiness || null,
+        audienceSize: audienceSize || null,
+        gender: gender || null,
+        expMonths: expMonths || null,
+      },
     };
 
     // Update user in database along with Profile and InstructorProfile
@@ -88,27 +103,7 @@ export async function POST(req: Request) {
         firstName: firstName || undefined,
         lastName: lastName || undefined,
         image: profilePhotoUrl || session.user.image || undefined,
-        bio: bio || undefined,
-        headline: headline || undefined,
-        location: country || undefined,
-        portfolioUrl: portfolioUrl || undefined,
-        linkedinUrl,
-        yearsExperience: validYearsExp,
         role: 'INSTRUCTOR',
-        instructorProfileEnabled: true,
-        instructorVerificationStatus: 'PENDING',
-        expertise: {
-          primaryExpertise: primaryExpertise || null,
-          secondaryExpertise: secondaryExpertise || null,
-          industrySector: industrySector || null,
-          selectedDisciplines: selectedDisciplines || [],
-          selectedTools: selectedTools || [],
-          teachingExperience: teachingExperience || null,
-          videoReadiness: videoReadiness || null,
-          audienceSize: audienceSize || null,
-          gender: gender || null,
-          expMonths: expMonths || null,
-        },
         profile: {
           upsert: {
             create: profileData,

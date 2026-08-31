@@ -17,10 +17,10 @@ const exploreLinks = [
 ];
 
 const navLinks = [
-  { name: 'Teach on CSCN', path: '/teach' },
-  { name: 'For Instructors', path: '/instructors' },
+  // { name: 'Teach on CSCN', path: '/teach' },
   { name: 'Community', path: '/community' },
   { name: 'For Teams', path: '/teams' },
+  { name: 'For Instructors', path: '/teach' },
   { name: 'Resources', path: '/resources' },
 ];
 

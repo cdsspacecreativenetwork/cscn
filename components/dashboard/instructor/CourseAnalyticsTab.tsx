@@ -135,7 +135,7 @@ export default function CourseAnalyticsTab({ courseId, data }: Props) {
               <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} allowDecimals={false} />
               <Tooltip
                 contentStyle={{ borderRadius: '12px', border: '1px solid #E3E8F4', fontSize: 12 }}
-                labelFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                labelFormatter={(v) => new Date(String(v)).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
               />
               <Area type="monotone" dataKey="count" stroke="#1C4ED1" strokeWidth={2} fill="url(#enrollGrad)" name="Enrollments" />
             </AreaChart>

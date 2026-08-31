@@ -41,7 +41,8 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
   }
 
   const dbUser = await db.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
+    include: { profile: true },
   });
 
   if (!dbUser) {
@@ -54,7 +55,7 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
 
   const normalizedTimezone = values.timezone
     ? normalizeScheduleTimeZone(values.timezone)
-    : dbUser.timezone ?? "Africa/Lagos";
+    : dbUser.profile?.timezone ?? "Africa/Lagos";
 
   const profileData = {
     bio: values.bio,
@@ -82,12 +83,18 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
     onboardingIntent: values.onboardingIntent,
   };
 
+  const userScalarData = {
+    ...(values.firstName !== undefined && { firstName: values.firstName }),
+    ...(values.lastName !== undefined && { lastName: values.lastName }),
+    ...(values.image !== undefined && { image: values.image }),
+    name: [values.firstName ?? dbUser.firstName, values.lastName ?? dbUser.lastName].filter(Boolean).join(" ") || dbUser.name,
+  };
+
   // Update user in database along with Profile and LearnerProfile
   await db.user.update({
     where: { id: dbUser.id },
     data: {
-      ...values,
-      timezone: normalizedTimezone,
+      ...userScalarData,
       profile: {
         upsert: {
           create: profileData,
@@ -150,7 +157,8 @@ export const updatePayoutSettings = async (data: {
   if (!user) return { error: "Unauthorized" };
 
   const dbUser = await db.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
+    include: { payoutConfig: true }
   });
 
   if (!dbUser) return { error: "User not found" };
@@ -160,7 +168,7 @@ export const updatePayoutSettings = async (data: {
     return { error: "Forbidden: You are not authorized to configure payouts" };
   }
 
-  const existingDetails = getSettingsDetails(dbUser.payoutDetails);
+  const existingDetails = getSettingsDetails(dbUser.payoutConfig?.payoutDetails ?? null);
   const payoutCountry = String(data.payoutDetails?.payoutCountry ?? existingDetails.payoutCountry ?? "NG");
   const preferredCurrency = String(data.payoutDetails?.preferredCurrency ?? existingDetails.preferredCurrency ?? "NGN");
   const bankChanged =
@@ -205,27 +213,25 @@ export const updatePayoutSettings = async (data: {
     nextDetails.paystackRecipientCreatedAt = new Date().toISOString();
   }
 
-  await db.user.update({
-    where: { id: dbUser.id },
-    data: {
-      payoutSetup: true,
+  await db.payoutConfig.upsert({
+    where: { userId: dbUser.id },
+    create: {
+      userId: dbUser.id,
+      isSetup: true,
       payoutMethod: data.payoutMethod,
-      payoutDetails: nextDetails,
-      payoutConfig: {
-        upsert: {
-          create: {
-            isSetup: true,
-            method: data.payoutMethod,
-            details: nextDetails,
-          },
-          update: {
-            isSetup: true,
-            method: data.payoutMethod,
-            details: nextDetails,
-          },
-        },
-      },
-    }
+      payoutDetails: nextDetails as Prisma.InputJsonValue,
+      bankCode: nextDetails.bankCode ? String(nextDetails.bankCode) : null,
+      accountNumber: nextDetails.accountNumber ? String(nextDetails.accountNumber) : null,
+      accountName: nextDetails.accountName ? String(nextDetails.accountName) : null,
+    },
+    update: {
+      isSetup: true,
+      payoutMethod: data.payoutMethod,
+      payoutDetails: nextDetails as Prisma.InputJsonValue,
+      bankCode: nextDetails.bankCode ? String(nextDetails.bankCode) : null,
+      accountNumber: nextDetails.accountNumber ? String(nextDetails.accountNumber) : null,
+      accountName: nextDetails.accountName ? String(nextDetails.accountName) : null,
+    },
   });
 
   revalidatePath("/dashboard/settings");
@@ -244,29 +250,23 @@ export const updateDisplayCurrency = async (currency: string) => {
 
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
-    select: { id: true, payoutDetails: true },
+    include: { payoutConfig: true },
   });
   if (!dbUser) return { error: "User not found" };
 
-  const details = (dbUser.payoutDetails as Record<string, unknown> | null) ?? {};
+  const details = (dbUser.payoutConfig?.payoutDetails as Record<string, unknown> | null) ?? {};
   const updatedDetails = {
     ...details,
     preferredDisplayCurrency: normalized,
   };
-  await db.user.update({
-    where: { id: dbUser.id },
-    data: {
-      payoutDetails: updatedDetails,
-      payoutConfig: {
-        upsert: {
-          create: {
-            details: updatedDetails,
-          },
-          update: {
-            details: updatedDetails,
-          },
-        },
-      },
+  await db.payoutConfig.upsert({
+    where: { userId: dbUser.id },
+    create: {
+      userId: dbUser.id,
+      payoutDetails: updatedDetails as Prisma.InputJsonValue,
+    },
+    update: {
+      payoutDetails: updatedDetails as Prisma.InputJsonValue,
     },
   });
 
@@ -282,40 +282,38 @@ export const sendPasswordChangeOTP = async () => {
   if (!user) return { error: "Unauthorized" };
 
   const dbUser = await db.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
+    include: { payoutConfig: true },
   });
 
   if (!dbUser) return { error: "User not found" };
+  if (!dbUser.email) return { error: "Email is missing" };
 
-  // Generate 6-digit random token code
-  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const existingDetails = getSettingsDetails(dbUser.payoutConfig?.payoutDetails ?? null);
 
-  // Expire in 15 minutes
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-
-  // Clear any existing change-password tokens for this email first
-  await db.verificationToken.deleteMany({
-    where: {
-      identifier: dbUser.email
+  const updatedDetails = {
+    ...existingDetails,
+    _passwordOtp: {
+      code: otp,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes expiry
     }
+  };
+
+  await db.payoutConfig.upsert({
+    where: { userId: dbUser.id },
+    create: {
+      userId: dbUser.id,
+      payoutDetails: updatedDetails as Prisma.InputJsonValue,
+    },
+    update: {
+      payoutDetails: updatedDetails as Prisma.InputJsonValue,
+    },
   });
 
-  // Save code to database
-  await db.verificationToken.create({
-    data: {
-      identifier: dbUser.email,
-      token: otpCode,
-      expires: expiresAt
-    }
-  });
+  await sendPasswordChangeOTPEmail(dbUser.email, otp);
 
-  // Send Email with OTP
-  const mailResult = await sendPasswordChangeOTPEmail(dbUser.email, otpCode, dbUser.name || undefined);
-  if (!mailResult || "error" in mailResult) {
-    return { error: mailResult?.error ?? "Failed to send verification code email." };
-  }
-
-  return { success: "Verification code sent to your email!" };
+  return { success: "OTP sent to your email address." };
 };
 
 export const changePassword = async (values: {
@@ -333,25 +331,17 @@ export const changePassword = async (values: {
   }
 
   const dbUser = await db.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
+    include: { payoutConfig: true }
   });
 
   if (!dbUser) return { error: "User not found" };
 
-  // Verify OTP from database
-  const tokenRecord = await db.verificationToken.findFirst({
-    where: {
-      identifier: dbUser.email,
-      token: otpCode
-    }
-  });
+  const details = getSettingsDetails(dbUser.payoutConfig?.payoutDetails ?? null);
+  const passwordOtp = details._passwordOtp as { code: string; expiresAt: number } | undefined;
 
-  if (!tokenRecord) {
-    return { error: "Invalid verification code" };
-  }
-
-  if (tokenRecord.expires < new Date()) {
-    return { error: "Verification code has expired. Please request a new one." };
+  if (!passwordOtp || passwordOtp.code !== otpCode || Date.now() > passwordOtp.expiresAt) {
+    return { error: "Invalid or expired verification code" };
   }
 
   if (currentPassword === newPassword) {
@@ -382,57 +372,41 @@ export const changePassword = async (values: {
     where: { id: dbUser.id },
     data: {
       password: hashed,
-      userSecurity: {
-        upsert: {
-          create: { passwordHash: hashed },
-          update: { passwordHash: hashed },
-        },
-      },
-    }
+    },
   });
 
-  // Delete the used token
-  await db.verificationToken.delete({
-    where: {
-      identifier_token: {
-        identifier: dbUser.email,
-        token: otpCode
-      }
-    }
+  // Remove the OTP from payoutDetails
+  delete details._passwordOtp;
+  await db.payoutConfig.update({
+    where: { userId: dbUser.id },
+    data: { payoutDetails: details as Prisma.InputJsonValue }
   });
 
   return { success: "Password changed successfully!" };
 };
 
-export const generate2FASetup = async () => {
+export const generate2FASecret = async () => {
   const user = await currentUser();
   if (!user) return { error: "Unauthorized" };
 
   const dbUser = await db.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
+    include: { userSecurity: true }
   });
 
   if (!dbUser) return { error: "User not found" };
 
-  let secret = dbUser.twoFactorSecret;
+  let secret = dbUser.userSecurity?.twoFactorSecret;
   if (!secret) {
     secret = generateBase32Secret();
-    await db.user.update({
-      where: { id: dbUser.id },
-      data: {
-        twoFactorSecret: secret,
-        userSecurity: {
-          upsert: {
-            create: { twoFactorSecret: secret },
-            update: { twoFactorSecret: secret },
-          },
-        },
-      }
+    await db.userSecurity.upsert({
+      where: { userId: dbUser.id },
+      create: { userId: dbUser.id, twoFactorSecret: secret },
+      update: { twoFactorSecret: secret },
     });
   }
 
   const otpAuthUrl = `otpauth://totp/CSCN:${dbUser.email}?secret=${secret}&issuer=CSCN`;
-  // Industry-standard secure QR code generator (using the standard qrcode server API)
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpAuthUrl)}`;
 
   return {
@@ -441,12 +415,15 @@ export const generate2FASetup = async () => {
   };
 };
 
+export const generate2FASetup = generate2FASecret;
+
 export const toggle2FA = async (enable: boolean, code?: string) => {
   const user = await currentUser();
   if (!user) return { error: "Unauthorized" };
 
   const dbUser = await db.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
+    include: { userSecurity: true }
   });
 
   if (!dbUser) return { error: "User not found" };
@@ -456,41 +433,26 @@ export const toggle2FA = async (enable: boolean, code?: string) => {
       return { error: "Invalid verification code. Must be 6 digits." };
     }
 
-    if (!dbUser.twoFactorSecret) {
+    if (!dbUser.userSecurity?.twoFactorSecret) {
       return { error: "2FA Secret is missing. Please restart setup." };
     }
 
-    const isValid = verifyTOTP(dbUser.twoFactorSecret, code);
+    const isValid = verifyTOTP(dbUser.userSecurity.twoFactorSecret, code);
     if (!isValid) {
       return { error: "Invalid authenticator code. Please check your app device time sync." };
     }
 
-    await db.user.update({
-      where: { id: dbUser.id },
-      data: {
-        twoFactorEnabled: true,
-        userSecurity: {
-          upsert: {
-            create: { twoFactorEnabled: true },
-            update: { twoFactorEnabled: true },
-          },
-        },
-      }
+    await db.userSecurity.upsert({
+      where: { userId: dbUser.id },
+      create: { userId: dbUser.id, twoFactorEnabled: true },
+      update: { twoFactorEnabled: true },
     });
     return { success: "Two-factor authentication enabled successfully!" };
   } else {
-    await db.user.update({
-      where: { id: dbUser.id },
-      data: {
-        twoFactorEnabled: false,
-        twoFactorSecret: null,
-        userSecurity: {
-          upsert: {
-            create: { twoFactorEnabled: false, twoFactorSecret: null },
-            update: { twoFactorEnabled: false, twoFactorSecret: null },
-          },
-        },
-      }
+    await db.userSecurity.upsert({
+      where: { userId: dbUser.id },
+      create: { userId: dbUser.id, twoFactorEnabled: false, twoFactorSecret: null },
+      update: { twoFactorEnabled: false, twoFactorSecret: null },
     });
     return { success: "Two-factor authentication disabled." };
   }
@@ -503,14 +465,20 @@ export const getUserSecurityDetails = async () => {
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
     select: {
-      twoFactorEnabled: true,
-      payoutSetup: true,
-      payoutMethod: true,
-      payoutDetails: true,
       role: true,
       password: true,
-      userSecurity: true,
-      payoutConfig: true,
+      userSecurity: {
+        select: {
+          twoFactorEnabled: true,
+        },
+      },
+      payoutConfig: {
+        select: {
+          isSetup: true,
+          payoutMethod: true,
+          payoutDetails: true,
+        },
+      },
       accounts: {
         select: {
           provider: true,
@@ -522,7 +490,7 @@ export const getUserSecurityDetails = async () => {
 
   if (!dbUser) return null;
 
-  const details = getSettingsDetails(dbUser.payoutConfig?.details ?? dbUser.payoutDetails);
+  const details = getSettingsDetails(dbUser.payoutConfig?.payoutDetails ?? null);
   let sessions = details._sessions;
   if (!sessions) {
     sessions = [
@@ -540,14 +508,14 @@ export const getUserSecurityDetails = async () => {
   };
 
   return {
-    twoFactorEnabled: dbUser.userSecurity?.twoFactorEnabled ?? dbUser.twoFactorEnabled,
-    payoutSetup: dbUser.payoutConfig?.isSetup ?? dbUser.payoutSetup,
-    payoutMethod: dbUser.payoutConfig?.method ?? dbUser.payoutMethod,
+    twoFactorEnabled: dbUser.userSecurity?.twoFactorEnabled ?? false,
+    payoutSetup: dbUser.payoutConfig?.isSetup ?? false,
+    payoutMethod: dbUser.payoutConfig?.payoutMethod ?? null,
     payoutDetails: details,
     role: dbUser.role,
     sessions,
     notifications,
-    hasPassword: !!(dbUser.userSecurity?.passwordHash ?? dbUser.password),
+    hasPassword: !!dbUser.password,
     accounts: dbUser.accounts.map(acc => ({
       provider: acc.provider,
       createdAt: acc.createdAt.toISOString()
@@ -560,12 +528,13 @@ export const revokeActiveSession = async (sessionId: string) => {
   if (!user) return { error: "Unauthorized" };
 
   const dbUser = await db.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
+    include: { payoutConfig: true }
   });
 
   if (!dbUser) return { error: "User not found" };
 
-  const details = getSettingsDetails(dbUser.payoutDetails);
+  const details = getSettingsDetails(dbUser.payoutConfig?.payoutDetails ?? null);
   let sessions = details._sessions || [
     { id: "sess_1", device: "Chrome on Windows (Lagos, NG)", ip: "102.89.34.12", active: true, createdAt: new Date(Date.now() - 3600000).toISOString() },
     { id: "sess_2", device: "Safari on iPhone (Abuja, NG)", ip: "197.210.64.9", active: false, createdAt: new Date(Date.now() - 86400000).toISOString() }
@@ -575,11 +544,15 @@ export const revokeActiveSession = async (sessionId: string) => {
   sessions = sessions.filter((session) => session.id !== sessionId);
   details._sessions = sessions;
 
-  await db.user.update({
-    where: { id: dbUser.id },
-    data: {
-      payoutDetails: details
-    }
+  await db.payoutConfig.upsert({
+    where: { userId: dbUser.id },
+    create: {
+      userId: dbUser.id,
+      payoutDetails: details as Prisma.InputJsonValue,
+    },
+    update: {
+      payoutDetails: details as Prisma.InputJsonValue,
+    },
   });
 
   revalidatePath("/dashboard/settings");
@@ -619,12 +592,13 @@ export const updateNotificationPreferences = async (prefs: NotificationPreferenc
   if (!user) return { error: "Unauthorized" };
 
   const dbUser = await db.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
+    include: { payoutConfig: true },
   });
 
   if (!dbUser) return { error: "User not found" };
 
-  const details = getSettingsDetails(dbUser.payoutDetails);
+  const details = getSettingsDetails(dbUser.payoutConfig?.payoutDetails ?? null);
   details._notifications = {
     ...(details._notifications || {}),
     ...prefs
@@ -633,7 +607,12 @@ export const updateNotificationPreferences = async (prefs: NotificationPreferenc
   await db.user.update({
     where: { id: dbUser.id },
     data: {
-      payoutDetails: details
+      payoutConfig: {
+        upsert: {
+          create: { payoutDetails: details },
+          update: { payoutDetails: details },
+        },
+      },
     }
   });
 

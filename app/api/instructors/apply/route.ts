@@ -58,8 +58,12 @@ export async function POST(req: Request) {
     await db.user.update({
       where: { id: userId },
       data: {
-        instructorVerificationStatus: 'PENDING',
-        instructorProfileEnabled: true, // Sandbox mode
+        instructorProfile: {
+          upsert: {
+            create: { isEnabled: true, verificationStatus: 'PENDING' },
+            update: { isEnabled: true, verificationStatus: 'PENDING' },
+          },
+        },
       },
     });
 

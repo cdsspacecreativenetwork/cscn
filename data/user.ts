@@ -10,8 +10,9 @@ export type AdminUsersFilter = {
 
 export const getUserByEmail = async (email: string) => {
   try {
+    const normalizedEmail = email.toLowerCase().trim();
     const user = await db.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
       include: {
         profile: true,
         learnerProfile: true,
@@ -59,8 +60,11 @@ export const getUserByEmail = async (email: string) => {
       mentorshipBio: user.mentorProfile?.bio ?? null,
       mentorshipTopics: user.mentorProfile?.topics ?? null,
       mentorshipInstructions: user.mentorProfile?.instructions ?? null,
+      twoFactorEnabled: user.userSecurity?.twoFactorEnabled ?? false,
+      twoFactorSecret: user.userSecurity?.twoFactorSecret ?? null,
     };
-  } catch {
+  } catch (error) {
+    console.error("[getUserByEmail] DB query error:", error);
     return null;
   }
 };
@@ -116,6 +120,8 @@ export const getUserById = async (id: string) => {
       mentorshipBio: user.mentorProfile?.bio ?? null,
       mentorshipTopics: user.mentorProfile?.topics ?? null,
       mentorshipInstructions: user.mentorProfile?.instructions ?? null,
+      twoFactorEnabled: user.userSecurity?.twoFactorEnabled ?? false,
+      twoFactorSecret: user.userSecurity?.twoFactorSecret ?? null,
     };
   } catch {
     return null;

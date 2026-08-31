@@ -137,7 +137,7 @@ export default async function CohortDetailPage({ params }: Props) {
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">Lead instructor</p>
             <div className="mt-6 flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#E8EEFF] text-lg font-semibold text-primary">{cohort.leadInstructor?.name?.slice(0, 1) ?? "C"}</div>
-              <div><h3 className="text-xl font-semibold text-navy">{cohort.leadInstructor?.name ?? "Instructor to be confirmed"}</h3><p className="mt-1 text-sm text-text-body">{cohort.leadInstructor?.headline ?? "Cohort facilitator"}</p></div>
+              <div><h3 className="text-xl font-semibold text-navy">{cohort.leadInstructor?.name ?? "Instructor to be confirmed"}</h3><p className="mt-1 text-sm text-text-body">{cohort.leadInstructor?.profile?.headline ?? "Cohort facilitator"}</p></div>
             </div>
             <p className="mt-6 text-sm leading-7 text-text-body">Live teaching is supported by feedback rooms and peer pods. Mentor assignments, where offered, are confirmed before orientation.</p>
           </div>

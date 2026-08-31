@@ -22,9 +22,17 @@ export default async function OnboardingIntentPage() {
       where: { id: user.id },
       select: {
         role: true,
-        learningFocus: true,
-        instructorProfileEnabled: true,
-        instructorVerificationStatus: true,
+        learnerProfile: {
+          select: {
+            learningFocus: true,
+          },
+        },
+        instructorProfile: {
+          select: {
+            isEnabled: true,
+            verificationStatus: true,
+          },
+        },
       },
     }),
     getLearnerInterestProfileByUserId(user.id),
@@ -39,10 +47,10 @@ export default async function OnboardingIntentPage() {
   // If user has ALREADY completed onboarding as instructor or student, block access to /onboarding/intent
   const isInstructor =
     role === 'INSTRUCTOR' ||
-    dbUser?.learningFocus === 'INSTRUCTOR' ||
-    dbUser?.instructorProfileEnabled === true ||
-    dbUser?.instructorVerificationStatus === 'PENDING' ||
-    dbUser?.instructorVerificationStatus === 'VERIFIED';
+    dbUser?.learnerProfile?.learningFocus === 'INSTRUCTOR' ||
+    dbUser?.instructorProfile?.isEnabled === true ||
+    dbUser?.instructorProfile?.verificationStatus === 'PENDING' ||
+    dbUser?.instructorProfile?.verificationStatus === 'VERIFIED';
 
   const isStudentOnboarded = Boolean(learnerProfile?.onboardingCompletedAt);
 

@@ -35,7 +35,7 @@ export default async function InstructorLiveSessionsPage({
   }
 
   const params = await searchParams;
-  const [courses, sessions, profile, integrations] = await Promise.all([
+  const [courses, sessions, userRecord, integrations] = await Promise.all([
     db.course.findMany({
       where: {
         OR: [
@@ -53,7 +53,7 @@ export default async function InstructorLiveSessionsPage({
     getInstructorLiveSessions(session.user.id),
     db.user.findUnique({
       where: { id: session.user.id },
-      select: { timezone: true },
+      select: { profile: { select: { timezone: true } } },
     }),
     getCalendarIntegrationStatus(session.user.id),
   ]);
@@ -63,7 +63,7 @@ export default async function InstructorLiveSessionsPage({
       courses={courses}
       sessions={sessions}
       integrations={integrations}
-      defaultTimezone={profile?.timezone ?? DEFAULT_SCHEDULE_TIME_ZONE}
+      defaultTimezone={userRecord?.profile?.timezone ?? DEFAULT_SCHEDULE_TIME_ZONE}
       error={params.error}
       created={params.created === "1"}
       updated={params.updated === "1"}

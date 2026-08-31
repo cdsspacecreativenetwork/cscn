@@ -187,7 +187,7 @@ export function AdminPermissionsConsole({ data, currentUserRole }: Props) {
                       {user._count.enrollments} enrolled courses · {user._count.taughtCourses} taught courses
                     </p>
                     <p className="mt-1 whitespace-nowrap text-[11px] font-semibold text-[#9CA3AF]">
-                      Instructor profile: {user.instructorProfileEnabled ? user.instructorVerificationStatus ?? "enabled" : "not activated"}
+                      Instructor profile: {user.instructorProfile?.isEnabled ? user.instructorProfile.verificationStatus ?? "enabled" : "not activated"}
                     </p>
                   </td>
                   <td className="px-5 py-4">

@@ -180,7 +180,7 @@ export const ProfileForm = ({ user, locationTimezoneOptions = FALLBACK_LOCATION_
       dribbbleUrl: user.dribbbleUrl || '',
       telegramUrl: user.telegramUrl || '',
       expertise: normalizeExpertise(user.expertise),
-      learningFocus: user.learnerProfile?.learningFocus || user.learningFocus || '',
+      learningFocus: user.learnerProfile?.learningFocus || '',
       socials: defaultSocials,
     }
   });

@@ -8,9 +8,9 @@ import { getCreatorReadinessByUserId } from "@/lib/trust-gates";
 import { hasAdminPermission } from "@/lib/admin-permissions";
 import { createAuditLog } from "@/data/audit-logs";
 
-function toPublicSlug(user: { publicProfileSlug: string | null; id: string; name: string | null }) {
+function toPublicSlug(user: { profile?: { publicProfileSlug?: string | null } | null; id: string; name: string | null }) {
   return (
-    user.publicProfileSlug ||
+    user.profile?.publicProfileSlug ||
     user.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
     user.id
   );
@@ -36,10 +36,6 @@ export async function activateInstructorProfileAction() {
   await db.user.update({
     where: { id: userId },
     data: {
-      instructorProfileEnabled: true,
-      publicProfileStatus: "PUBLIC",
-      instructorVerificationStatus: "VERIFIED",
-      instructorVerifiedAt: new Date(),
       profile: {
         upsert: {
           create: { publicProfileStatus: "PUBLIC" },
@@ -88,17 +84,16 @@ export async function submitInstructorVerificationAction() {
     select: {
       id: true,
       name: true,
-      publicProfileSlug: true,
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: true,
+      profile: { select: { publicProfileSlug: true } },
+      instructorProfile: { select: { isEnabled: true, verificationStatus: true } },
     },
   });
 
-  if (!user?.instructorProfileEnabled) {
+  if (!user?.instructorProfile?.isEnabled) {
     return { error: "Activate your instructor profile first." };
   }
 
-  if (user.instructorVerificationStatus === "VERIFIED") {
+  if (user.instructorProfile.verificationStatus === "VERIFIED") {
     return { error: "Your instructor profile is already verified." };
   }
 
@@ -110,8 +105,6 @@ export async function submitInstructorVerificationAction() {
   await db.user.update({
     where: { id: userId },
     data: {
-      instructorVerificationStatus: "PENDING",
-      publicProfileStatus: "PUBLIC",
       profile: {
         upsert: {
           create: { publicProfileStatus: "PUBLIC" },
@@ -143,8 +136,11 @@ export async function approveInstructorVerificationAction(targetUserId: string) 
   }
   if (targetUserId === userId) return { error: "Another admin must verify your instructor profile." };
 
-  const target = await db.user.findUnique({ where: { id: targetUserId } });
-  if (!target?.instructorProfileEnabled) return { error: "Instructor profile is not active." };
+  const target = await db.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, name: true, profile: { select: { publicProfileSlug: true } }, instructorProfile: { select: { isEnabled: true } } },
+  });
+  if (!target?.instructorProfile?.isEnabled) return { error: "Instructor profile is not active." };
 
   const readiness = await getCreatorReadinessByUserId(targetUserId);
   if (!readiness.canSubmitForReview) {
@@ -154,9 +150,6 @@ export async function approveInstructorVerificationAction(targetUserId: string) 
   const updated = await db.user.update({
     where: { id: targetUserId },
     data: {
-      instructorVerificationStatus: "VERIFIED",
-      instructorVerifiedAt: new Date(),
-      publicProfileStatus: "PUBLIC",
       profile: {
         upsert: {
           create: { publicProfileStatus: "PUBLIC" },
@@ -207,17 +200,13 @@ export async function rejectInstructorVerificationAction(targetUserId: string) {
 
   const target = await db.user.findUnique({
     where: { id: targetUserId },
-    select: { id: true, name: true, publicProfileSlug: true, instructorProfileEnabled: true },
+    select: { id: true, name: true, profile: { select: { publicProfileSlug: true } }, instructorProfile: { select: { isEnabled: true } } },
   });
-  if (!target?.instructorProfileEnabled) return { error: "Instructor profile is not active." };
+  if (!target?.instructorProfile?.isEnabled) return { error: "Instructor profile is not active." };
 
   const updated = await db.user.update({
     where: { id: targetUserId },
     data: {
-      instructorVerificationStatus: "REJECTED",
-      instructorVerifiedAt: null,
-      instructorFeatured: false,
-      instructorFeaturedOrder: null,
       instructorProfile: {
         upsert: {
           create: {
@@ -302,4 +291,3 @@ export async function boostInstructorApplicationAction(data: {
 
   return { success: "Your application details have been boosted for admin review!" };
 }
-

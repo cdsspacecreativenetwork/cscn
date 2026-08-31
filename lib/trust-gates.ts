@@ -34,6 +34,7 @@ export type CreatorReadinessItem = {
 export type CreatorReadiness = {
   isEmailVerified: boolean;
   isProfileComplete: boolean;
+  isPayoutConfigured: boolean;
   canSubmitForReview: boolean;
   items: CreatorReadinessItem[];
   missingLabels: string[];
@@ -53,7 +54,7 @@ function hasHeadshot(user: CreatorUser) {
   return !user.image.includes("tapback.co/api/avatar");
 }
 
-export function getCreatorReadiness(user: CreatorUser): CreatorReadiness {
+export function getCreatorReadiness(user: CreatorUser & { payoutConfigured?: boolean }): CreatorReadiness {
   const publicProfileEligibility = getInstructorPublicProfileEligibility(user);
   const profileItems = publicProfileEligibility.items.map((item) => ({
     ...item,
@@ -82,10 +83,12 @@ export function getCreatorReadiness(user: CreatorUser): CreatorReadiness {
   const missingLabels = items.filter((item) => !item.complete).map((item) => item.label);
   const isEmailVerified = items[0].complete;
   const isProfileComplete = items.slice(1).every((item) => item.complete);
+  const isPayoutConfigured = user.payoutConfigured ?? false;
 
   return {
     isEmailVerified,
     isProfileComplete,
+    isPayoutConfigured,
     canSubmitForReview: isEmailVerified && isProfileComplete,
     items,
     missingLabels,
@@ -101,6 +104,11 @@ export async function getCreatorReadinessByUserId(userId: string) {
       name: true,
       emailVerified: true,
       image: true,
+      payoutConfig: {
+        select: {
+          isSetup: true,
+        },
+      },
       profile: {
         select: {
           headline: true,
@@ -131,6 +139,7 @@ export async function getCreatorReadinessByUserId(userId: string) {
   if (!user) throw new Error("User not found");
   const mergedUser = {
     ...user,
+    payoutConfigured: Boolean(user.payoutConfig?.isSetup),
     headline: user.profile?.headline,
     bio: user.profile?.bio ?? user.instructorProfile?.bio,
     yearsExperience: user.instructorProfile?.yearsExperience,

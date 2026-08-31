@@ -24,14 +24,25 @@ export default async function DashboardPage() {
     where: { id: user.id },
     select: {
       role: true,
-      learningFocus: true,
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: true,
+      learnerProfile: {
+        select: {
+          learningFocus: true,
+        },
+      },
+      instructorProfile: {
+        select: {
+          isEnabled: true,
+          verificationStatus: true,
+        },
+      },
     },
   });
 
   const role = dbUser?.role || user.role || 'USER';
-  const isInstructor = role === 'INSTRUCTOR' || dbUser?.learningFocus === 'INSTRUCTOR' || dbUser?.instructorProfileEnabled === true;
+  const isInstructor =
+    role === 'INSTRUCTOR' ||
+    dbUser?.learnerProfile?.learningFocus === 'INSTRUCTOR' ||
+    dbUser?.instructorProfile?.isEnabled === true;
 
   if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
     redirect('/dashboard/admin');

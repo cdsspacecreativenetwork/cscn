@@ -16,9 +16,9 @@ function stringsFromJson(value: unknown) {
   return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
 }
 
-function publicSlug(user: { id: string; name: string | null; publicProfileSlug: string | null }) {
+function publicSlug(user: { id: string; name: string | null; profile?: { publicProfileSlug?: string | null } | null }) {
   return (
-    user.publicProfileSlug ||
+    user.profile?.publicProfileSlug ||
     user.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') ||
     user.id
   );
@@ -27,9 +27,13 @@ function publicSlug(user: { id: string; name: string | null; publicProfileSlug: 
 async function getPublicInstructors(): Promise<PublicInstructorCard[]> {
   const instructors = await db.user.findMany({
     where: {
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: 'VERIFIED',
-      publicProfileStatus: 'PUBLIC',
+      instructorProfile: {
+        isEnabled: true,
+        verificationStatus: 'VERIFIED',
+      },
+      profile: {
+        publicProfileStatus: 'PUBLIC',
+      },
     },
     select: {
       id: true,
@@ -37,9 +41,17 @@ async function getPublicInstructors(): Promise<PublicInstructorCard[]> {
       firstName: true,
       lastName: true,
       image: true,
-      headline: true,
-      expertise: true,
-      publicProfileSlug: true,
+      profile: {
+        select: {
+          headline: true,
+          publicProfileSlug: true,
+        },
+      },
+      instructorProfile: {
+        select: {
+          expertise: true,
+        },
+      },
       taughtCourses: {
         where: { status: 'PUBLISHED' },
         select: {
@@ -49,7 +61,7 @@ async function getPublicInstructors(): Promise<PublicInstructorCard[]> {
         },
       },
     },
-    orderBy: [{ instructorFeaturedOrder: 'asc' }, { updatedAt: 'desc' }],
+    orderBy: [{ instructorProfile: { featuredOrder: 'asc' } }, { updatedAt: 'desc' }],
   });
 
   return instructors.map((instructor) => {
@@ -65,10 +77,10 @@ async function getPublicInstructors(): Promise<PublicInstructorCard[]> {
     return {
       id: instructor.id,
       name,
-      headline: instructor.headline || 'CSCN Instructor',
+      headline: instructor.profile?.headline || 'CSCN Instructor',
       image: instructor.image || generateTapbackAvatar(name),
       slug: publicSlug(instructor),
-      expertise: Array.from(new Set([...stringsFromJson(instructor.expertise), ...courseCategories])).slice(0, 5),
+      expertise: Array.from(new Set([...stringsFromJson(instructor.instructorProfile?.expertise), ...courseCategories])).slice(0, 5),
       courses: instructor.taughtCourses.length,
       students: instructor.taughtCourses.reduce((sum, course) => sum + course.enrollments.length, 0),
       rating: ratings.length > 0 ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : 0,

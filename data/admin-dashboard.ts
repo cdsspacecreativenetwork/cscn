@@ -160,6 +160,7 @@ export async function getAdminDashboardOverview() {
         id: course.id,
         title: course.title,
         status: course.status,
+        instructorName: course.instructor.name ?? "CSCN Instructor",
         issues,
       };
     })

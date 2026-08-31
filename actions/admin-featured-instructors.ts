@@ -50,46 +50,75 @@ export async function assignFeaturedInstructorAction(instructorId: string, slotV
       role: true,
       name: true,
       image: true,
-      headline: true,
-      bio: true,
       firstName: true,
       lastName: true,
-      yearsExperience: true,
-      expertise: true,
-      websiteUrl: true,
-      portfolioUrl: true,
-      linkedinUrl: true,
-      twitterUrl: true,
-      instagramUrl: true,
-      youtubeUrl: true,
-      githubUrl: true,
-      behanceUrl: true,
-      dribbbleUrl: true,
-      telegramUrl: true,
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: true,
+      profile: {
+        select: {
+          headline: true,
+          bio: true,
+          expertise: true,
+          websiteUrl: true,
+          portfolioUrl: true,
+          linkedinUrl: true,
+          twitterUrl: true,
+          instagramUrl: true,
+          youtubeUrl: true,
+          githubUrl: true,
+          behanceUrl: true,
+          dribbbleUrl: true,
+          telegramUrl: true,
+        },
+      },
+      instructorProfile: {
+        select: {
+          isEnabled: true,
+          verificationStatus: true,
+          yearsExperience: true,
+          expertise: true,
+          bio: true,
+        },
+      },
     },
   });
 
-  if (!instructor || !instructor.instructorProfileEnabled) {
+  if (!instructor || !instructor.instructorProfile?.isEnabled) {
     return { error: "Only active instructor profiles can be featured." };
   }
 
-  if (!isInstructorFeatureEligible(instructor)) {
+  const mergedInstructor = {
+    ...instructor,
+    headline: instructor.profile?.headline,
+    bio: instructor.profile?.bio ?? instructor.instructorProfile?.bio,
+    yearsExperience: instructor.instructorProfile?.yearsExperience,
+    expertise: instructor.instructorProfile?.expertise ?? instructor.profile?.expertise,
+    websiteUrl: instructor.profile?.websiteUrl,
+    portfolioUrl: instructor.profile?.portfolioUrl,
+    linkedinUrl: instructor.profile?.linkedinUrl,
+    twitterUrl: instructor.profile?.twitterUrl,
+    instagramUrl: instructor.profile?.instagramUrl,
+    youtubeUrl: instructor.profile?.youtubeUrl,
+    githubUrl: instructor.profile?.githubUrl,
+    behanceUrl: instructor.profile?.behanceUrl,
+    dribbbleUrl: instructor.profile?.dribbbleUrl,
+    telegramUrl: instructor.profile?.telegramUrl,
+    instructorVerificationStatus: instructor.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+  };
+
+  if (!isInstructorFeatureEligible(mergedInstructor)) {
     return { error: "This instructor must be verified and profile-complete before featuring." };
   }
 
-  await db.user.updateMany({
-    where: { instructorFeaturedOrder: slot },
-    data: { instructorFeatured: false, instructorFeaturedOrder: null },
+  await db.instructorProfile.updateMany({
+    where: { featuredOrder: slot },
+    data: { isFeatured: false, featuredOrder: null },
   });
-  await db.user.updateMany({
-    where: { id: instructorId },
-    data: { instructorFeatured: false, instructorFeaturedOrder: null },
+  await db.instructorProfile.updateMany({
+    where: { userId: instructorId },
+    data: { isFeatured: false, featuredOrder: null },
   });
-  await db.user.update({
-    where: { id: instructorId },
-    data: { instructorFeatured: true, instructorFeaturedOrder: slot },
+  await db.instructorProfile.update({
+    where: { userId: instructorId },
+    data: { isFeatured: true, featuredOrder: slot },
   });
 
   revalidatePath("/");
@@ -101,9 +130,9 @@ export async function removeFeaturedInstructorAction(instructorId: string) {
   const admin = await requireFeaturedInstructorAdmin();
   if ("error" in admin) return admin;
 
-  await db.user.update({
-    where: { id: instructorId },
-    data: { instructorFeatured: false, instructorFeaturedOrder: null },
+  await db.instructorProfile.update({
+    where: { userId: instructorId },
+    data: { isFeatured: false, featuredOrder: null },
   });
 
   revalidatePath("/");
@@ -122,45 +151,74 @@ export async function toggleFeaturedInstructorAction(instructorId: string) {
       role: true,
       name: true,
       image: true,
-      headline: true,
-      bio: true,
       firstName: true,
       lastName: true,
-      yearsExperience: true,
-      expertise: true,
-      websiteUrl: true,
-      portfolioUrl: true,
-      linkedinUrl: true,
-      twitterUrl: true,
-      instagramUrl: true,
-      youtubeUrl: true,
-      githubUrl: true,
-      behanceUrl: true,
-      dribbbleUrl: true,
-      telegramUrl: true,
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: true,
-      instructorFeatured: true,
+      profile: {
+        select: {
+          headline: true,
+          bio: true,
+          expertise: true,
+          websiteUrl: true,
+          portfolioUrl: true,
+          linkedinUrl: true,
+          twitterUrl: true,
+          instagramUrl: true,
+          youtubeUrl: true,
+          githubUrl: true,
+          behanceUrl: true,
+          dribbbleUrl: true,
+          telegramUrl: true,
+        },
+      },
+      instructorProfile: {
+        select: {
+          isEnabled: true,
+          verificationStatus: true,
+          isFeatured: true,
+          yearsExperience: true,
+          expertise: true,
+          bio: true,
+        },
+      },
     },
   });
 
-  if (!instructor || !instructor.instructorProfileEnabled) {
+  if (!instructor || !instructor.instructorProfile?.isEnabled) {
     return { error: "Only active instructor profiles can be featured." };
   }
 
-  if (instructor.instructorFeatured) {
+  if (instructor.instructorProfile.isFeatured) {
     return removeFeaturedInstructorAction(instructorId);
   }
 
-  if (!isInstructorFeatureEligible(instructor)) {
+  const mergedInstructor = {
+    ...instructor,
+    headline: instructor.profile?.headline,
+    bio: instructor.profile?.bio ?? instructor.instructorProfile?.bio,
+    yearsExperience: instructor.instructorProfile?.yearsExperience,
+    expertise: instructor.instructorProfile?.expertise ?? instructor.profile?.expertise,
+    websiteUrl: instructor.profile?.websiteUrl,
+    portfolioUrl: instructor.profile?.portfolioUrl,
+    linkedinUrl: instructor.profile?.linkedinUrl,
+    twitterUrl: instructor.profile?.twitterUrl,
+    instagramUrl: instructor.profile?.instagramUrl,
+    youtubeUrl: instructor.profile?.youtubeUrl,
+    githubUrl: instructor.profile?.githubUrl,
+    behanceUrl: instructor.profile?.behanceUrl,
+    dribbbleUrl: instructor.profile?.dribbbleUrl,
+    telegramUrl: instructor.profile?.telegramUrl,
+    instructorVerificationStatus: instructor.instructorProfile?.verificationStatus ?? "NOT_STARTED",
+  };
+
+  if (!isInstructorFeatureEligible(mergedInstructor)) {
     return { error: "This instructor must be verified and profile-complete before featuring." };
   }
 
-  const featured = await db.user.findMany({
-    where: { instructorFeatured: true, instructorFeaturedOrder: { not: null } },
-    select: { instructorFeaturedOrder: true },
+  const featured = await db.instructorProfile.findMany({
+    where: { isFeatured: true, featuredOrder: { not: null } },
+    select: { featuredOrder: true },
   });
-  const usedSlots = new Set(featured.map((user) => user.instructorFeaturedOrder).filter(Boolean));
+  const usedSlots = new Set(featured.map((prof) => prof.featuredOrder).filter(Boolean));
   const slot = [1, 2, 3, 4].find((value) => !usedSlots.has(value));
 
   if (!slot) {
