@@ -40,7 +40,7 @@ interface SidebarProps {
 }
 
 function isActivePath(pathname: string, href: string) {
-  if (href === '/dashboard' || href === '/dashboard/admin' || href === '/dashboard/instructor') {
+  if (href === '/student' || href === '/instructor' || href === '/admin' || href === '/dashboard' || href === '/dashboard/admin' || href === '/dashboard/instructor') {
     return pathname === href;
   }
   return pathname === href || pathname.startsWith(`${href}/`);

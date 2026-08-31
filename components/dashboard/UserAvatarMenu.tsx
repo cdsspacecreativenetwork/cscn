@@ -20,6 +20,8 @@ import {
 import { generateTapbackAvatar } from '@/lib/avatar';
 import Button from '@/components/ui/Button';
 
+import { setLastWorkspace, WorkspaceType } from '@/actions/workspace';
+
 type UserAvatarMenuProps = {
   showUserText?: boolean;
   align?: 'left' | 'right';
@@ -94,26 +96,29 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
   const isAdminRole = sessionUser?.role === 'ADMIN' || sessionUser?.role === 'SUPER_ADMIN';
 
   // Exclude current active workspace from the Workspace switcher options
-  const otherWorkspaces = [];
+  const otherWorkspaces: { href: string; label: string; Icon: any; workspace: WorkspaceType }[] = [];
   if (!currentIsStudent) {
     otherWorkspaces.push({
-      href: '/dashboard/cohorts',
+      href: '/student',
       label: 'Student Dashboard',
       Icon: GraduationCap,
+      workspace: 'student',
     });
   }
   if (isInstructorRole && !currentIsInstructor) {
     otherWorkspaces.push({
-      href: '/dashboard/instructor',
+      href: '/instructor',
       label: 'Instructor Dashboard',
       Icon: BookPlus,
+      workspace: 'instructor',
     });
   }
   if (isAdminRole && !currentIsAdmin) {
     otherWorkspaces.push({
-      href: '/dashboard/admin',
+      href: '/admin',
       label: 'Admin Dashboard',
       Icon: ShieldCheck,
+      workspace: 'admin',
     });
   }
 
@@ -218,12 +223,15 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
 
           {isAuthenticated && otherWorkspaces.length > 0 && (
             <div className="mt-2 space-y-1 border-t border-[#E3E8F4] pt-2">
-              <p className="px-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#9CA3AF]">Workspace</p>
-              {otherWorkspaces.map(({ href, label, Icon }) => (
+              {/* <p className="px-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#9CA3AF]">Workspace</p> */}
+              {otherWorkspaces.map(({ href, label, Icon, workspace }) => (
                 <Link
                   key={href}
                   href={href}
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    setIsOpen(false);
+                    setLastWorkspace(workspace);
+                  }}
                   className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#040B37] transition hover:bg-[#F4F6FB]"
                 >
                   <div className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-[#EEF3FF]">
