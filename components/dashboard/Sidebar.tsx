@@ -80,6 +80,7 @@ const adminOperationItems: NavItem[] = [
   { name: 'Instructors', href: '/dashboard/admin/instructors', Icon: UserCheck, permissions: ['canManageInstructors', 'canVerifyInstructors'] },
   { name: 'Invites', href: '/dashboard/admin/invites', Icon: Link2, permissions: ['canManageInvites', 'canManageUsers'] },
   { name: 'Platform Events', href: '/dashboard/admin/platform-events', Icon: CalendarDays, permissions: ['canManageCourses', 'canManageInstructors', 'canManageSettings'] },
+  { name: 'Cohorts', href: '/dashboard/admin/cohorts', Icon: GraduationCap, permissions: ['canManageCohorts'] },
   { name: 'Mentorship', href: '/dashboard/admin/mentorship', Icon: Handshake, permissions: ['canManageInstructors', 'canVerifyInstructors', 'canManageBilling'] },
   { name: 'Community & Career', href: '/dashboard/admin/community-career', Icon: UsersRound, permissions: ['canManageMarketing', 'canManageLearners', 'canManageSettings'] },
   { name: 'Organizations', href: '/dashboard/admin/organizations', Icon: Building2, permissions: ['canManageBilling', 'canManageUsers', 'canViewAnalytics'] },
@@ -112,6 +113,7 @@ const adminAccountItems: NavItem[] = [
 const instructorItems: NavItem[] = [
   { name: 'Overview', href: '/dashboard', Icon: LayoutDashboard },
   { name: 'Courses', href: '/dashboard/instructor/courses', Icon: BookPlus },
+  { name: 'Cohorts', href: '/dashboard/instructor/cohorts', Icon: GraduationCap },
   { name: 'Live Sessions', href: '/dashboard/instructor/live-sessions', Icon: CalendarDays },
   { name: 'Mentorship', href: '/dashboard/instructor/mentorship', Icon: GraduationCap },
   { name: 'Earnings', href: '/dashboard/instructor/earnings', Icon: CreditCard },

@@ -221,6 +221,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                                     canVerifyInstructors: user.canVerifyInstructors ?? false,
                                     canManageInvites: user.canManageInvites ?? false,
                                     canManageAnnouncements: user.canManageAnnouncements ?? false,
+                                    canManageCohorts: user.canManageCohorts ?? false,
                                     canManageBilling: user.canManageBilling ?? false,
                                     canManageMarketing: user.canManageMarketing ?? false,
                                     canManagePermissions: user.canManagePermissions ?? false,

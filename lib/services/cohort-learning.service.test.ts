@@ -4,13 +4,22 @@ const mocks = vi.hoisted(() => ({
   membershipFindFirst: vi.fn(),
   announcementFindMany: vi.fn(),
   scheduleFindMany: vi.fn(),
+  attendanceFindMany: vi.fn(),
+  quizAttemptFindMany: vi.fn(),
+  peerReviewFindMany: vi.fn(),
+  rosterFindMany: vi.fn(),
+  communityFindMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
-    cohortMembership: { findFirst: mocks.membershipFindFirst, findMany: vi.fn() },
+    cohortMembership: { findFirst: mocks.membershipFindFirst, findMany: mocks.rosterFindMany },
     announcement: { findMany: mocks.announcementFindMany },
     scheduleEvent: { findMany: mocks.scheduleFindMany },
+    scheduleEventAttendee: { findMany: mocks.attendanceFindMany },
+    quizAttempt: { findMany: mocks.quizAttemptFindMany },
+    peerReviewAssignment: { findMany: mocks.peerReviewFindMany },
+    communitySpace: { findMany: mocks.communityFindMany },
   },
 }));
 
@@ -25,6 +34,11 @@ describe("cohort learning service", () => {
     vi.clearAllMocks();
     mocks.announcementFindMany.mockResolvedValue([]);
     mocks.scheduleFindMany.mockResolvedValue([]);
+    mocks.attendanceFindMany.mockResolvedValue([]);
+    mocks.quizAttemptFindMany.mockResolvedValue([]);
+    mocks.peerReviewFindMany.mockResolvedValue([]);
+    mocks.rosterFindMany.mockResolvedValue([]);
+    mocks.communityFindMany.mockResolvedValue([]);
   });
 
   it("does not expose a cohort dashboard without active membership", async () => {
@@ -51,8 +65,11 @@ describe("cohort learning service", () => {
         scheduleSummary: "Weekly",
         weeklySchedule: [],
         graduationRules: [],
+        completionPolicy: null,
+        projects: [],
         leadInstructor: null,
         program: {
+          id: "program-1",
           title: "Program",
           shortDescription: "Description",
           estimatedDurationWeeks: 8,

@@ -13,6 +13,7 @@ const optionalHttpUrl = z.string().trim().max(500).refine((value) => {
 export const projectDraftSchema = z.object({
   title: z.string().trim().max(140),
   summary: z.string().trim().max(5000),
+  submissionText: z.string().trim().max(12000).default(""),
   artifactUrl: optionalHttpUrl,
   repositoryUrl: optionalHttpUrl,
   demoUrl: optionalHttpUrl,
@@ -23,12 +24,12 @@ export const projectDraftSchema = z.object({
 export const projectSubmissionSchema = projectDraftSchema.extend({
   title: z.string().trim().min(5, "Add a project title.").max(140),
   summary: z.string().trim().min(80, "Explain the problem, process, decisions, and outcome in at least 80 characters.").max(5000),
-}).refine((value) => Boolean(value.artifactUrl || value.repositoryUrl || value.demoUrl), {
-  message: "Add at least one artifact, repository, or demo URL.",
+}).refine((value) => Boolean(value.submissionText || value.artifactUrl || value.repositoryUrl || value.demoUrl), {
+  message: "Add a written response or at least one artifact, repository, or demo URL.",
   path: ["artifactUrl"],
 });
 
-export type ProjectSubmissionInput = z.infer<typeof projectSubmissionSchema>;
+export type ProjectSubmissionInput = z.input<typeof projectSubmissionSchema>;
 
 export function canEditProjectSubmission(status?: string | null) {
   return !status || status === "DRAFT" || status === "CHANGES_REQUESTED";

@@ -72,6 +72,12 @@ const PERMISSION_CONFIG: {
     group: "Operations",
   },
   {
+    key: "canManageCohorts",
+    label: "Manage cohorts",
+    description: "Create cohorts and control admissions, staff, schedules, assessments, and lifecycle",
+    group: "Operations",
+  },
+  {
     key: "canManageBilling",
     label: "Manage Billing",
     description: "View and manage subscription plans and payments",
