@@ -21,13 +21,13 @@ export default async function CohortProjectPage({ params }: Props) {
   const project = await db.cohortProject.findFirst({
     where: { id: projectId, status: "PUBLISHED", cohort: { slug, memberships: { some: { userId: session.user.id, role: "LEARNER", status: { in: ["ACTIVE", "COMPLETED"] } } } } },
     select: {
-      id: true, title: true, brief: true, deliverables: true, dueAt: true, showcaseEligible: true, credentialTitle: true,
+      id: true, title: true, brief: true, deliverables: true, dueAt: true, releaseAt: true, assignmentType: true, latePolicy: true, showcaseEligible: true, credentialTitle: true,
       cohort: { select: { title: true, program: { select: { title: true } } } },
       rubricCriteria: { orderBy: { position: "asc" }, select: { id: true, title: true, description: true, maxScore: true } },
       submissions: {
         where: { userId: session.user.id }, take: 1,
         select: {
-          id: true, status: true, title: true, summary: true, artifactUrl: true, repositoryUrl: true, demoUrl: true, coverImageUrl: true, showcaseConsent: true, currentVersion: true, submittedAt: true,
+          id: true, status: true, title: true, summary: true, submissionText: true, isLate: true, artifactUrl: true, repositoryUrl: true, demoUrl: true, coverImageUrl: true, showcaseConsent: true, currentVersion: true, submittedAt: true,
           versions: { orderBy: { version: "desc" }, select: { id: true, version: true, submittedAt: true } },
           reviews: { orderBy: { createdAt: "desc" }, take: 1, select: { decision: true, overallNote: true, totalScore: true, maxScore: true, createdAt: true, scores: { include: { criterion: { select: { title: true, maxScore: true } } }, orderBy: { criterion: { position: "asc" } } } } },
           credential: { select: { verificationCode: true, title: true, status: true, issuedAt: true } },
@@ -43,6 +43,7 @@ export default async function CohortProjectPage({ params }: Props) {
   const initialData = {
     title: submission?.title ?? "",
     summary: submission?.summary ?? "",
+    submissionText: submission?.submissionText ?? "",
     artifactUrl: submission?.artifactUrl ?? "",
     repositoryUrl: submission?.repositoryUrl ?? "",
     demoUrl: submission?.demoUrl ?? "",

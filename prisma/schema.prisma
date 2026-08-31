@@ -71,6 +71,9 @@ model User {
   projectSubmissions              ProjectSubmission[]              @relation("ProjectSubmitter")
   reviewedProjectSubmissions      ProjectSubmission[]              @relation("ProjectSubmissionReviewer")
   projectSubmissionReviews        ProjectSubmissionReview[]        @relation("ProjectReviewAuthor")
+  peerReviewAssignments           PeerReviewAssignment[]           @relation("PeerReviewer")
+  peerReviewsReceived             PeerReviewAssignment[]           @relation("PeerReviewee")
+  peerReviewModerations           PeerReviewResponse[]             @relation("PeerReviewModerator")
   issuedCredentials               Credential[]
   communitySpacesCreated          CommunitySpace[]                 @relation("CommunitySpaceCreator")
   communityMemberships            CommunityMembership[]
@@ -694,6 +697,7 @@ model Cohort {
   currency                 String                           @default("NGN")
   applicationRequired      Boolean                          @default(true)
   graduationRules          Json
+  completionPolicy         Json?
   scheduleSummary          String
   weeklySchedule           Json?
   leadInstructorId         String?
@@ -1156,23 +1160,32 @@ model CohortMentorAssignment {
 // --- Applied projects, review, showcase, and credentials ---------------------
 
 model CohortProject {
-  id               String                   @id @default(cuid())
-  cohortId         String
-  createdById      String
-  title            String
-  slug             String
-  brief            String                   @db.Text
-  deliverables     Json
-  dueAt            DateTime?
-  status           CohortProjectStatus      @default(DRAFT)
-  showcaseEligible Boolean                  @default(true)
-  credentialTitle  String
-  cohort           Cohort                   @relation(fields: [cohortId], references: [id], onDelete: Cascade)
-  createdBy        User                     @relation("CohortProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  rubricCriteria   ProjectRubricCriterion[]
-  submissions      ProjectSubmission[]
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
+  id                        String                     @id @default(cuid())
+  cohortId                  String
+  createdById               String
+  title                     String
+  slug                      String
+  brief                     String                     @db.Text
+  deliverables              Json
+  dueAt                     DateTime?
+  releaseAt                 DateTime?
+  assignmentType            CohortAssignmentType       @default(PROJECT)
+  latePolicy                CohortAssignmentLatePolicy @default(MARK_LATE)
+  maxScore                  Int                        @default(100)
+  acceptedSubmissionFormats Json?
+  peerReviewEnabled         Boolean                    @default(false)
+  peerReviewsPerLearner     Int                        @default(2)
+  peerReviewDueAt           DateTime?
+  status                    CohortProjectStatus        @default(DRAFT)
+  showcaseEligible          Boolean                    @default(true)
+  credentialTitle           String
+  cohort                    Cohort                     @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  createdBy                 User                       @relation("CohortProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  rubricCriteria            ProjectRubricCriterion[]
+  submissions               ProjectSubmission[]
+  peerReviewAssignments     PeerReviewAssignment[]
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
 
   @@unique([cohortId, slug])
   @@index([cohortId, status, dueAt])
@@ -1188,6 +1201,7 @@ model ProjectRubricCriterion {
   position    Int
   project     CohortProject                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   scores      ProjectSubmissionCriterionScore[]
+  peerScores  PeerReviewCriterionScore[]
   createdAt   DateTime                          @default(now())
   updatedAt   DateTime                          @updatedAt
 
@@ -1196,33 +1210,37 @@ model ProjectRubricCriterion {
 }
 
 model ProjectSubmission {
-  id                  String                     @id @default(cuid())
-  projectId           String
-  userId              String
-  status              ProjectSubmissionStatus    @default(DRAFT)
-  title               String
-  summary             String                     @db.Text
-  artifactUrl         String?
-  repositoryUrl       String?
-  demoUrl             String?
-  coverImageUrl       String?
-  showcaseConsent     Boolean                    @default(false)
-  currentVersion      Int                        @default(0)
-  submittedAt         DateTime?
-  reviewedAt          DateTime?
-  reviewedById        String?
-  approvedAt          DateTime?
-  showcaseSlug        String?                    @unique
-  showcasePublishedAt DateTime?
-  project             CohortProject              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user                User                       @relation("ProjectSubmitter", fields: [userId], references: [id], onDelete: Cascade)
-  reviewedBy          User?                      @relation("ProjectSubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  versions            ProjectSubmissionVersion[]
-  reviews             ProjectSubmissionReview[]
-  credential          Credential?
-  mentorBookings      MentorBooking[]
-  createdAt           DateTime                   @default(now())
-  updatedAt           DateTime                   @updatedAt
+  id                    String                     @id @default(cuid())
+  projectId             String
+  userId                String
+  status                ProjectSubmissionStatus    @default(DRAFT)
+  title                 String
+  summary               String                     @db.Text
+  submissionText        String?                    @db.Text
+  attachments           Json?
+  isLate                Boolean                    @default(false)
+  artifactUrl           String?
+  repositoryUrl         String?
+  demoUrl               String?
+  coverImageUrl         String?
+  showcaseConsent       Boolean                    @default(false)
+  currentVersion        Int                        @default(0)
+  submittedAt           DateTime?
+  reviewedAt            DateTime?
+  reviewedById          String?
+  approvedAt            DateTime?
+  showcaseSlug          String?                    @unique
+  showcasePublishedAt   DateTime?
+  project               CohortProject              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user                  User                       @relation("ProjectSubmitter", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy            User?                      @relation("ProjectSubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  versions              ProjectSubmissionVersion[]
+  reviews               ProjectSubmissionReview[]
+  peerReviewAssignments PeerReviewAssignment[]
+  credential            Credential?
+  mentorBookings        MentorBooking[]
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
 
   @@unique([projectId, userId])
   @@index([projectId, status, submittedAt])
@@ -1231,18 +1249,20 @@ model ProjectSubmission {
 }
 
 model ProjectSubmissionVersion {
-  id            String            @id @default(cuid())
-  submissionId  String
-  version       Int
-  title         String
-  summary       String            @db.Text
-  artifactUrl   String?
-  repositoryUrl String?
-  demoUrl       String?
-  coverImageUrl String?
-  submittedAt   DateTime
-  submission    ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  createdAt     DateTime          @default(now())
+  id             String            @id @default(cuid())
+  submissionId   String
+  version        Int
+  title          String
+  summary        String            @db.Text
+  submissionText String?           @db.Text
+  attachments    Json?
+  artifactUrl    String?
+  repositoryUrl  String?
+  demoUrl        String?
+  coverImageUrl  String?
+  submittedAt    DateTime
+  submission     ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  createdAt      DateTime          @default(now())
 
   @@unique([submissionId, version])
   @@index([submissionId, submittedAt])
@@ -1279,6 +1299,65 @@ model ProjectSubmissionCriterionScore {
   @@index([criterionId])
 }
 
+model PeerReviewAssignment {
+  id           String              @id @default(cuid())
+  projectId    String
+  submissionId String
+  reviewerId   String
+  revieweeId   String
+  status       PeerReviewStatus    @default(ASSIGNED)
+  dueAt        DateTime?
+  assignedAt   DateTime            @default(now())
+  startedAt    DateTime?
+  submittedAt  DateTime?
+  excusedAt    DateTime?
+  releasedAt   DateTime?
+  project      CohortProject       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  submission   ProjectSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer     User                @relation("PeerReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewee     User                @relation("PeerReviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
+  response     PeerReviewResponse?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@unique([submissionId, reviewerId])
+  @@index([reviewerId, status, dueAt])
+  @@index([revieweeId, status])
+  @@index([projectId, status])
+}
+
+model PeerReviewResponse {
+  id             String                     @id @default(cuid())
+  assignmentId   String                     @unique
+  overallNote    String                     @db.Text
+  totalScore     Int
+  maxScore       Int
+  isHidden       Boolean                    @default(false)
+  moderationNote String?                    @db.Text
+  moderatedById  String?
+  moderatedAt    DateTime?
+  assignment     PeerReviewAssignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  moderatedBy    User?                      @relation("PeerReviewModerator", fields: [moderatedById], references: [id], onDelete: SetNull)
+  scores         PeerReviewCriterionScore[]
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@index([moderatedById])
+}
+
+model PeerReviewCriterionScore {
+  id          String                 @id @default(cuid())
+  responseId  String
+  criterionId String
+  score       Int
+  note        String?                @db.Text
+  response    PeerReviewResponse     @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  criterion   ProjectRubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Restrict)
+
+  @@unique([responseId, criterionId])
+  @@index([criterionId])
+}
+
 model Credential {
   id               String            @id @default(cuid())
   verificationCode String            @unique
@@ -1307,6 +1386,27 @@ enum CohortProjectStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+enum CohortAssignmentType {
+  PRACTICE
+  PROJECT
+  REFLECTION
+  CAPSTONE
+}
+
+enum CohortAssignmentLatePolicy {
+  ALLOW
+  MARK_LATE
+  BLOCK
+}
+
+enum PeerReviewStatus {
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  OVERDUE
+  EXCUSED
 }
 
 enum ProjectSubmissionStatus {
@@ -1358,6 +1458,7 @@ enum CohortStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  ARCHIVED
 }
 
 enum CohortApplicationStatus {

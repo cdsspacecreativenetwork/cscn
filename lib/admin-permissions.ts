@@ -8,6 +8,7 @@ export const ADMIN_PERMISSION_KEYS = [
   "canVerifyInstructors",
   "canManageInvites",
   "canManageAnnouncements",
+  "canManageCohorts",
   "canManageBilling",
   "canManageMarketing",
   "canManagePermissions",

@@ -32,6 +32,12 @@ const PRESETS = [
     permissions: ["Manage instructors", "Verify instructors"],
   },
   {
+    name: "Cohort Operator",
+    scope: "Learning",
+    description: "Creates cohorts and governs admissions, staff, schedules, assessment operations, and lifecycle.",
+    permissions: ["Manage cohorts", "Manage announcements"],
+  },
+  {
     name: "Finance Admin",
     scope: "Business",
     description: "Handles billing, refunds, payout requests, revenue snapshots, and payout operations.",

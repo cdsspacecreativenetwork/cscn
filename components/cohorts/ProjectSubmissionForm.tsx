@@ -8,7 +8,7 @@ import type { ProjectSubmissionInput } from "@/lib/project-submission";
 
 export function ProjectSubmissionForm({ projectId, initialData }: { projectId: string; initialData: ProjectSubmissionInput }) {
   const router = useRouter();
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState(() => ({ ...initialData, submissionText: initialData.submissionText ?? "" }));
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -34,6 +34,7 @@ export function ProjectSubmissionForm({ projectId, initialData }: { projectId: s
     <div className="space-y-5">
       <div><label className="text-xs font-black uppercase tracking-[0.11em] text-[#77839A]" htmlFor="project-title">Project title</label><input id="project-title" value={data.title} onChange={(event) => update("title", event.target.value)} maxLength={140} className={fieldClass} /></div>
       <div><label className="text-xs font-black uppercase tracking-[0.11em] text-[#77839A]" htmlFor="project-summary">Case-study summary</label><textarea id="project-summary" value={data.summary} onChange={(event) => update("summary", event.target.value)} rows={9} maxLength={5000} placeholder="Explain the problem, your process, key decisions, feedback incorporated, and outcome." className={fieldClass} /></div>
+      <div><label className="text-xs font-black uppercase tracking-[0.11em] text-[#77839A]" htmlFor="submission-text">Written response</label><textarea id="submission-text" value={data.submissionText} onChange={(event) => update("submissionText", event.target.value)} rows={6} maxLength={12000} placeholder="Add the written part of your assignment, reflection, or supporting context." className={fieldClass} /></div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div><label className="text-xs font-black uppercase tracking-[0.11em] text-[#77839A]" htmlFor="artifact-url">Primary artifact URL</label><input id="artifact-url" type="url" value={data.artifactUrl} onChange={(event) => update("artifactUrl", event.target.value)} placeholder="https://…" className={fieldClass} /></div>
         <div><label className="text-xs font-black uppercase tracking-[0.11em] text-[#77839A]" htmlFor="demo-url">Demo URL</label><input id="demo-url" type="url" value={data.demoUrl} onChange={(event) => update("demoUrl", event.target.value)} placeholder="https://…" className={fieldClass} /></div>
