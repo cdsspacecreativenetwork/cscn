@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, BriefcaseBusiness, Eye, EyeOff } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { markOpportunityAppliedAction, updateTalentProfileAction } from "@/actions/career";
 import { currentUser } from "@/lib/auth";
 import { getCareerHub } from "@/lib/services/career.service";

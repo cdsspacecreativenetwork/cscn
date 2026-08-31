@@ -227,3 +227,11 @@ export async function getStudioCourseAdmin(courseId: string) {
     },
   });
 }
+
+export async function getCourseAnalyticsAdmin(courseId: string) {
+  const { getCourseAnalytics } = await import("@/data/instructor");
+  return getCourseAnalytics(courseId, "admin", true);
+}
+
+export const adminToggleCoursePublish = toggleAdminCoursePublishStatus;
+export const getAllCoursesAdmin = getAdminCoursesConsole;

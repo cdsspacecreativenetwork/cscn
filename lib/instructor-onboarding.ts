@@ -99,3 +99,17 @@ export async function shouldRedirectInstructorToOnboarding(userId: string) {
   const status = await getInstructorOnboardingStatusByUserId(userId);
   return status.mustCompleteProfile;
 }
+
+export function getInstructorRoleTransitionData(role: string) {
+  if (role === "INSTRUCTOR") {
+    return {
+      instructorProfile: {
+        upsert: {
+          create: { isEnabled: true, verificationStatus: "VERIFIED", verifiedAt: new Date() },
+          update: { isEnabled: true, verificationStatus: "VERIFIED", verifiedAt: new Date() },
+        },
+      },
+    };
+  }
+  return {};
+}

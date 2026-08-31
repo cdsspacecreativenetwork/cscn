@@ -253,3 +253,5 @@ export async function getAdminDashboardOverview() {
     recentActivity,
   };
 }
+
+export const getAdminDashboardData = getAdminDashboardOverview;

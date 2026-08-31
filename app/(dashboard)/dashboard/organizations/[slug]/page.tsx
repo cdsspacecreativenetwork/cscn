@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BarChart3, Building2, CheckCircle2, FileText, GraduationCap, Mail, UsersRound } from "lucide-react";
 
 import { allocateOrganizationSeatAction, createOrganizationAssignmentAction, createOrganizationTeamAction, inviteOrganizationMemberAction, requestOrganizationSeatsAction } from "@/actions/organizations";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { formatOrganizationRole } from "@/lib/organizations";
