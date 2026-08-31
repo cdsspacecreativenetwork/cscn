@@ -25,6 +25,9 @@ export const RegisterSchema = z.object({
     message: "Last name is required",
   }),
   callbackUrl: z.string().optional(),
+  isInstructor: z.boolean().optional(),
+  intent: z.string().optional(),
+  role: z.string().optional(),
 });
 
 export const ResetSchema = z.object({
@@ -66,6 +69,7 @@ export const SettingsSchema = z.object({
   timezone: z.optional(z.string()),
   yearsExperience: z.number().int().min(0).max(80).optional(),
   publicProfileSlug: z.optional(z.string()),
+  publicProfileStatus: z.optional(z.enum(["DRAFT", "PUBLIC", "HIDDEN"])),
   websiteUrl: z.optional(z.string().url({ message: "Must be a valid URL" }).or(z.literal(""))),
   portfolioUrl: z.optional(z.string().url({ message: "Must be a valid URL" }).or(z.literal(""))),
   linkedinUrl: z.optional(z.string().url({ message: "Must be a valid URL" }).or(z.literal(""))),
@@ -78,6 +82,7 @@ export const SettingsSchema = z.object({
   telegramUrl: z.optional(z.string().url({ message: "Must be a valid URL" }).or(z.literal(""))),
   expertise: z.array(z.string()).optional(),
   learningFocus: z.optional(z.string()),
+  onboardingIntent: z.optional(z.string()),
   image: z.optional(z.string()),
   socials: z.array(z.object({
     platform: z.string(),

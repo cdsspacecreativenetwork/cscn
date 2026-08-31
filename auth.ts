@@ -32,14 +32,22 @@ export const {
 
         if (validatedFields.success) {
           const { email, password } = validatedFields.data;
-          const rateLimit = await enforceRateLimit("login", email, RATE_LIMITS.auth);
-          if (!rateLimit.allowed) return null;
+          const normalizedEmail = email.toLowerCase().trim();
+          const rateLimit = await enforceRateLimit("login", normalizedEmail, RATE_LIMITS.auth);
+          if (!rateLimit.allowed) {
+            console.warn(`[auth] Login rate limit exceeded for: ${normalizedEmail}`);
+            return null;
+          }
 
-          const user = await getUserByEmail(email);
-          if (!user || !user.password) return null;
+          const user = await getUserByEmail(normalizedEmail);
+          if (!user || !user.password) {
+            console.warn(`[auth] User not found or missing password for: ${normalizedEmail}`);
+            return null;
+          }
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
           if (passwordsMatch) return user;
+          console.warn(`[auth] Password mismatch for: ${normalizedEmail}`);
         }
 
         return null;
@@ -129,10 +137,10 @@ export const {
         token.role = existingUser.role;
         token.picture = existingUser.image;
         token.emailVerified = existingUser.emailVerified;
-        token.onboardingCohort = existingUser.onboardingCohort;
-        token.pioneerJoinedAt = existingUser.pioneerJoinedAt;
+        token.onboardingCohort = existingUser.learnerProfile?.onboardingCohort;
+        token.pioneerJoinedAt = existingUser.learnerProfile?.pioneerJoinedAt;
         for (const permission of ADMIN_PERMISSION_KEYS) {
-          token[permission] = existingUser[permission] ?? false;
+          token[permission] = existingUser.adminPermission?.[permission] ?? false;
         }
       }
 

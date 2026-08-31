@@ -18,7 +18,14 @@ export async function assignCohortMentorAction(formData: FormData) {
 
   const [cohort, mentor] = await Promise.all([
     db.cohort.findUnique({ where: { id: cohortId }, select: { id: true, title: true, slug: true } }),
-    db.user.findFirst({ where: { id: mentorId, mentorshipEligible: true, mentorshipEnabled: true, publicProfileStatus: "PUBLIC" }, select: { id: true, name: true, email: true } }),
+    db.user.findFirst({
+      where: {
+        id: mentorId,
+        mentorProfile: { isEligible: true, isEnabled: true },
+        profile: { publicProfileStatus: "PUBLIC" },
+      },
+      select: { id: true, name: true, email: true },
+    }),
   ]);
   if (!cohort) return { success: false as const, error: "Cohort not found." };
   if (!mentor) return { success: false as const, error: "Only approved, public mentors who are open for bookings can be assigned." };

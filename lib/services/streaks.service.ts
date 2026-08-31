@@ -19,11 +19,11 @@ export async function recordUserActivity(userId: string): Promise<{ newStreak: n
     });
 
     if (existingToday) {
-      const user = await db.user.findUnique({
-        where: { id: userId },
+      const learnerProfile = await db.learnerProfile.findUnique({
+        where: { userId },
         select: { currentStreak: true },
       });
-      return { newStreak: user?.currentStreak ?? 0, streakIncreased: false };
+      return { newStreak: learnerProfile?.currentStreak ?? 0, streakIncreased: false };
     }
 
     // 2. Log today's activity
@@ -48,24 +48,28 @@ export async function recordUserActivity(userId: string): Promise<{ newStreak: n
       },
     });
 
-    // 4. Fetch the user's current streaks to calculate the new counts
-    const user = await db.user.findUnique({
-      where: { id: userId },
+    // 4. Fetch the learner profile's current streaks to calculate the new counts
+    const learnerProfile = await db.learnerProfile.findUnique({
+      where: { userId },
       select: { currentStreak: true, longestStreak: true },
     });
 
-    if (!user) {
-      return { newStreak: 0, streakIncreased: false };
-    }
+    const currentStreak = learnerProfile?.currentStreak ?? 0;
+    const longestStreak = learnerProfile?.longestStreak ?? 0;
 
     // If yesterday was active, increment. If not, reset/start active streak back to 1.
-    const newStreak = existingYesterday ? user.currentStreak + 1 : 1;
-    const newLongest = Math.max(newStreak, user.longestStreak);
+    const newStreak = existingYesterday ? currentStreak + 1 : 1;
+    const newLongest = Math.max(newStreak, longestStreak);
 
-    // 5. Update user profile metrics
-    await db.user.update({
-      where: { id: userId },
-      data: {
+    // 5. Update learner profile metrics
+    await db.learnerProfile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        currentStreak: newStreak,
+        longestStreak: newLongest,
+      },
+      update: {
         currentStreak: newStreak,
         longestStreak: newLongest,
       },

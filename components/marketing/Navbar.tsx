@@ -17,10 +17,11 @@ const exploreLinks = [
 ];
 
 const navLinks = [
-  { name: 'Community', path: '/community' },
+  // { name: 'Teach on CSCN', path: '/teach' },
   { name: 'For Teams', path: '/teams' },
-  { name: 'For Instructors', path: '/instructors' },
+  { name: 'For Instructors', path: '/teach' },
   { name: 'Resources', path: '/resources' },
+  { name: 'Community', path: '/community' },
 ];
 
 export default function Navbar() {

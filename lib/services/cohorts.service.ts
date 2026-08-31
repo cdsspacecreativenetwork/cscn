@@ -20,7 +20,11 @@ export async function listUpcomingCohorts(limit?: number) {
         include: { school: { select: { name: true, slug: true } } },
       },
       leadInstructor: {
-        select: { name: true, headline: true, image: true, publicProfileSlug: true },
+        select: {
+          name: true,
+          image: true,
+          profile: { select: { headline: true, bio: true, publicProfileSlug: true } },
+        },
       },
     },
   });
@@ -49,7 +53,11 @@ export async function getPublicCohort(slug: string) {
         },
       },
       leadInstructor: {
-        select: { name: true, headline: true, image: true, bio: true, publicProfileSlug: true },
+        select: {
+          name: true,
+          image: true,
+          profile: { select: { headline: true, bio: true, publicProfileSlug: true } },
+        },
       },
     },
   });

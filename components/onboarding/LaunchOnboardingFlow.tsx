@@ -432,7 +432,7 @@ export default function LaunchOnboardingFlow({
           <Button
             type="button"
             variant="gradient"
-            size="lg"
+            size="default"
             rounded="full"
             loading={isPending}
             disabled={!canContinue || isPending}

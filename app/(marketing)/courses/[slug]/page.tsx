@@ -123,7 +123,8 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
 
   const instructorImage =
     course.instructor.image ?? generateTapbackAvatar(course.instructor.name ?? 'Instructor');
-  const instructorSlug = (instructor: { id: string; name: string | null; publicProfileSlug?: string | null }) =>
+  const instructorSlug = (instructor: { id: string; name: string | null; profile?: { publicProfileSlug?: string | null } | null; publicProfileSlug?: string | null }) =>
+    instructor.profile?.publicProfileSlug ||
     instructor.publicProfileSlug ||
     instructor.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') ||
     instructor.id;
@@ -132,13 +133,21 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
       id: course.instructor.id,
       name: course.instructor.name,
       image: course.instructor.image,
-      headline: course.instructor.headline,
-      publicProfileSlug: course.instructor.publicProfileSlug,
+      headline: course.instructor.profile?.headline,
+      publicProfileSlug: course.instructor.profile?.publicProfileSlug,
+      profile: course.instructor.profile,
     },
     ...('instructors' in course
       ? course.instructors
           .filter((record) => record.role !== 'TEACHING_ASSISTANT')
-          .map((record) => record.user)
+          .map((record) => ({
+            id: record.user.id,
+            name: record.user.name,
+            image: record.user.image,
+            headline: record.user.profile?.headline,
+            publicProfileSlug: record.user.profile?.publicProfileSlug,
+            profile: record.user.profile,
+          }))
       : []),
   ];
   const uniqueInstructors = Array.from(

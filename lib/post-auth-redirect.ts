@@ -7,13 +7,15 @@ export async function getPostAuthRedirect(userId: string) {
     where: { id: userId },
     select: {
       role: true,
-      learningFocus: true,
-      instructorProfileEnabled: true,
+      learnerProfile: { select: { learningFocus: true } },
+      instructorProfile: { select: { isEnabled: true } },
     },
   });
 
   const role = user?.role ?? "USER";
-  const isInstructor = role === "INSTRUCTOR" || user?.learningFocus === "INSTRUCTOR" || user?.instructorProfileEnabled === true;
+  const learningFocus = user?.learnerProfile?.learningFocus;
+  const instructorProfileEnabled = user?.instructorProfile?.isEnabled ?? false;
+  const isInstructor = role === "INSTRUCTOR" || learningFocus === "INSTRUCTOR" || instructorProfileEnabled === true;
 
   if (role === "ADMIN" || role === "SUPER_ADMIN") {
     return "/dashboard/admin";

@@ -51,10 +51,16 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
   }
 
   try {
+    const { resolveSmartPostLoginRedirect } = await import("@/actions/workspace");
+    const targetRedirect =
+      callbackUrl && callbackUrl !== DEFAULT_LOGIN_REDIRECT
+        ? getSafeRedirectPath(callbackUrl)
+        : await resolveSmartPostLoginRedirect(email);
+
     await signIn("credentials", {
       email,
       password,
-      redirectTo: getSafeRedirectPath(callbackUrl),
+      redirectTo: targetRedirect,
     });
     return { success: "Success" };
   } catch (error) {

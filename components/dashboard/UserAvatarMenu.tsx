@@ -3,18 +3,24 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { logout } from '@/actions/logout';
 import {
   BookOpen,
+  BookPlus,
   ChevronDown,
   Compass,
+  GraduationCap,
   LogIn,
   LogOut,
   Settings,
+  ShieldCheck,
 } from 'lucide-react';
 import { generateTapbackAvatar } from '@/lib/avatar';
 import Button from '@/components/ui/Button';
+
+import { setLastWorkspace, WorkspaceType } from '@/actions/workspace';
 
 type UserAvatarMenuProps = {
   showUserText?: boolean;
@@ -36,6 +42,7 @@ const roleLabels: Record<string, string> = {
 };
 
 export function UserAvatarMenu({ showUserText = true, align = 'right', user: userProp }: UserAvatarMenuProps) {
+  const pathname = usePathname();
   const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
@@ -79,6 +86,41 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
         { href: '/signin', label: 'Sign in', Icon: LogIn, strong: true },
         { href: '/courses', label: 'Explore Courses', Icon: Compass },
       ];
+
+  // Determine current active workspace context
+  const currentIsAdmin = pathname.startsWith('/dashboard/admin') || pathname.startsWith('/admin');
+  const currentIsInstructor = pathname.startsWith('/dashboard/instructor') || pathname.startsWith('/instructor');
+  const currentIsStudent = !currentIsAdmin && !currentIsInstructor;
+
+  const isInstructorRole = sessionUser?.role === 'INSTRUCTOR' || sessionUser?.role === 'ADMIN' || sessionUser?.role === 'SUPER_ADMIN';
+  const isAdminRole = sessionUser?.role === 'ADMIN' || sessionUser?.role === 'SUPER_ADMIN';
+
+  // Exclude current active workspace from the Workspace switcher options
+  const otherWorkspaces: { href: string; label: string; Icon: any; workspace: WorkspaceType }[] = [];
+  if (!currentIsStudent) {
+    otherWorkspaces.push({
+      href: '/student',
+      label: 'Student Dashboard',
+      Icon: GraduationCap,
+      workspace: 'student',
+    });
+  }
+  if (isInstructorRole && !currentIsInstructor) {
+    otherWorkspaces.push({
+      href: '/instructor',
+      label: 'Instructor Dashboard',
+      Icon: BookPlus,
+      workspace: 'instructor',
+    });
+  }
+  if (isAdminRole && !currentIsAdmin) {
+    otherWorkspaces.push({
+      href: '/admin',
+      label: 'Admin Dashboard',
+      Icon: ShieldCheck,
+      workspace: 'admin',
+    });
+  }
 
   return (
     <div ref={menuRef} className="relative">
@@ -178,6 +220,28 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
               </Link>
             ))}
           </div>
+
+          {isAuthenticated && otherWorkspaces.length > 0 && (
+            <div className="mt-2 space-y-1 border-t border-[#E3E8F4] pt-2">
+              {/* <p className="px-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#9CA3AF]">Workspace</p> */}
+              {otherWorkspaces.map(({ href, label, Icon, workspace }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => {
+                    setIsOpen(false);
+                    setLastWorkspace(workspace);
+                  }}
+                  className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#040B37] transition hover:bg-[#F4F6FB]"
+                >
+                  <div className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-[#EEF3FF]">
+                    <Icon size={14} className="text-[#1C4ED1]" />
+                  </div>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          )}
 
           {isAuthenticated && (
             <div className="mt-2 border-t border-[#E3E8F4] pt-2">

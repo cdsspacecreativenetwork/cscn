@@ -33,7 +33,24 @@ export default async function ProfilePage() {
     locationTimezoneOptions,
   ] = await Promise.all([
     db.user.findUnique({
-      where: { id: user.id }
+      where: { id: user.id },
+      include: {
+        profile: true,
+        instructorProfile: {
+          select: {
+            yearsExperience: true,
+            bio: true,
+            expertise: true,
+            isEnabled: true,
+            verificationStatus: true,
+            primaryExpertise: true,
+            secondaryExpertise: true,
+            disciplines: true,
+          },
+        },
+        learnerProfile: true,
+        instructorApplication: true,
+      },
     }),
     getInstructorOnboardingStatusByUserId(user.id),
     db.enrollment.count({
@@ -80,6 +97,31 @@ export default async function ProfilePage() {
     return redirect("/signin");
   }
 
+  const mergedUser = {
+    ...dbUser,
+    headline: dbUser.profile?.headline ?? null,
+    bio: dbUser.profile?.bio ?? dbUser.instructorProfile?.bio ?? null,
+    location: dbUser.profile?.location ?? null,
+    timezone: dbUser.profile?.timezone ?? "Africa/Lagos",
+    socials: dbUser.profile?.socials ?? null,
+    publicProfileSlug: dbUser.profile?.publicProfileSlug ?? null,
+    publicProfileStatus: dbUser.profile?.publicProfileStatus ?? "DRAFT",
+    websiteUrl: dbUser.profile?.websiteUrl ?? null,
+    portfolioUrl: dbUser.profile?.portfolioUrl ?? dbUser.instructorApplication?.portfolioUrl ?? null,
+    linkedinUrl: dbUser.profile?.linkedinUrl ?? null,
+    twitterUrl: dbUser.profile?.twitterUrl ?? null,
+    instagramUrl: dbUser.profile?.instagramUrl ?? null,
+    youtubeUrl: dbUser.profile?.youtubeUrl ?? null,
+    githubUrl: dbUser.profile?.githubUrl ?? null,
+    behanceUrl: dbUser.profile?.behanceUrl ?? null,
+    dribbbleUrl: dbUser.profile?.dribbbleUrl ?? null,
+    telegramUrl: dbUser.profile?.telegramUrl ?? null,
+    expertise: dbUser.profile?.expertise ?? dbUser.instructorProfile?.expertise ?? null,
+    yearsExperience: dbUser.instructorProfile?.yearsExperience ?? null,
+    learningFocus: dbUser.learnerProfile?.learningFocus ?? null,
+    onboardingIntent: dbUser.learnerProfile?.onboardingIntent ?? null,
+  };
+
   const roleLabel = 
     dbUser.role === 'USER' ? 'Student' : 
     dbUser.role === 'INSTRUCTOR' ? 'Instructor' : 
@@ -89,7 +131,7 @@ export default async function ProfilePage() {
   const displayName = dbUser.firstName || dbUser.lastName
     ? `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim()
     : dbUser.name || 'User';
-  const isInstructorProfile = dbUser.instructorProfileEnabled;
+  const isInstructorProfile = dbUser.instructorProfile?.isEnabled ?? false;
   const studentPublicProfileEligibility = getStudentPublicProfileEligibility(dbUser);
   const publicProfileMissingLabels = isInstructorProfile
     ? onboardingStatus.readiness.items
@@ -139,7 +181,7 @@ export default async function ProfilePage() {
       {/* Main Profile Card Container */}
       <div className="bg-white border border-[#E3E8F4] rounded-[24px] overflow-hidden shadow-sm flex flex-col">
         {/* Banner Section */}
-        <ProfileBanner user={dbUser} />
+        <ProfileBanner user={mergedUser} />
 
         {/* User Identity Section - Exactly under the pfp */}
         <div className="flex flex-col gap-8 px-5 pb-8 pt-[76px] sm:px-10 sm:pb-10 sm:pt-[68px] md:gap-10">
@@ -156,7 +198,7 @@ export default async function ProfilePage() {
               </div>
               <ProfileHeaderActions
                 role={dbUser.role}
-                instructorProfileEnabled={dbUser.instructorProfileEnabled}
+                instructorProfileEnabled={dbUser.instructorProfile?.isEnabled ?? false}
                 publicProfileUrl={publicProfileUrl}
                 publicProfileMissingLabels={publicProfileMissingLabels}
                 verificationStatus={onboardingStatus.verificationStatus}
@@ -164,7 +206,7 @@ export default async function ProfilePage() {
               />
             </div>
             <p className="max-w-[800px] text-sm font-normal leading-6 text-text-body">
-              {dbUser.bio || "No bio yet."}
+              {mergedUser.bio || "No bio yet."}
             </p>
           </div>
 
@@ -172,7 +214,7 @@ export default async function ProfilePage() {
           <ProfileStats items={profileStats} />
 
           {/* Detailed Form */}
-          <ProfileForm user={dbUser} locationTimezoneOptions={locationTimezoneOptions} />
+          <ProfileForm user={mergedUser} locationTimezoneOptions={locationTimezoneOptions} />
         </div>
       </div>
     </div>

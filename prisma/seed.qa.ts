@@ -345,22 +345,31 @@ async function main() {
     where: { slug: "preview-ai-workflows-october-2026" },
     select: { id: true, programId: true },
   });
+  const profileData = {
+    headline: "[Preview] Creative workflow mentor",
+    publicProfileSlug: "local-qa-workflow-mentor",
+    publicProfileStatus: "PUBLIC" as const,
+  };
+  const instructorProfileData = {
+    isEnabled: true,
+    verificationStatus: "VERIFIED" as const,
+    verifiedAt: new Date("2026-08-23T11:00:00.000Z"),
+  };
+  const mentorProfileData = {
+    isEligible: true,
+    isEnabled: true,
+    approvedAt: new Date("2026-08-23T11:30:00.000Z"),
+    isFree: true,
+    bio: "Local-only mentor profile for reviewing cohort project feedback and booking context.",
+    topics: ["Project feedback", "Workflow design", "Portfolio review"],
+    instructions: "Bring one specific decision or draft you want to improve. This is a local QA fixture, not a real mentor listing.",
+  };
   await db.user.update({
     where: { id: instructor.id },
     data: {
-      headline: "[Preview] Creative workflow mentor",
-      publicProfileSlug: "local-qa-workflow-mentor",
-      publicProfileStatus: "PUBLIC",
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: "VERIFIED",
-      instructorVerifiedAt: new Date("2026-08-23T11:00:00.000Z"),
-      mentorshipEligible: true,
-      mentorshipEnabled: true,
-      mentorshipApprovedAt: new Date("2026-08-23T11:30:00.000Z"),
-      mentorshipFree: true,
-      mentorshipBio: "Local-only mentor profile for reviewing cohort project feedback and booking context.",
-      mentorshipTopics: ["Project feedback", "Workflow design", "Portfolio review"],
-      mentorshipInstructions: "Bring one specific decision or draft you want to improve. This is a local QA fixture, not a real mentor listing.",
+      profile: { upsert: { create: profileData, update: profileData } },
+      instructorProfile: { upsert: { create: instructorProfileData, update: instructorProfileData } },
+      mentorProfile: { upsert: { create: mentorProfileData, update: mentorProfileData } },
     },
   });
   let mentorAvailability = await db.mentorAvailability.findFirst({ where: { mentorId: instructor.id, type: "WEEKLY", weekday: 2, startTime: "14:00", status: { not: "ARCHIVED" } } });

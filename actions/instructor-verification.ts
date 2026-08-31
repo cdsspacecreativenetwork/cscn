@@ -8,9 +8,9 @@ import { getCreatorReadinessByUserId } from "@/lib/trust-gates";
 import { hasAdminPermission } from "@/lib/admin-permissions";
 import { createAuditLog } from "@/data/audit-logs";
 
-function toPublicSlug(user: { publicProfileSlug: string | null; id: string; name: string | null }) {
+function toPublicSlug(user: { profile?: { publicProfileSlug?: string | null } | null; id: string; name: string | null }) {
   return (
-    user.publicProfileSlug ||
+    user.profile?.publicProfileSlug ||
     user.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
     user.id
   );
@@ -36,10 +36,26 @@ export async function activateInstructorProfileAction() {
   await db.user.update({
     where: { id: userId },
     data: {
-      instructorProfileEnabled: true,
-      publicProfileStatus: "PUBLIC",
-      instructorVerificationStatus: "VERIFIED",
-      instructorVerifiedAt: new Date(),
+      profile: {
+        upsert: {
+          create: { publicProfileStatus: "PUBLIC" },
+          update: { publicProfileStatus: "PUBLIC" },
+        },
+      },
+      instructorProfile: {
+        upsert: {
+          create: {
+            isEnabled: true,
+            verificationStatus: "VERIFIED",
+            verifiedAt: new Date(),
+          },
+          update: {
+            isEnabled: true,
+            verificationStatus: "VERIFIED",
+            verifiedAt: new Date(),
+          },
+        },
+      },
     },
   });
   const session = await auth();
@@ -68,17 +84,16 @@ export async function submitInstructorVerificationAction() {
     select: {
       id: true,
       name: true,
-      publicProfileSlug: true,
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: true,
+      profile: { select: { publicProfileSlug: true } },
+      instructorProfile: { select: { isEnabled: true, verificationStatus: true } },
     },
   });
 
-  if (!user?.instructorProfileEnabled) {
+  if (!user?.instructorProfile?.isEnabled) {
     return { error: "Activate your instructor profile first." };
   }
 
-  if (user.instructorVerificationStatus === "VERIFIED") {
+  if (user.instructorProfile.verificationStatus === "VERIFIED") {
     return { error: "Your instructor profile is already verified." };
   }
 
@@ -90,8 +105,18 @@ export async function submitInstructorVerificationAction() {
   await db.user.update({
     where: { id: userId },
     data: {
-      instructorVerificationStatus: "PENDING",
-      publicProfileStatus: "PUBLIC",
+      profile: {
+        upsert: {
+          create: { publicProfileStatus: "PUBLIC" },
+          update: { publicProfileStatus: "PUBLIC" },
+        },
+      },
+      instructorProfile: {
+        upsert: {
+          create: { verificationStatus: "PENDING" },
+          update: { verificationStatus: "PENDING" },
+        },
+      },
     },
   });
 
@@ -111,8 +136,11 @@ export async function approveInstructorVerificationAction(targetUserId: string) 
   }
   if (targetUserId === userId) return { error: "Another admin must verify your instructor profile." };
 
-  const target = await db.user.findUnique({ where: { id: targetUserId } });
-  if (!target?.instructorProfileEnabled) return { error: "Instructor profile is not active." };
+  const target = await db.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, name: true, profile: { select: { publicProfileSlug: true } }, instructorProfile: { select: { isEnabled: true } } },
+  });
+  if (!target?.instructorProfile?.isEnabled) return { error: "Instructor profile is not active." };
 
   const readiness = await getCreatorReadinessByUserId(targetUserId);
   if (!readiness.canSubmitForReview) {
@@ -122,9 +150,24 @@ export async function approveInstructorVerificationAction(targetUserId: string) 
   const updated = await db.user.update({
     where: { id: targetUserId },
     data: {
-      instructorVerificationStatus: "VERIFIED",
-      instructorVerifiedAt: new Date(),
-      publicProfileStatus: "PUBLIC",
+      profile: {
+        upsert: {
+          create: { publicProfileStatus: "PUBLIC" },
+          update: { publicProfileStatus: "PUBLIC" },
+        },
+      },
+      instructorProfile: {
+        upsert: {
+          create: {
+            verificationStatus: "VERIFIED",
+            verifiedAt: new Date(),
+          },
+          update: {
+            verificationStatus: "VERIFIED",
+            verifiedAt: new Date(),
+          },
+        },
+      },
     },
     select: { id: true, name: true, email: true },
   });
@@ -157,17 +200,29 @@ export async function rejectInstructorVerificationAction(targetUserId: string) {
 
   const target = await db.user.findUnique({
     where: { id: targetUserId },
-    select: { id: true, name: true, publicProfileSlug: true, instructorProfileEnabled: true },
+    select: { id: true, name: true, profile: { select: { publicProfileSlug: true } }, instructorProfile: { select: { isEnabled: true } } },
   });
-  if (!target?.instructorProfileEnabled) return { error: "Instructor profile is not active." };
+  if (!target?.instructorProfile?.isEnabled) return { error: "Instructor profile is not active." };
 
   const updated = await db.user.update({
     where: { id: targetUserId },
     data: {
-      instructorVerificationStatus: "REJECTED",
-      instructorVerifiedAt: null,
-      instructorFeatured: false,
-      instructorFeaturedOrder: null,
+      instructorProfile: {
+        upsert: {
+          create: {
+            verificationStatus: "REJECTED",
+            verifiedAt: null,
+            isFeatured: false,
+            featuredOrder: null,
+          },
+          update: {
+            verificationStatus: "REJECTED",
+            verifiedAt: null,
+            isFeatured: false,
+            featuredOrder: null,
+          },
+        },
+      },
     },
     select: { id: true, name: true, email: true },
   });
@@ -187,4 +242,52 @@ export async function rejectInstructorVerificationAction(targetUserId: string) {
   revalidatePath(`/instructor/${toPublicSlug(target)}`);
 
   return { success: "Instructor verification rejected." };
+}
+
+export async function boostInstructorApplicationAction(data: {
+  resumeUrl?: string;
+  boostNote?: string;
+  certificationLinks?: string[];
+}) {
+  const { userId } = await requireCurrentUser();
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true },
+  });
+
+  if (!user) return { error: "User not found." };
+
+  await db.instructorProfile.upsert({
+    where: { userId },
+    create: {
+      userId,
+      resumeUrl: data.resumeUrl || null,
+      boostNote: data.boostNote || null,
+      certificationLinks: data.certificationLinks || [],
+    },
+    update: {
+      resumeUrl: data.resumeUrl || undefined,
+      boostNote: data.boostNote || undefined,
+      certificationLinks: data.certificationLinks || undefined,
+    },
+  });
+
+  const session = await auth();
+  await createAuditLog({
+    actorId: userId,
+    actorName: session?.user?.name,
+    actorEmail: session?.user?.email,
+    action: "instructor.application_boosted",
+    entityType: "USER",
+    entityId: userId,
+    entityName: user.name ?? user.email,
+    metadata: { resumeUrl: data.resumeUrl, boostNote: data.boostNote },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard/admin/instructors");
+
+  return { success: "Your application details have been boosted for admin review!" };
 }

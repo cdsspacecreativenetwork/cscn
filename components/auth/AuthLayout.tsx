@@ -3,7 +3,6 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-
 import { ArrowLeft } from 'lucide-react';
 
 interface AuthLayoutProps {
@@ -42,99 +41,88 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   sidebarTitle,
   sidebarSubtitle,
   benefits = defaultBenefits,
-  showBackToHome = true
+  showBackToHome = true,
 }) => {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center font-inter lg:p-0">
-      {/* Centered Design Container - Adaptive Height (100vh up to 992px max on desktop) */}
-      <div className="w-full max-w-[1728px] relative flex flex-col lg:flex-row items-center justify-center min-h-screen lg:h-screen lg:max-h-[992px] p-4 sm:p-6 lg:p-4">
-
-        {/* Sidebar - Adaptive Growth (starts narrow at 1024px, reaches 49.3% design peak at 1728px) */}
-        <div 
-          className="hidden lg:block relative h-full lg:w-[50%] xl:w-[44%] 2xl:w-[49.3%] max-w-[852px] bg-[#1C4ED1] lg:rounded-4xl overflow-hidden z-20 shrink-0"
-        >
-          {/* Grid Pattern Overlay */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay">
-            <Image 
-              src="/assets/dashboard/signup/grid-pattern.svg" 
-              alt="" 
+    <div className="min-h-screen w-full bg-white flex items-center justify-center font-inter p-3 sm:p-5 lg:p-6">
+      {/* Symmetrical Design Container (Max 1680px, Adaptive Height) */}
+      <div className="w-full max-w-[1680px] flex flex-col lg:flex-row items-center justify-center min-h-[calc(100vh-2.5rem)] lg:h-[calc(100vh-3rem)] lg:max-h-[920px] gap-6 lg:gap-12">
+        
+        {/* Left Hero Sidebar Card (Figma Node #8732:4401 with /images/Side.svg) */}
+        <div className="hidden lg:flex relative h-full lg:w-[46%] xl:w-[44%] 2xl:w-[46%] max-w-[720px] rounded-[28px] xl:rounded-[36px] overflow-hidden z-20 shrink-0 flex-col shadow-xl border border-[#E3E8F4]/30">
+          {/* Exact Figma Background SVG (/images/Side.svg) */}
+          <div className="absolute inset-0 pointer-events-none z-0">
+            <Image
+              src="/images/Side.svg"
+              alt=""
               fill
-              className="object-cover"
-              sizes="50vw"
+              className="object-cover object-center select-none"
+              priority
               unoptimized
             />
           </div>
 
-          {/* Vector Gradient Glow */}
-          <div className="absolute inset-0 pointer-events-none opacity-80">
-            <Image 
-              src="/assets/dashboard/vector-4.svg" 
-              alt="" 
-              fill
-              className="object-contain scale-[1.6] translate-x-[10%] translate-y-[15%]"
-              sizes="50vw"
-              unoptimized
-            />
-          </div>
-
-          {/* Sidebar Content with Proportional Fluid Scaling */}
-          <div className="relative z-10 h-full flex flex-col p-[clamp(24px,5.78vw,100px)_clamp(32px,4.62vw,80px)]">
-            {/* Top: Square Logo - Precise 1728px Proportion */}
-            <div className="w-[clamp(64px,4.97vw,86px)] h-[clamp(62px,4.86vw,84px)] p-0 rounded-[4px] flex items-center justify-center mb-[clamp(32px,3.01vw,52px)]">
+          {/* Sidebar Content Layout - Aligned strictly to Figma x:80px (9.4%), y:100px (10.1%) */}
+          <div className="relative z-10 h-full flex flex-col justify-between pl-20 pr-22 pt-25 pb-32">
+            {/* Top Logo Badge - Direct Figma SVG rendering without extra wrapper border */}
+            <div className="w-[76px] 2xl:w-[86px] h-[74px] 2xl:h-[84px] shrink-0 mb-8 xl:mb-12">
               <Image
                 src="/assets/dashboard/signup/square-logo.svg"
                 alt="CSCN Logo"
                 width={86}
                 height={84}
-                className="object-contain w-full h-full"
+                className="w-full h-full object-contain"
+                priority
               />
             </div>
 
-            {/* Top-aligned Content - Precise 1728px Proportions */}
-            <div className="max-w-[667px] flex-1">
-              <h1 className="text-[clamp(22px,1.85vw,32px)] font-bold text-white leading-tight font-outfit mb-[clamp(8px,0.69vw,12px)]">
+            {/* Middle Main Copy (Figma Spec: 32px Bold / 16px Medium 70% opacity) */}
+            <div className="max-w-[560px] mb-auto">
+              <h1 className="text-2xl xl:text-[32px] font-bold text-white leading-tight font-jakarta mb-2.5 tracking-tight">
                 {sidebarTitle}
               </h1>
-              <p className="text-[clamp(14px,0.92vw,16px)] text-white/70 font-medium leading-relaxed max-w-[480px]">
+              <p className="text-sm xl:text-base text-white/70 font-medium leading-relaxed max-w-[460px] font-jakarta">
                 {sidebarSubtitle}
               </p>
             </div>
 
-            {/* Bottom: Benefits - Precise 1728px Proportions */}
-            <div className="space-y-[clamp(16px,1.38vw,24px)] mt-auto">
-              {benefits.map((benefit) => (
-                <div key={benefit.title} className="flex items-start gap-[clamp(12px,0.92vw,16px)]">
-                  <div className="w-[clamp(32px,2.31vw,40px)] h-[clamp(32px,2.31vw,40px)] rounded-md bg-white flex items-center justify-center flex-shrink-0">
-                    <Image src={benefit.iconSrc} alt="" width={24} height={24} className="w-1/2 h-1/2" />
+            {/* Bottom Benefits List (Figma Spec: 16px Medium Title / 12px Regular 70% opacity) */}
+            {benefits && benefits.length > 0 && (
+              <div className="space-y-6 mt-auto">
+                {benefits.map((benefit) => (
+                  <div key={benefit.title} className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-[6px] bg-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Image src={benefit.iconSrc} alt="" width={24} height={24} className="w-6 h-6 object-contain" />
+                    </div>
+                    <div className="flex flex-col">
+                      <h3 className="text-sm xl:text-[16px] font-medium text-white leading-tight font-jakarta">
+                        {benefit.title}
+                      </h3>
+                      <p className="text-[12px] text-white/70 font-normal leading-normal font-jakarta mt-0.5">
+                        {benefit.description}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-[clamp(14px,0.92vw,16px)] font-medium text-white leading-normal">
-                      {benefit.title}
-                    </h3>
-                    <p className="text-[clamp(11px,0.69vw,12px)] text-white/70 leading-normal">
-                      {benefit.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Form Section - Symmetrical 50/50 Split with Balanced Padding */}
-        <div className="flex-1 flex flex-col items-center lg:items-start lg:px-12 xl:px-[106px] pt-6 pb-16 lg:py-12 bg-white w-full h-auto lg:h-full lg:overflow-y-auto my-auto justify-center">
-          <div className="w-full max-w-[480px] xl:max-w-[631px]">
+        {/* Right Form Section (Figma Spec Node #8733:5094) */}
+        <div className="flex-1 flex flex-col items-center lg:items-start px-2 sm:px-6 lg:px-8 xl:px-12 w-full h-auto lg:h-full lg:overflow-y-auto my-auto justify-center">
+          <div className="w-full max-w-[480px] xl:max-w-[540px] my-auto py-4">
             {/* Mobile Logo */}
-            <div className="lg:hidden mb-8">
-              <Image src="/images/logo.svg" alt="CSCN Logo" width={120} height={34} />
+            <div className="lg:hidden mb-6">
+              <Image src="/images/logo.svg" alt="CSCN Logo" width={110} height={32} />
             </div>
 
-            <div className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="text-left">
-                <h2 className="text-[28px] xl:text-[32px] font-semibold text-[#040B37] leading-normal mb-2 font-outfit">
+                <h2 className="text-2xl lg:text-3xl xl:text-4xl font-semibold text-[#040B37] leading-tight mb-2 font-jakarta">
                   {title}
                 </h2>
-                <p className="text-[#4B5563] text-[15px] xl:text-[16px] font-medium tracking-[-0.16px]">
+                <p className="text-[#9CA3AF] text-sm sm:text-base font-medium tracking-tight font-jakarta">
                   {subtitle}
                 </p>
               </div>
@@ -142,9 +130,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               {showBackToHome && (
                 <Link
                   href="/"
-                  className="group flex items-center gap-2 px-5 py-2.5 bg-[#F4F6FB] border border-[#E3E8F4] rounded-full text-[#4B5563] text-[14px] font-medium hover:bg-white hover:border-[#1C4ED1] hover:text-[#1C4ED1] transition-all duration-300 shrink-0 self-start sm:self-center shadow-sm hover:shadow-md"
+                  className="group flex items-center gap-1.5 px-4 py-2 bg-[#F4F6FB] border border-[#E3E8F4] rounded-full text-[#4B5563] text-xs sm:text-sm font-medium hover:bg-white hover:border-[#1C4ED1] hover:text-[#1C4ED1] transition-all duration-200 shrink-0 shadow-xs"
                 >
-                  <ArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" />
+                  <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
                   <span>Back to home</span>
                 </Link>
               )}

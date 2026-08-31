@@ -35,30 +35,46 @@ export async function toggleInstructorMentorshipAction(instructorId: string, ena
     where: { id: instructorId },
     select: {
       id: true,
-      mentorshipEligible: true,
-      instructorProfileEnabled: true,
-      instructorVerificationStatus: true,
+      instructorProfile: {
+        select: {
+          isEnabled: true,
+          verificationStatus: true,
+        },
+      },
+      mentorProfile: {
+        select: {
+          isEligible: true,
+        },
+      },
     },
   });
 
-  if (!instructor?.instructorProfileEnabled) {
+  if (!instructor?.instructorProfile?.isEnabled) {
     return { error: "Instructor profile is not active." };
   }
 
-  if (enabled && instructor.instructorVerificationStatus !== "VERIFIED") {
+  if (enabled && instructor.instructorProfile.verificationStatus !== "VERIFIED") {
     return { error: "Only verified instructors can be approved for mentorship." };
   }
 
-  await db.user.update({
-    where: { id: instructorId },
-    data: {
-      mentorshipEligible: enabled,
-      mentorshipApprovedAt: enabled ? new Date() : null,
-      ...(enabled ? {} : { mentorshipEnabled: false }),
+  const wasEligible = instructor.mentorProfile?.isEligible ?? false;
+
+  await db.mentorProfile.upsert({
+    where: { userId: instructorId },
+    create: {
+      userId: instructorId,
+      isEligible: enabled,
+      approvedAt: enabled ? new Date() : null,
+      ...(enabled ? {} : { isEnabled: false }),
+    },
+    update: {
+      isEligible: enabled,
+      approvedAt: enabled ? new Date() : null,
+      ...(enabled ? {} : { isEnabled: false }),
     },
   });
 
-  if (enabled && !instructor.mentorshipEligible) {
+  if (enabled && !wasEligible) {
     await createNotification(
       instructorId,
       "SYSTEM",

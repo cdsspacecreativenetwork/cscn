@@ -35,8 +35,12 @@ export async function getLearnerInsights() {
           id: true,
           name: true,
           email: true,
-          onboardingCohort: true,
-          pioneerJoinedAt: true,
+          learnerProfile: {
+            select: {
+              onboardingCohort: true,
+              pioneerJoinedAt: true,
+            },
+          },
           createdAt: true,
         },
       },
@@ -57,7 +61,7 @@ export async function getLearnerInsights() {
 
   return {
     total: profiles.length,
-    pioneerProfiles: profiles.filter((profile) => profile.user.onboardingCohort).length,
+    pioneerProfiles: profiles.filter((profile) => profile.user.learnerProfile?.onboardingCohort).length,
     topInterestAreas: toBreakdown(interestAreas),
     skillLevels: toBreakdown(skillLevels),
     primaryGoals: toBreakdown(primaryGoals),
@@ -67,8 +71,8 @@ export async function getLearnerInsights() {
       userId: profile.userId,
       name: profile.user.name,
       email: profile.user.email,
-      onboardingCohort: profile.user.onboardingCohort,
-      pioneerJoinedAt: profile.user.pioneerJoinedAt,
+      onboardingCohort: profile.user.learnerProfile?.onboardingCohort ?? null,
+      pioneerJoinedAt: profile.user.learnerProfile?.pioneerJoinedAt ?? null,
       interestAreas: asStringArray(profile.interestAreas),
       skillLevel: profile.skillLevel,
       primaryGoal: profile.primaryGoal,
@@ -90,8 +94,12 @@ export async function getLearnerInsightExportRows() {
         select: {
           name: true,
           email: true,
-          onboardingCohort: true,
-          pioneerJoinedAt: true,
+          learnerProfile: {
+            select: {
+              onboardingCohort: true,
+              pioneerJoinedAt: true,
+            },
+          },
         },
       },
     },
@@ -100,8 +108,8 @@ export async function getLearnerInsightExportRows() {
   return profiles.map((profile) => ({
     name: profile.user.name ?? "",
     email: profile.user.email,
-    cohort: profile.user.onboardingCohort ?? "",
-    pioneerJoinedAt: profile.user.pioneerJoinedAt?.toISOString() ?? "",
+    cohort: profile.user.learnerProfile?.onboardingCohort ?? "",
+    pioneerJoinedAt: profile.user.learnerProfile?.pioneerJoinedAt?.toISOString() ?? "",
     interestAreas: asStringArray(profile.interestAreas).join("; "),
     skillLevel: profile.skillLevel,
     primaryGoal: profile.primaryGoal,

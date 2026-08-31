@@ -31,7 +31,7 @@ async function getAdminRecipients(audience: AdminReviewAudience) {
         { role: "SUPER_ADMIN" },
         {
           role: "ADMIN",
-          ...permissionWhere,
+          adminPermission: permissionWhere,
         },
       ],
     },

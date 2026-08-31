@@ -20,11 +20,11 @@ export async function createNotification(
   // Fetch user notification preferences
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { payoutDetails: true }
+    select: { payoutConfig: true }
   });
 
   if (user) {
-    const details = (user.payoutDetails as any) || {};
+    const details = (user.payoutConfig?.payoutDetails as any) || {};
     const prefs = details._notifications || {
       emailNotifications: true,
       pushNotifications: true,

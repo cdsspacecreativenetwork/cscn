@@ -46,11 +46,14 @@ export async function getAdminLearners(filters: AdminLearnersFilter = {}) {
         name: true,
         email: true,
         image: true,
-        headline: true,
         createdAt: true,
         updatedAt: true,
-        currentStreak: true,
-        longestStreak: true,
+        profile: {
+          select: { headline: true },
+        },
+        learnerProfile: {
+          select: { currentStreak: true, longestStreak: true },
+        },
         enrollments: {
           select: {
             id: true,
@@ -113,7 +116,7 @@ export async function getAdminLearners(filters: AdminLearnersFilter = {}) {
         name: learner.name,
         email: learner.email,
         image: learner.image,
-        headline: learner.headline,
+        headline: learner.profile?.headline,
         createdAt: learner.createdAt,
         lastActivity,
         enrollments: learner.enrollments.length,
@@ -122,8 +125,8 @@ export async function getAdminLearners(filters: AdminLearnersFilter = {}) {
         certificateReady,
         progressPercent,
         hoursWatched: Math.floor(secondsWatched / 3600),
-        currentStreak: learner.currentStreak,
-        longestStreak: learner.longestStreak,
+        currentStreak: learner.learnerProfile?.currentStreak ?? 0,
+        longestStreak: learner.learnerProfile?.longestStreak ?? 0,
         achievements: learner.achievements.length,
         recentCourse: learner.enrollments[0]?.course
           ? {

@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
+
 interface SettingsSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -8,9 +10,12 @@ interface SettingsSidebarProps {
 }
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onTabChange, userRole }) => {
+  const pathname = usePathname();
+  const isInstructorWorkspace = pathname.startsWith('/dashboard/instructor') || pathname.startsWith('/instructor');
+
   const tabs = [
     { id: 'Account', label: 'Account Settings' },
-    ...(userRole === 'INSTRUCTOR' || userRole === 'ADMIN' || userRole === 'SUPER_ADMIN'
+    ...(isInstructorWorkspace
       ? [{ id: 'Payouts', label: 'Instructor Payouts' }]
       : []),
     { id: 'Integrations', label: 'Integrations' },

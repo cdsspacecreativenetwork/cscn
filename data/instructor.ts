@@ -142,7 +142,7 @@ export async function getStudioCourse(courseId: string, userId: string, isAdmin:
       metaDescription: true,
       price: true,
       baseCurrency: true,
-      instructor: { select: { payoutDetails: true } },
+      instructor: { select: { payoutConfig: true } },
       pricingProposals: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -311,11 +311,11 @@ async function submitCoursePricingProposal(
     select: {
       price: true,
       baseCurrency: true,
-      instructor: { select: { payoutDetails: true } },
+      instructor: { select: { payoutConfig: true } },
     },
   });
   if (!course) throw new Error("Course not found");
-  const currency = getPreferredCurrency(course.instructor.payoutDetails, course.baseCurrency);
+  const currency = getPreferredCurrency(course.instructor.payoutConfig?.payoutDetails, course.baseCurrency);
 
   const currentPrice = decimalToNumber(course.price);
   if ((currentPrice ?? null) === (proposedPrice ?? null)) {
@@ -477,9 +477,9 @@ export async function createCourse(
 
   const owner = await db.user.findUnique({
     where: { id: userId },
-    select: { payoutDetails: true },
+    select: { payoutConfig: true },
   });
-  const baseCurrency = getPreferredCurrency(owner?.payoutDetails);
+  const baseCurrency = getPreferredCurrency(owner?.payoutConfig?.payoutDetails);
 
   const course = await db.course.create({
     data: {
@@ -855,7 +855,7 @@ export async function createCourseInvite(
   const [targetUser, course] = await Promise.all([
     db.user.findUnique({
       where: { email: normalizedEmail },
-      select: { id: true, role: true, instructorProfileEnabled: true },
+      select: { id: true, role: true, instructorProfile: { select: { isEnabled: true } } },
     }),
     db.course.findUnique({ where: { id: courseId }, select: { title: true } }),
   ]);
@@ -864,7 +864,7 @@ export async function createCourseInvite(
     targetUser?.role === "INSTRUCTOR" ||
     targetUser?.role === "ADMIN" ||
     targetUser?.role === "SUPER_ADMIN" ||
-    targetUser?.instructorProfileEnabled
+    Boolean(targetUser?.instructorProfile?.isEnabled)
       ? "CO_INSTRUCTOR"
       : "TEACHING_ASSISTANT";
 

@@ -25,13 +25,12 @@ export default async function AdminCoursesPage() {
     canManageMarketing?: boolean;
   };
 
-  const [rawCourses, categories] = await Promise.all([
-    getAllCoursesAdmin(adminId),
+  const [coursesData, categories] = await Promise.all([
+    getAllCoursesAdmin({}),
     getCategories(),
   ]);
 
-  const totalLessons = (c: (typeof rawCourses)[number]) =>
-    c.modules.reduce((s, m) => s + m._count.lessons, 0);
+  const rawCourses = coursesData.courses;
 
   const courses = rawCourses.map((c) => ({
     id: c.id,
@@ -47,27 +46,21 @@ export default async function AdminCoursesPage() {
     instructor: c.instructor,
     price: c.price ? Number(c.price) : null,
     baseCurrency: c.baseCurrency,
-    pricingProposal: c.pricingProposals[0]
+    pricingProposal: c.pendingProposal
       ? {
-          id: c.pricingProposals[0].id,
-          proposedPrice: c.pricingProposals[0].proposedPrice ? Number(c.pricingProposals[0].proposedPrice) : null,
-          currentPriceSnapshot: c.pricingProposals[0].currentPriceSnapshot ? Number(c.pricingProposals[0].currentPriceSnapshot) : null,
-          currency: c.pricingProposals[0].currency,
-          status: c.pricingProposals[0].status,
-          createdAt: c.pricingProposals[0].createdAt.toISOString(),
-          submittedBy: c.pricingProposals[0].submittedBy,
+          id: c.pendingProposal.id,
+          proposedPrice: c.pendingProposal.proposedPrice ? Number(c.pendingProposal.proposedPrice) : null,
+          currentPriceSnapshot: c.pendingProposal.currentPriceSnapshot ? Number(c.pendingProposal.currentPriceSnapshot) : null,
+          currency: c.pendingProposal.currency,
+          status: c.pendingProposal.status,
+          createdAt: c.pendingProposal.createdAt.toISOString(),
+          submittedBy: { name: c.instructor.name, email: "" },
         }
       : null,
-    revisions: c.revisions.map((revision) => ({
-      id: revision.id,
-      version: revision.version,
-      status: revision.status,
-      changeSummary: revision.changeSummary,
-      submittedAt: revision.submittedAt ? revision.submittedAt.toISOString() : null,
-    })),
-    category: c.category?.name ?? null,
+    revisions: [],
+    category: null,
     enrollments: c._count.enrollments,
-    lessons: totalLessons(c),
+    lessons: c._count.modules,
   }));
 
   return (

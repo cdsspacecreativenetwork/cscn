@@ -37,17 +37,17 @@ export async function requestInstructorPayoutAction() {
       name: true,
       email: true,
       role: true,
-      payoutSetup: true,
-      payoutMethod: true,
-      payoutDetails: true,
-      instructorProfileEnabled: true,
+      instructorProfile: { select: { isEnabled: true } },
+      payoutConfig: { select: { isSetup: true, payoutMethod: true, payoutDetails: true } },
     },
   });
   if (!dbUser) return { error: "User not found." };
-  if (!dbUser.instructorProfileEnabled && dbUser.role !== "INSTRUCTOR" && dbUser.role !== "ADMIN" && dbUser.role !== "SUPER_ADMIN") {
+  const isInstructor = dbUser.instructorProfile?.isEnabled || dbUser.role === "INSTRUCTOR" || dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN";
+  if (!isInstructor) {
     return { error: "Only instructors can request payouts." };
   }
-  if (!dbUser.payoutSetup || !dbUser.payoutMethod) {
+  const payoutConfig = dbUser.payoutConfig;
+  if (!payoutConfig?.isSetup || !payoutConfig.payoutMethod) {
     return { error: "Complete your payout settings before requesting a withdrawal." };
   }
 
@@ -70,8 +70,8 @@ export async function requestInstructorPayoutAction() {
       instructorId: user.id,
       amount,
       currency,
-      payoutMethod: dbUser.payoutMethod,
-      payoutDetails: dbUser.payoutDetails === null ? Prisma.JsonNull : dbUser.payoutDetails,
+      payoutMethod: payoutConfig.payoutMethod,
+      payoutDetails: payoutConfig.payoutDetails === null ? Prisma.JsonNull : (payoutConfig.payoutDetails as Prisma.InputJsonValue),
       status: "REQUESTED",
     },
     select: { id: true },
@@ -82,11 +82,11 @@ export async function requestInstructorPayoutAction() {
     data: { status: "REQUESTED", payoutRequestId: request.id },
   });
 
-  const recipientCode = getPaystackRecipientCode(dbUser.payoutDetails);
+  const recipientCode = getPaystackRecipientCode(payoutConfig.payoutDetails);
   let autoTransferStatus: "not_configured" | "processing" | "failed" = "not_configured";
   let payoutId: string | null = null;
 
-  if (dbUser.payoutMethod === "BANK" && currency === "NGN" && recipientCode) {
+  if (payoutConfig.payoutMethod === "BANK" && currency === "NGN" && recipientCode) {
     try {
       const transferReference = generatePaymentReference("cscn_payout");
       const transfer = await initiatePaystackTransfer({
@@ -147,7 +147,7 @@ export async function requestInstructorPayoutAction() {
     where: {
       OR: [
         { role: "SUPER_ADMIN" },
-        { role: "ADMIN", canManageBilling: true },
+        { role: "ADMIN", adminPermission: { canManageBilling: true } },
       ],
     },
     select: { id: true },

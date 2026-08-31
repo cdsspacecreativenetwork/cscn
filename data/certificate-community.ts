@@ -5,13 +5,13 @@ export type CertificateCommunityMember = {
   id: string;
   name: string;
   image: string;
-  role: "USER" | "INSTRUCTOR";
-  href: string;
+  profileUrl: string | null;
 };
 
 function slugify(value: string) {
   return value
     .toLowerCase()
+    .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 }
@@ -21,7 +21,7 @@ export async function getCertificateCommunityMembers(): Promise<CertificateCommu
     where: {
       OR: [
         { role: { in: ["USER", "INSTRUCTOR"] } },
-        { instructorProfileEnabled: true },
+        { instructorProfile: { isEnabled: true } },
       ],
     },
     orderBy: [{ image: "desc" }, { createdAt: "desc" }],
@@ -34,8 +34,8 @@ export async function getCertificateCommunityMembers(): Promise<CertificateCommu
       email: true,
       image: true,
       role: true,
-      instructorProfileEnabled: true,
-      publicProfileSlug: true,
+      profile: { select: { publicProfileSlug: true } },
+      instructorProfile: { select: { isEnabled: true } },
     },
   });
 
@@ -46,15 +46,15 @@ export async function getCertificateCommunityMembers(): Promise<CertificateCommu
       user.email.split("@")[0] ||
       "CSCN Member";
 
-    const shouldUseInstructorProfile = user.role === "INSTRUCTOR" || user.instructorProfileEnabled;
-    const instructorSlug = user.publicProfileSlug || slugify(name) || user.id;
+    const hasInstructorProfile = user.instructorProfile?.isEnabled ?? false;
+    const shouldUseInstructorProfile = user.role === "INSTRUCTOR" || hasInstructorProfile;
+    const instructorSlug = user.profile?.publicProfileSlug || slugify(name) || user.id;
 
     return {
       id: user.id,
       name,
       image: user.image || generateTapbackAvatar(name || user.id),
-      role: shouldUseInstructorProfile ? "INSTRUCTOR" : "USER",
-      href: shouldUseInstructorProfile ? `/instructor/${instructorSlug}` : `/student/${user.id}`,
+      profileUrl: shouldUseInstructorProfile ? `/instructor/${instructorSlug}` : null,
     };
   });
 }

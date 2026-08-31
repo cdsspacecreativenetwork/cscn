@@ -250,18 +250,30 @@ async function getValidatedBookingSlot({
   const mentor = await db.user.findFirst({
     where: {
       id: mentorId,
-      mentorshipEligible: true,
-      mentorshipEnabled: true,
-      publicProfileStatus: "PUBLIC",
+      mentorProfile: {
+        isEligible: true,
+        isEnabled: true,
+      },
+      profile: {
+        publicProfileStatus: "PUBLIC",
+      },
     },
     select: {
       id: true,
       name: true,
       email: true,
-      timezone: true,
-      mentorshipFree: true,
-      mentorshipPrice: true,
-      mentorshipCurrency: true,
+      profile: {
+        select: {
+          timezone: true,
+        },
+      },
+      mentorProfile: {
+        select: {
+          isFree: true,
+          price: true,
+          currency: true,
+        },
+      },
       mentorAvailabilities: {
         where: {
           id: parsed.availabilityId,
@@ -319,9 +331,10 @@ async function getValidatedBookingSlot({
 
   if (existing) return { error: "This mentorship slot has already been booked." as const };
 
-  const amount = mentor.mentorshipFree ? 0 : toNumber(mentor.mentorshipPrice);
-  const currency = (mentor.mentorshipCurrency || "NGN").toUpperCase();
-  if (!mentor.mentorshipFree && amount <= 0) {
+  const isFree = mentor.mentorProfile?.isFree ?? true;
+  const amount = isFree ? 0 : toNumber(mentor.mentorProfile?.price);
+  const currency = (mentor.mentorProfile?.currency || "NGN").toUpperCase();
+  if (!isFree && amount <= 0) {
     return { error: "This mentor has not set a valid paid session price yet." as const };
   }
 

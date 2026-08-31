@@ -16,70 +16,13 @@ model User {
   image          String?
   password       String?
   role           UserRole        @default(USER)
+  lastWorkspace  String?
   accounts       Account[]
   sessions       Session[]
   authenticators Authenticator[]
 
-  bio                            String?                      @db.Text
-  headline                       String?
-  location                       String?
-  timezone                       String?                      @default("Africa/Lagos")
-  socials                        Json?
-  publicProfileSlug              String?                      @unique
-  publicProfileStatus            PublicProfileStatus          @default(DRAFT)
-  websiteUrl                     String?
-  portfolioUrl                   String?
-  linkedinUrl                    String?
-  twitterUrl                     String?
-  instagramUrl                   String?
-  youtubeUrl                     String?
-  githubUrl                      String?
-  behanceUrl                     String?
-  dribbbleUrl                    String?
-  telegramUrl                    String?
-  expertise                      Json?
-  learningFocus                  String?
-  onboardingIntent               String?
-  yearsExperience                Int?
-  instructorProfileEnabled       Boolean                      @default(false)
-  instructorVerificationStatus   InstructorVerificationStatus @default(NOT_STARTED)
-  instructorVerifiedAt           DateTime?
-  instructorFeatured             Boolean                      @default(false)
-  instructorFeaturedOrder        Int?
-  instructorApplication          InstructorApplication?       @relation("InstructorApplicationApplicant")
-  instructorApplicationsReviewed InstructorApplication[]      @relation("InstructorApplicationReviewer")
-  mentorshipEligible             Boolean                      @default(false)
-  mentorshipEnabled              Boolean                      @default(false)
-  mentorshipApprovedAt           DateTime?
-  mentorshipPrice                Decimal?                     @db.Decimal(10, 2)
-  mentorshipCurrency             String                       @default("NGN")
-  mentorshipFree                 Boolean                      @default(true)
-  mentorshipBio                  String?                      @db.Text
-  mentorshipTopics               Json?
-  mentorshipInstructions         String?                      @db.Text
-
-  // Admin permission scopes — only relevant when role == ADMIN
-  // SUPER_ADMIN implicitly has all permissions
-  canManageUsers         Boolean @default(false)
-  canManageCourses       Boolean @default(false)
-  canReviewCourses       Boolean @default(false)
-  canPublishCourses      Boolean @default(false)
-  canManageLearners      Boolean @default(false)
-  canManageInstructors   Boolean @default(false)
-  canVerifyInstructors   Boolean @default(false)
-  canManageInvites       Boolean @default(false)
-  canManageAnnouncements Boolean @default(false)
-  canManageCohorts       Boolean @default(false)
-  canManageBilling       Boolean @default(false)
-  canManageMarketing     Boolean @default(false)
-  canManagePermissions   Boolean @default(false)
-  canViewAuditLogs       Boolean @default(false)
-  canManageSettings      Boolean @default(false)
-  canViewAnalytics       Boolean @default(false)
-
-  marketingConsent Boolean   @default(false)
-  onboardingCohort String?
-  pioneerJoinedAt  DateTime?
+  instructorApplication        InstructorApplication?       @relation("InstructorApplicationApplicant")
+  instructorApplicationsReviewed InstructorApplication[]    @relation("InstructorApplicationReviewer")
 
   // Course relations
   taughtCourses                   Course[]                         @relation("InstructorCourses")
@@ -153,29 +96,21 @@ model User {
   examAttempts                    ExamAttempt[]
   pricingProposals                CoursePricingProposal[]          @relation("PricingProposalSubmitter")
   reviewedPricingProposals        CoursePricingProposal[]          @relation("PricingProposalReviewer")
-  // Streak & Gamification relations
-  currentStreak                   Int                              @default(0)
-  longestStreak                   Int                              @default(0)
   achievements                    UserAchievement[]
   questProgress                   UserQuestProgress[]
   leaderboardRecord               LeaderboardCache?
 
-  // Payout Configuration
-  payoutSetup   Boolean @default(false)
-  payoutMethod  String?
-  payoutDetails Json?
+  // Modular Extension Relations
+  profile                         Profile?
+  learnerProfile                  LearnerProfile?
+  instructorProfile               InstructorProfile?
+  mentorProfile                   MentorProfile?
+  adminPermission                 AdminPermission?
+  userSecurity                    UserSecurity?
+  payoutConfig                    PayoutConfig?
 
-  // Security (2FA)
-  twoFactorEnabled Boolean @default(false)
-  twoFactorSecret  String?
-
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([publicProfileStatus])
-  @@index([instructorProfileEnabled, instructorVerificationStatus])
-  @@index([instructorFeatured, instructorFeaturedOrder])
-  @@index([onboardingCohort])
 }
 
 model Account {
@@ -230,6 +165,165 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
+}
+
+model Profile {
+  id                  String              @id @default(cuid())
+  userId              String              @unique
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bio                 String?             @db.Text
+  headline            String?
+  location            String?
+  gender              String?
+  timezone            String?             @default("Africa/Lagos")
+  socials             Json?
+  publicProfileSlug   String?             @unique
+  publicProfileStatus PublicProfileStatus @default(DRAFT)
+  websiteUrl          String?
+  portfolioUrl        String?
+  linkedinUrl         String?
+  twitterUrl          String?
+  instagramUrl        String?
+  youtubeUrl          String?
+  githubUrl           String?
+  behanceUrl          String?
+  dribbbleUrl         String?
+  telegramUrl         String?
+  expertise           Json?
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([publicProfileStatus])
+  @@index([publicProfileSlug])
+}
+
+model LearnerProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  learningFocus    String?
+  onboardingIntent String?
+  onboardingCohort String?
+  pioneerJoinedAt  DateTime?
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([onboardingCohort])
+}
+
+model InstructorProfile {
+  id                   String                       @id @default(cuid())
+  userId               String                       @unique
+  user                 User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  isEnabled            Boolean                      @default(false)
+  verificationStatus   InstructorVerificationStatus @default(NOT_STARTED)
+  verifiedAt           DateTime?
+  isFeatured           Boolean                      @default(false)
+  featuredOrder        Int?
+  yearsExperience      Int?
+  company              String?
+  jobTitle             String?
+  primaryExpertise     String?
+  secondaryExpertise   String?
+  industrySector       String?
+  disciplines          String[]
+  tools                String[]
+  teachingExperience   String?
+  videoReadiness       String?
+  audienceSize         String?
+  gender               String?
+  resumeUrl            String?
+  boostNote            String?                      @db.Text
+  certificationLinks   Json?
+  expertise            Json?
+  bio                  String?                      @db.Text
+
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+
+  @@index([isEnabled, verificationStatus])
+  @@index([isFeatured, featuredOrder])
+}
+
+model MentorProfile {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  isEligible   Boolean   @default(false)
+  isEnabled    Boolean   @default(false)
+  approvedAt   DateTime?
+  price        Decimal?  @db.Decimal(10, 2)
+  currency     String    @default("NGN")
+  isFree       Boolean   @default(true)
+  bio          String?   @db.Text
+  topics       Json?
+  instructions String?   @db.Text
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model AdminPermission {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  canManageUsers         Boolean  @default(false)
+  canManageCourses       Boolean  @default(false)
+  canReviewCourses       Boolean  @default(false)
+  canPublishCourses      Boolean  @default(false)
+  canManageLearners      Boolean  @default(false)
+  canManageInstructors   Boolean  @default(false)
+  canVerifyInstructors   Boolean  @default(false)
+  canManageInvites       Boolean  @default(false)
+  canManageAnnouncements Boolean  @default(false)
+  canManageBilling       Boolean  @default(false)
+  canManageMarketing     Boolean  @default(false)
+  canManagePermissions   Boolean  @default(false)
+  canViewAuditLogs       Boolean  @default(false)
+  canManageSettings      Boolean  @default(false)
+  canViewAnalytics       Boolean  @default(false)
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model UserSecurity {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorSecret  String?
+  backupCodes      Json?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model PayoutConfig {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  isSetup       Boolean  @default(false)
+  payoutMethod  String?
+  bankCode      String?
+  accountNumber String?
+  accountName   String?
+  isVerified    Boolean  @default(false)
+  payoutDetails Json?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 enum UserRole {

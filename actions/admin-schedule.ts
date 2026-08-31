@@ -60,7 +60,7 @@ async function notifyBillingAdmins(title: string, body: string, eventId: string)
     where: {
       OR: [
         { role: "SUPER_ADMIN" },
-        { role: "ADMIN", canManageBilling: true },
+        { role: "ADMIN", adminPermission: { canManageBilling: true } },
       ],
     },
     select: { id: true },

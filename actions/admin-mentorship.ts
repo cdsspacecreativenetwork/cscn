@@ -77,8 +77,12 @@ export async function approveMentorshipApplicationAction(formData: FormData) {
           id: true,
           name: true,
           email: true,
-          instructorProfileEnabled: true,
-          instructorVerificationStatus: true,
+          instructorProfile: {
+            select: {
+              isEnabled: true,
+              verificationStatus: true,
+            },
+          },
         },
       },
     },
@@ -88,10 +92,10 @@ export async function approveMentorshipApplicationAction(formData: FormData) {
   if (application.status !== "PENDING" && application.status !== "CHANGES_REQUESTED") {
     return { error: "This application is no longer pending review." };
   }
-  if (!application.instructor.instructorProfileEnabled) {
+  if (!application.instructor.instructorProfile?.isEnabled) {
     return { error: "Instructor profile is not active." };
   }
-  if (application.instructor.instructorVerificationStatus !== "VERIFIED") {
+  if (application.instructor.instructorProfile.verificationStatus !== "VERIFIED") {
     return { error: "Only verified instructors can be approved for mentorship." };
   }
 
@@ -102,20 +106,30 @@ export async function approveMentorshipApplicationAction(formData: FormData) {
     requireString(formData, "reviewNote") || null
   );
 
-  await db.$executeRaw`
-    UPDATE "User"
-    SET
-      "mentorshipEligible" = TRUE,
-      "mentorshipApprovedAt" = NOW(),
-      "mentorshipBio" = COALESCE(${application.pitch}, "mentorshipBio"),
-      "mentorshipTopics" = COALESCE(${JSON.stringify(application.topics ?? [])}::jsonb, "mentorshipTopics"),
-      "mentorshipInstructions" = COALESCE(${application.instructions}, "mentorshipInstructions"),
-      "mentorshipFree" = ${application.mentorshipFree},
-      "mentorshipCurrency" = ${application.proposedCurrency},
-      "mentorshipPrice" = ${application.mentorshipFree ? null : application.proposedPrice?.toString() ?? null}::numeric,
-      "updatedAt" = NOW()
-    WHERE "id" = ${application.instructorId}
-  `;
+  await db.mentorProfile.upsert({
+    where: { userId: application.instructorId },
+    create: {
+      userId: application.instructorId,
+      isEligible: true,
+      approvedAt: new Date(),
+      bio: application.pitch,
+      topics: application.topics ?? [],
+      instructions: application.instructions,
+      isFree: application.mentorshipFree,
+      currency: application.proposedCurrency,
+      price: application.mentorshipFree ? null : application.proposedPrice,
+    },
+    update: {
+      isEligible: true,
+      approvedAt: new Date(),
+      bio: application.pitch ?? undefined,
+      topics: application.topics ?? undefined,
+      instructions: application.instructions ?? undefined,
+      isFree: application.mentorshipFree,
+      currency: application.proposedCurrency,
+      price: application.mentorshipFree ? null : application.proposedPrice,
+    },
+  });
 
   await createNotification(
     application.instructorId,

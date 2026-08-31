@@ -37,15 +37,23 @@ export async function submitCourseReview(
 ) {
   const reviewer = await db.user.findUnique({
     where: { id: reviewerId },
-    select: { role: true, canReviewCourses: true, canPublishCourses: true },
+    select: {
+      role: true,
+      adminPermission: {
+        select: { canReviewCourses: true, canPublishCourses: true },
+      },
+    },
   });
   if (!reviewer || (reviewer.role !== "ADMIN" && reviewer.role !== "SUPER_ADMIN")) {
     throw new Error("Only admins can review courses.");
   }
-  if (status === "APPROVED" && reviewer.role !== "SUPER_ADMIN" && !reviewer.canPublishCourses) {
+  const canPublish = reviewer.role === "SUPER_ADMIN" || Boolean(reviewer.adminPermission?.canPublishCourses);
+  const canReview = reviewer.role === "SUPER_ADMIN" || Boolean(reviewer.adminPermission?.canReviewCourses);
+
+  if (status === "APPROVED" && !canPublish) {
     throw new Error("You do not have permission to publish courses.");
   }
-  if (status !== "APPROVED" && reviewer.role !== "SUPER_ADMIN" && !reviewer.canReviewCourses) {
+  if (status !== "APPROVED" && !canReview) {
     throw new Error("You do not have permission to review courses.");
   }
 
@@ -56,7 +64,7 @@ export async function submitCourseReview(
       instructorId: true,
       status: true,
       price: true,
-      instructor: { select: { payoutSetup: true, payoutDetails: true } },
+      instructor: { select: { payoutConfig: { select: { isSetup: true, payoutDetails: true } } } },
     },
   });
   if (!course) throw new Error("Course not found.");
@@ -105,8 +113,9 @@ export async function submitCourseReview(
     }
 
     if (course.price && Number(course.price) > 0) {
-      const payoutDetails = (course.instructor.payoutDetails as { payoutCountry?: unknown; preferredCurrency?: unknown }) || {};
-      if (!course.instructor.payoutSetup || !payoutDetails.payoutCountry || !payoutDetails.preferredCurrency) {
+      const payoutConfig = course.instructor.payoutConfig;
+      const payoutDetails = (payoutConfig?.payoutDetails as { payoutCountry?: unknown; preferredCurrency?: unknown }) || {};
+      if (!payoutConfig?.isSetup || !payoutDetails.payoutCountry || !payoutDetails.preferredCurrency) {
         throw new Error("Complete the instructor payout region and payout setup before publishing a paid course.");
       }
     }

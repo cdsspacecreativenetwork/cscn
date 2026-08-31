@@ -151,7 +151,7 @@ export async function getStudentScheduleEvents(userId: string) {
   const [viewer, events] = await Promise.all([
     db.user.findUnique({
       where: { id: userId },
-      select: { timezone: true },
+      select: { profile: { select: { timezone: true } } },
     }),
     db.scheduleEvent.findMany({
       where: {
@@ -285,7 +285,7 @@ export async function getStudentScheduleEvents(userId: string) {
   });
   const bookingsByEventId = new Map(bookings.map((booking) => [booking.scheduleEventId, booking]));
 
-  const viewerTimeZone = normalizeScheduleTimeZone(viewer?.timezone ?? DEFAULT_SCHEDULE_TIME_ZONE);
+  const viewerTimeZone = normalizeScheduleTimeZone(viewer?.profile?.timezone ?? DEFAULT_SCHEDULE_TIME_ZONE);
   return events.map((event) =>
     mapScheduleEvent(
       {

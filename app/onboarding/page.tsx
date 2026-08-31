@@ -45,15 +45,30 @@ export default async function OnboardingPage() {
     getLearnerInterestProfileByUserId(user.id),
     db.user.findUnique({
       where: { id: user.id },
-      select: { onboardingCohort: true },
+      select: {
+        learnerProfile: { select: { onboardingCohort: true } },
+        instructorProfile: { select: { isEnabled: true, verificationStatus: true } },
+      },
     }),
   ]);
+
+  // If user is an instructor or has completed student onboarding or platform is not in launch mode
+  const isAlreadyOnboarded =
+    Boolean(profile?.onboardingCompletedAt) ||
+    Boolean(learner?.instructorProfile?.isEnabled) ||
+    learner?.instructorProfile?.verificationStatus === 'PENDING' ||
+    learner?.instructorProfile?.verificationStatus === 'VERIFIED' ||
+    !marketingSettings.launchMode;
+
+  if (isAlreadyOnboarded) {
+    redirect('/dashboard');
+  }
 
   return (
     <LaunchOnboardingFlow
       userName={user.name}
       rolloutDate={marketingSettings.firstCourseRolloutDate}
-      isPioneer={Boolean(learner?.onboardingCohort)}
+      isPioneer={Boolean(learner?.learnerProfile?.onboardingCohort)}
       launchMode={marketingSettings.launchMode}
       initialProfile={{
         interestAreas: filterOptions(profile?.interestAreas, INTEREST_AREA_OPTIONS),

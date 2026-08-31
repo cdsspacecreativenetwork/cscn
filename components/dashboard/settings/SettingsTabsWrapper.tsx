@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SettingsSidebar } from './SettingsSidebar';
 import { AccountSettings } from './AccountSettings';
 import { InstructorPayoutSettings } from './InstructorPayoutSettings';
@@ -16,13 +17,43 @@ interface SettingsTabsWrapperProps {
   initialActiveTab?: string;
 }
 
+export function normalizeSettingsTab(tabParam?: string): string {
+  if (!tabParam) return 'Account';
+  const lower = tabParam.toLowerCase().trim();
+  if (lower === 'payout' || lower === 'payouts') return 'Payouts';
+  if (lower === 'account') return 'Account';
+  if (lower === 'integration' || lower === 'integrations') return 'Integrations';
+  if (lower === 'notification' || lower === 'notifications') return 'Notifications';
+  if (lower === 'appearance') return 'Appearance';
+  if (lower === 'language') return 'Language';
+  return 'Account';
+}
+
 export const SettingsTabsWrapper: React.FC<SettingsTabsWrapperProps> = ({
   initialUserData,
   initialIntegrations,
   initialActiveTab = 'Account',
 }) => {
-  const [activeTab, setActiveTab] = useState(initialActiveTab);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentTabParam = searchParams.get('tab');
+
+  const normalizedInitial = normalizeSettingsTab(currentTabParam || initialActiveTab);
+  const [activeTab, setActiveTab] = useState(normalizedInitial);
   const [userData, setUserData] = useState<any>(initialUserData);
+
+  useEffect(() => {
+    if (currentTabParam) {
+      const normalized = normalizeSettingsTab(currentTabParam);
+      setActiveTab(normalized);
+    }
+  }, [currentTabParam]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    const queryTab = tab.toLowerCase();
+    router.push(`/dashboard/settings?tab=${queryTab}`, { scroll: false });
+  };
 
   const fetchUserData = async () => {
     const { getUserSecurityDetails } = await import('@/actions/settings');
@@ -37,7 +68,7 @@ export const SettingsTabsWrapper: React.FC<SettingsTabsWrapperProps> = ({
       {/* Navigation Sidebar */}
       <SettingsSidebar 
         activeTab={activeTab} 
-        onTabChange={setActiveTab} 
+        onTabChange={handleTabChange} 
         userRole={userData?.role}
       />
 
@@ -50,17 +81,17 @@ export const SettingsTabsWrapper: React.FC<SettingsTabsWrapperProps> = ({
           />
         )}
         
-        {activeTab === 'Payouts' && userData && (
+        {activeTab === 'Payouts' && (
           <InstructorPayoutSettings 
-            initialMethod={userData.payoutMethod || ''}
-            initialDetails={userData.payoutDetails || {}}
+            initialMethod={userData?.payoutMethod || ''}
+            initialDetails={userData?.payoutDetails || {}}
             onSaveSuccess={fetchUserData}
           />
         )}
 
-        {activeTab === 'Notifications' && userData && (
+        {activeTab === 'Notifications' && (
           <NotificationSettings 
-            initialPreferences={userData.notifications}
+            initialPreferences={userData?.notifications}
             onUpdate={fetchUserData}
           />
         )}

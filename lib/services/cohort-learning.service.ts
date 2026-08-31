@@ -95,7 +95,13 @@ export async function getCohortLearningDashboard(userId: string, cohortSlug: str
               _count: { select: { rubricCriteria: true } },
             },
           },
-          leadInstructor: { select: { name: true, image: true, headline: true } },
+          leadInstructor: {
+            select: {
+              name: true,
+              image: true,
+              profile: { select: { headline: true } },
+            },
+          },
           program: {
             select: {
               id: true,

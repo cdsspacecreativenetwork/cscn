@@ -9,52 +9,54 @@ import { db } from "@/lib/db";
 import { normalizeScheduleTimeZone } from "@/lib/schedule-time";
 
 function requireString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
+  const val = formData.get(key);
+  return typeof val === "string" ? val.trim() : "";
 }
 
 function parseIntField(formData: FormData, key: string, fallback: number) {
-  const value = Number(requireString(formData, key));
-  return Number.isFinite(value) ? value : fallback;
+  const parsed = parseInt(requireString(formData, key), 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
 }
 
-function parseTopics(value: string) {
-  return value
-    .split(",")
-    .map((topic) => topic.trim())
-    .filter(Boolean)
-    .slice(0, 12);
-}
-
-function parseList(value: string) {
-  return value
+function parseTopics(val: string) {
+  return val
     .split(",")
     .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 12);
+    .filter(Boolean);
 }
 
-function validTime(value: string) {
-  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+function parseList(val: string) {
+  return val
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function validTime(val: string) {
+  return /^\d{2}:\d{2}$/.test(val);
 }
 
 async function requireMentorshipOwner() {
   const session = await auth();
   if (!session?.user?.id) redirect("/signin");
 
-  const profile = await db.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id: session.user.id },
     select: {
       id: true,
       role: true,
-      instructorProfileEnabled: true,
-      mentorshipEligible: true,
+      instructorProfile: { select: { isEnabled: true } },
+      mentorProfile: { select: { isEligible: true } },
     },
   });
 
-  if (!profile) redirect("/signin");
-  if (!["INSTRUCTOR", "ADMIN", "SUPER_ADMIN"].includes(profile.role)) redirect("/dashboard");
-  return profile;
+  if (!user) redirect("/signin");
+  if (!["INSTRUCTOR", "ADMIN", "SUPER_ADMIN"].includes(user.role)) redirect("/dashboard");
+  return {
+    id: user.id,
+    role: user.role,
+    mentorshipEligible: user.mentorProfile?.isEligible ?? false,
+  };
 }
 
 export async function updateMentorshipSettingsAction(formData: FormData) {
@@ -69,16 +71,26 @@ export async function updateMentorshipSettingsAction(formData: FormData) {
   const mentorshipCurrency = requireString(formData, "mentorshipCurrency") || "NGN";
   const mentorshipPriceValue = Number(requireString(formData, "mentorshipPrice"));
 
-  await db.user.update({
-    where: { id: profile.id },
-    data: {
-      mentorshipEnabled,
-      mentorshipFree,
-      mentorshipBio: mentorshipBio || null,
-      mentorshipInstructions: mentorshipInstructions || null,
-      mentorshipTopics,
-      mentorshipCurrency: mentorshipCurrency.toUpperCase().slice(0, 3),
-      mentorshipPrice: mentorshipFree || !Number.isFinite(mentorshipPriceValue) ? null : mentorshipPriceValue,
+  await db.mentorProfile.upsert({
+    where: { userId: profile.id },
+    create: {
+      userId: profile.id,
+      isEnabled: mentorshipEnabled,
+      isFree: mentorshipFree,
+      bio: mentorshipBio || null,
+      instructions: mentorshipInstructions || null,
+      topics: mentorshipTopics,
+      currency: mentorshipCurrency.toUpperCase().slice(0, 3),
+      price: mentorshipFree || !Number.isFinite(mentorshipPriceValue) ? null : mentorshipPriceValue,
+    },
+    update: {
+      isEnabled: mentorshipEnabled,
+      isFree: mentorshipFree,
+      bio: mentorshipBio || null,
+      instructions: mentorshipInstructions || null,
+      topics: mentorshipTopics,
+      currency: mentorshipCurrency.toUpperCase().slice(0, 3),
+      price: mentorshipFree || !Number.isFinite(mentorshipPriceValue) ? null : mentorshipPriceValue,
     },
   });
 
@@ -203,8 +215,8 @@ export async function submitMentorshipApplicationAction(formData: FormData) {
     where: {
       OR: [
         { role: "SUPER_ADMIN" },
-        { role: "ADMIN", canManageInstructors: true },
-        { role: "ADMIN", canVerifyInstructors: true },
+        { role: "ADMIN", adminPermission: { canManageInstructors: true } },
+        { role: "ADMIN", adminPermission: { canVerifyInstructors: true } },
       ],
     },
     select: { id: true },
