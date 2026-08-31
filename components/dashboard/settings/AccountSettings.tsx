@@ -18,7 +18,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { SettingsToggle } from './SettingsToggle';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import { signOut } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { ConnectedAccountsSettings } from './ConnectedAccountsSettings';

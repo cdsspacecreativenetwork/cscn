@@ -17,8 +17,8 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, iconSrc, icon 
       className="flex-1 items-start gap-[clamp(16px,1.62vw,28px)] px-[clamp(12px,1.39vw,24px)] [--card-spacing:clamp(12px,1.39vw,24px)]"
     >
       <div className="flex items-start justify-between w-full gap-2">
-        <p className="text-[clamp(13px,1vw,17px)] font-medium text-[#4B5563] leading-tight flex-1">{title}</p>
-        <div className="w-[clamp(32px,2.31vw,40px)] h-[clamp(32px,2.31vw,40px)] bg-[#F4F6FB] rounded-[10px] flex items-center justify-center shrink-0">
+        <p className="flex-1 text-sm font-medium leading-tight text-text-body">{title}</p>
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-background">
           {icon ? (
             icon
           ) : iconSrc ? (
@@ -37,7 +37,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, iconSrc, icon 
         </div>
       </div>
       <div className="flex flex-col items-start mt-auto">
-        <p className="max-w-full text-[clamp(20px,1.65vw,30px)] font-semibold text-[#040B37] leading-tight break-words">{value}</p>
+        <p className="max-w-full text-2xl font-bold leading-tight break-words text-navy sm:text-[28px]">{value}</p>
       </div>
     </Card>
   );

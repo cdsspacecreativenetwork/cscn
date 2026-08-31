@@ -45,6 +45,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 type IconComponent = React.ComponentType<{
   size?: number;
@@ -292,7 +299,7 @@ function RailItem({
             onClick={onClick}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex flex-col items-center justify-center gap-1 rounded-[10px] px-1 py-2.5 transition-colors',
+              'flex flex-col items-center justify-center gap-1 rounded-[10px] px-1 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
               active ? 'bg-[#1C4ED1]/5 text-[#1C4ED1]' : 'text-[#4B5563] hover:bg-[#F4F6FB]',
             )}
           >
@@ -307,6 +314,66 @@ function RailItem({
         {item.name}
       </TooltipContent>
     </Tooltip>
+  );
+}
+
+function MobileLearnerNavigation({
+  mainItems,
+  pathname,
+  onNavigate,
+  onLogout,
+}: {
+  mainItems: NavItem[];
+  pathname: string;
+  onNavigate: () => void;
+  onLogout: () => void;
+}) {
+  const renderItems = (items: NavItem[]) => items.map((item) => {
+    const active = isActivePath(pathname, item.href);
+    return (
+      <Link
+        key={item.name}
+        href={item.href}
+        onClick={onNavigate}
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+          active ? 'bg-primary/10 text-primary' : 'text-text-body hover:bg-background hover:text-navy',
+        )}
+      >
+        <RailIcon item={item} active={active} />
+        <span>{item.name}</span>
+      </Link>
+    );
+  });
+
+  return (
+    <>
+      <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-5">
+        <section aria-labelledby="learner-main-navigation" className="flex flex-col gap-2">
+          <h2 id="learner-main-navigation" className="px-3 text-xs font-semibold text-text-mute">Main</h2>
+          <nav aria-label="Learner navigation" className="flex flex-col gap-1">
+            {renderItems(mainItems)}
+          </nav>
+        </section>
+        <section aria-labelledby="learner-account-navigation" className="flex flex-col gap-2">
+          <h2 id="learner-account-navigation" className="px-3 text-xs font-semibold text-text-mute">Account</h2>
+          <nav aria-label="Account navigation" className="flex flex-col gap-1">
+            {renderItems(learnerAccountItems)}
+          </nav>
+        </section>
+      </div>
+      <div className="border-t border-stroke p-4">
+        <button
+          type="button"
+          onClick={onLogout}
+          className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <LogOut className="size-[22px]" strokeWidth={1.85} />
+          Log out
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -367,15 +434,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
   // caption), independent of the admin/instructor collapse behaviour.
   if (isLearner) {
     return (
-      <TooltipProvider delay={300}>
+      <>
+        <Sheet open={Boolean(isOpen)} onOpenChange={(open) => { if (!open) onClose?.(); }}>
+          <SheetContent side="left" style={{ width: 280, maxWidth: 'calc(100vw - 2rem)' }} className="gap-0 p-0 min-[900px]:hidden">
+            <SheetHeader className="flex h-[72px] flex-row items-center border-b border-stroke px-4 py-0">
+              <Link
+                href="/"
+                onClick={handleNavClick}
+                className="rounded-md bg-[#D7EAFF] p-2 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <Image src="/assets/dashboard/user/Group 162.svg" alt="CSCN home" width={30} height={30} />
+              </Link>
+              <div>
+                <SheetTitle className="text-base font-semibold text-navy">Learner dashboard</SheetTitle>
+                <SheetDescription className="text-xs font-normal">Navigate your learning workspace</SheetDescription>
+              </div>
+            </SheetHeader>
+            <MobileLearnerNavigation
+              mainItems={learnerMainItems}
+              pathname={pathname}
+              onNavigate={handleNavClick}
+              onLogout={handleLogout}
+            />
+          </SheetContent>
+        </Sheet>
+        <TooltipProvider delay={300}>
         <aside
-          className={cn(
-            'flex h-screen flex-col border-r border-[#E3E8F4] bg-white transition-transform duration-300 ease-in-out',
-            isOpen
-              ? 'fixed inset-y-0 left-0 z-[70] w-[84px] translate-x-0'
-              : 'fixed inset-y-0 -translate-x-full lg:static lg:translate-x-0',
-            'lg:sticky lg:top-0 lg:z-[50] lg:w-[clamp(76px,5.2vw,88px)]',
-          )}
+          className="sticky top-0 hidden h-screen w-[clamp(76px,5.2vw,88px)] flex-col border-r border-[#E3E8F4] bg-white min-[900px]:flex"
         >
           <div className="relative flex h-[clamp(60px,4.17vw,72px)] shrink-0 items-center justify-center border-b border-[#E3E8F4] px-2">
             <Link
@@ -390,13 +475,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
                 className="h-[clamp(22px,1.7vw,30px)] w-[clamp(22px,1.7vw,30px)] object-contain"
               />
             </Link>
-            <button
-              onClick={onClose}
-              className="absolute right-1 top-3 p-1.5 text-[#9CA3AF] transition-colors hover:text-[#040B37] lg:hidden"
-              aria-label="Close menu"
-            >
-              <X size={20} />
-            </button>
           </div>
 
           <div className="custom-scrollbar flex-1 overflow-y-auto px-2 py-4">
@@ -441,7 +519,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, 
             </Tooltip>
           </div>
         </aside>
-      </TooltipProvider>
+        </TooltipProvider>
+      </>
     );
   }
 

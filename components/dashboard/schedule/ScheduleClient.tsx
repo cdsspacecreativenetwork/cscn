@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, CalendarClock, CalendarPlus, BookOpenCheck, ExternalLink, Globe2, X } from 'lucide-react';
+import { Bell, BookOpenCheck, ExternalLink, Globe2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   endOfMonth,
@@ -20,6 +20,8 @@ import { ScheduleDatePicker } from '@/components/dashboard/instructor/ScheduleDa
 import { ScheduleTimeCombobox } from '@/components/dashboard/instructor/ScheduleTimeCombobox';
 import Button from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { LearnerPageHeader } from '@/components/dashboard/learner/LearnerPageHeader';
+import { EmptyState, EmptyStateContent, EmptyStateDescription, EmptyStateIcon, EmptyStateTitle } from '@/components/ui/EmptyState';
 import {
   buildMentorBookingSlotsForDate,
   hasMentorAvailabilityOnDate,
@@ -181,7 +183,7 @@ export function ScheduleClient({
       });
   }, [activeFilter, eventsState, visibleRange]);
 
-  const selectedMentorAvailability = selectedEvent?.mentorAvailability ?? [];
+  const selectedMentorAvailability = useMemo(() => selectedEvent?.mentorAvailability ?? [], [selectedEvent?.mentorAvailability]);
   const rescheduleSlots = useMemo(() => {
     if (!proposedDate || selectedMentorAvailability.length === 0) return [];
     return buildMentorBookingSlotsForDate(selectedMentorAvailability, new Date(`${proposedDate}T00:00:00`));
@@ -208,6 +210,7 @@ export function ScheduleClient({
       { label: 'Deadlines', value: eventsState.filter((event) => event.type === 'DEADLINE').length },
     ];
   }, [eventsState]);
+  const hasEvents = eventsState.length > 0;
 
   const handleAction = (event: ScheduleEvent) => {
     if ((event.type === 'LIVE_SESSION' || event.type === 'MENTORSHIP') && event.meetingUrl && event.status === 'LIVE') {
@@ -309,19 +312,18 @@ export function ScheduleClient({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1728px] flex-col gap-8 p-[clamp(16px,2.78vw,48px)] pb-24 font-jakarta">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-[24px] font-bold tracking-tight text-[#040B37] lg:text-[28px]">
-            Schedule
-          </h1>
-
-          <div className="flex rounded-[12px] bg-[#E3E8F4] p-1">
+    <div className="mx-auto flex w-full max-w-[1728px] flex-col gap-8 p-[clamp(16px,2.78vw,48px)] pb-24">
+      <LearnerPageHeader
+        title="Schedule"
+        description="Your live sessions, mentorship bookings, certification exams, and course deadlines appear here when they are scheduled."
+        action={hasEvents ? (
+          <div className="flex rounded-[12px] bg-stroke p-1" aria-label="Calendar view">
             {(['Week', 'Month'] as const).map((view) => (
               <button
                 key={view}
                 onClick={() => setActiveView(view)}
-                className={`min-w-[112px] rounded-[8px] px-5 py-2.5 text-[13px] font-semibold transition-all ${
+                aria-pressed={activeView === view}
+                className={`min-h-10 min-w-[104px] rounded-[8px] px-4 py-2 text-sm font-medium transition-[background-color,color,box-shadow] ${
                   activeView === view
                     ? 'bg-white text-[#040B37] shadow-[0px_3px_8px_rgba(159,173,205,0.35)]'
                     : 'text-[#9CA3AF] hover:text-[#4B5563]'
@@ -331,21 +333,17 @@ export function ScheduleClient({
               </button>
             ))}
           </div>
-        </div>
+        ) : undefined}
+      />
 
-        <p className="max-w-[720px] text-[14px] font-medium leading-relaxed text-[#9CA3AF]">
-          Your live sessions, mentorship bookings, certification exams, and course deadlines appear here when they are scheduled by instructors or admins.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {hasEvents ? <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((item) => (
           <Card key={item.label} className="rounded-[14px] px-5 [--card-spacing:20px]">
-            <p className="text-[13px] font-semibold text-[#9CA3AF]">{item.label}</p>
-            <p className="mt-5 text-[30px] font-bold leading-none text-[#040B37]">{item.value}</p>
+            <p className="text-sm font-medium text-text-body">{item.label}</p>
+            <p className="mt-3 text-2xl font-bold leading-none text-navy sm:text-[28px]">{item.value}</p>
           </Card>
         ))}
-      </div>
+      </div> : null}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:items-start">
         <aside className="w-full lg:col-span-1">
@@ -353,12 +351,12 @@ export function ScheduleClient({
         </aside>
 
         <section className="flex min-w-0 flex-col gap-5 lg:col-span-3">
-          <Card className="gap-4 px-4 md:px-5 [--card-spacing:16px] md:[--card-spacing:20px]">
+          {hasEvents ? <Card className="gap-4 px-4 md:px-5 [--card-spacing:16px] md:[--card-spacing:20px]">
             <div className="flex flex-col gap-1">
-              <h2 className="text-[18px] font-bold tracking-tight text-[#040B37]">
+              <h2 className="text-lg font-semibold tracking-tight text-navy sm:text-xl">
                 {activeView === 'Week' ? `Week of ${formatRange(visibleRange.start, visibleRange.end)}` : format(selectedDate, 'MMMM yyyy')}
               </h2>
-              <p className="text-[13px] font-medium text-[#9CA3AF]">
+              <p className="text-sm font-normal text-text-mute">
                 {activeView === 'Week'
                   ? `Selected date: ${formatSelectedDate(selectedDate)}. Showing events in this week.`
                   : 'Showing all scheduled learning activities in the selected month.'}
@@ -370,7 +368,8 @@ export function ScheduleClient({
                 <button
                   key={filter.value}
                   onClick={() => setActiveFilter(filter.value)}
-                  className={`flex-1 rounded-[9px] px-3 py-2 text-center text-[13px] font-semibold transition-all whitespace-nowrap ${
+                  aria-pressed={activeFilter === filter.value}
+                  className={`flex-1 whitespace-nowrap rounded-[9px] px-3 py-2 text-center text-xs font-medium transition-[background-color,color,box-shadow] ${
                     activeFilter === filter.value
                       ? 'bg-white text-[#040B37] shadow-[0px_3px_8px_rgba(159,173,205,0.35)]'
                       : 'text-text-mute hover:text-[#4B5563]'
@@ -380,7 +379,7 @@ export function ScheduleClient({
                 </button>
               ))}
             </div>
-          </Card>
+          </Card> : null}
 
           {events.length > 0 ? (
             events.map((event) => (
@@ -392,22 +391,12 @@ export function ScheduleClient({
               />
             ))
           ) : (
-            <div className="flex min-h-[360px] flex-col items-center justify-center gap-4 rounded-[16px] border border-dashed border-[#C8D1E0] bg-white p-8 text-center shadow-sm">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1C4ED1]/5">
-                <BookOpenCheck size={32} className="text-[#1C4ED1]" strokeWidth={1.8} />
-              </div>
-              <div className="flex max-w-[520px] flex-col gap-2">
-                <h3 className="text-[20px] font-bold text-[#040B37]">
-                  No scheduled learning activities yet
-                </h3>
-                <p className="text-[14px] font-medium leading-relaxed text-[#9CA3AF]">
-                  When instructors schedule live classes, mentors confirm bookings, admins open certification exams, or course deadlines are published, they will appear here automatically.
-                </p>
-              </div>
-              <Button variant="primary" rounded="md" onClick={() => window.location.href = '/courses'}>
-                Browse courses
-              </Button>
-            </div>
+            <EmptyState className="py-10 sm:py-12">
+              <EmptyStateIcon><BookOpenCheck size={24} aria-hidden="true" /></EmptyStateIcon>
+              <EmptyStateTitle>No scheduled learning activities yet</EmptyStateTitle>
+              <EmptyStateDescription>Live classes, confirmed mentorship bookings, exams, and published deadlines will appear here automatically.</EmptyStateDescription>
+              <EmptyStateContent><Button variant="primary" rounded="md" onClick={() => window.location.href = '/courses'}>Browse courses</Button></EmptyStateContent>
+            </EmptyState>
           )}
         </section>
       </div>
@@ -418,6 +407,9 @@ export function ScheduleClient({
           onMouseDown={() => setSelectedEvent(null)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="schedule-event-title"
             className="custom-scrollbar max-h-[calc(100dvh-32px)] w-full max-w-[620px] overflow-y-auto rounded-[22px] border border-[#E3E8F4] bg-white shadow-[0px_24px_70px_rgba(4,11,55,0.22)]"
             onMouseDown={(event) => event.stopPropagation()}
           >
@@ -426,7 +418,7 @@ export function ScheduleClient({
                 <span className="inline-flex w-fit rounded-full bg-[#1C4ED1]/5 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#1C4ED1]">
                   {selectedEvent.type.replaceAll('_', ' ').toLowerCase()}
                 </span>
-                <h3 className="mt-3 text-[22px] font-bold leading-tight text-[#040B37]">{selectedEvent.title}</h3>
+                <h3 id="schedule-event-title" className="mt-3 text-xl font-semibold leading-tight text-navy">{selectedEvent.title}</h3>
                 {selectedEvent.subtitle && (
                   <p className="mt-1 text-[14px] font-semibold text-[#4B5563]">{selectedEvent.subtitle}</p>
                 )}
@@ -435,6 +427,7 @@ export function ScheduleClient({
                 type="button"
                 onClick={() => setSelectedEvent(null)}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E3E8F4] text-[#4B5563] transition hover:border-[#1C4ED1] hover:text-[#1C4ED1]"
+                aria-label="Close event details"
               >
                 <X size={18} strokeWidth={1.9} />
               </button>

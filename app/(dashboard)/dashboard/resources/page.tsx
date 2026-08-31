@@ -7,6 +7,7 @@ import { ResourceCard, ResourceCardSkeleton } from '@/components/dashboard/resou
 import { CreateResourceModal } from '@/components/dashboard/resources/CreateResourceModal';
 import { getResources, Resource, type ResourceScope, type InstructorCourseOption } from '@/lib/resourceService';
 import { deleteMarketplaceResourceAction, duplicateMarketplaceResourceAction } from '@/actions/marketplace-resources';
+import { EmptyState, EmptyStateContent, EmptyStateDescription, EmptyStateIcon, EmptyStateTitle } from '@/components/ui/EmptyState';
 
 export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
@@ -26,7 +27,7 @@ export default function ResourcesPage() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('cscn_saved_resources');
-      if (saved) setBookmarkedIds(JSON.parse(saved));
+      if (saved) queueMicrotask(() => setBookmarkedIds(JSON.parse(saved)));
     } catch (e) {
       console.error('Failed to parse bookmarks:', e);
     }
@@ -89,7 +90,7 @@ export default function ResourcesPage() {
         } else if (res?.error) {
           alert(res.error);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to delete resource:', err);
       }
     }
@@ -103,7 +104,7 @@ export default function ResourcesPage() {
       } else if (res?.error) {
         alert(res.error);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to duplicate resource:', err);
     }
   }, [fetchResources]);
@@ -114,7 +115,7 @@ export default function ResourcesPage() {
   }, []);
 
   return (
-    <div className="p-6 md:p-10 space-y-10 max-w-[1600px] mx-auto font-jakarta">
+    <div className="mx-auto flex max-w-[1600px] flex-col gap-8 p-4 sm:p-6 md:p-10">
       {/* Search & Header Section */}
       <ResourceHeader 
         onSearch={setSearchQuery}
@@ -134,7 +135,7 @@ export default function ResourcesPage() {
       />
 
       {/* Resources Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 bg-white rounded-[14px] p-6 md:p-8">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-6 rounded-[14px] bg-card-bg p-4 sm:p-6 md:p-8">
         {isLoading ? (
           // Shimmer Skeletons
           Array.from({ length: 6 }).map((_, i) => (
@@ -153,27 +154,23 @@ export default function ResourcesPage() {
             />
           ))
         ) : (
-          <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="w-20 h-20 rounded-[8px] flex items-center justify-center border border-[#1C4ED1]/15">
-              <FolderOpen size={34} strokeWidth={1.8} className="text-[#1C4ED1]" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-[20px] font-bold text-[#040B37]">No resources found</h3>
-              <p className="text-[14px] text-[#9CA3AF]">
-                Try adjusting your search criteria or clear your active filters.
-              </p>
-            </div>
+          <EmptyState className="col-span-full py-12 sm:py-16">
+            <EmptyStateIcon><FolderOpen size={24} aria-hidden="true" /></EmptyStateIcon>
+            <EmptyStateTitle>No resources found</EmptyStateTitle>
+            <EmptyStateDescription>Try adjusting your search criteria or clear your active filters.</EmptyStateDescription>
+            <EmptyStateContent>
             <button 
               onClick={() => {
                 setSearchQuery('');
                 setSelectedType('All Types');
                 setSelectedCourse('All Courses');
               }}
-              className="text-[#1C4ED1] font-bold hover:underline font-jakarta"
+              className="min-h-11 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               Clear all filters
             </button>
-          </div>
+            </EmptyStateContent>
+          </EmptyState>
         )}
       </div>
 

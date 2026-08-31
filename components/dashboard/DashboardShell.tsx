@@ -20,6 +20,8 @@ export function DashboardShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMidSize, setIsMidSize] = useState(false);
+  const role = session.user?.role;
+  const isLearner = role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'INSTRUCTOR';
 
   const [showIntentModal, setShowIntentModal] = useState(false);
   const [showInstructorModal, setShowInstructorModal] = useState(false);
@@ -38,6 +40,9 @@ export function DashboardShell({
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
+      if (isLearner && width >= 900) {
+        setIsSidebarOpen(false);
+      }
       if (width >= 1024 && width < 1440) {
         setIsCollapsed(true);
         setIsMidSize(true);
@@ -53,7 +58,7 @@ export function DashboardShell({
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [isLearner]);
 
   const handleSelectIntent = (intent: 'LEARNER' | 'INSTRUCTOR') => {
     setShowIntentModal(false);
@@ -67,7 +72,7 @@ export function DashboardShell({
   return (
     <SessionProvider session={session} refetchOnWindowFocus={false}>
       <div className="relative flex h-dvh w-full overflow-hidden bg-background">
-        {(isSidebarOpen || (!isCollapsed && isMidSize)) && (
+        {!isLearner && (isSidebarOpen || (!isCollapsed && isMidSize)) && (
           <div
             className="fixed inset-0 bg-primary/10 backdrop-blur-sm z-60 animate-in fade-in duration-300"
             onClick={() => {
@@ -92,7 +97,9 @@ export function DashboardShell({
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300">
           <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
           <VerificationBanner />
-          <main className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(112px+env(safe-area-inset-bottom))] md:pb-0">
+          <main className={isLearner
+            ? 'learner-dashboard custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain font-jakarta pb-[calc(112px+env(safe-area-inset-bottom))] md:pb-0'
+            : 'custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(112px+env(safe-area-inset-bottom))] md:pb-0'}>
             {children}
           </main>
         </div>
