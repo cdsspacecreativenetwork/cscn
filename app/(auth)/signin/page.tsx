@@ -162,10 +162,10 @@ function LoginPageContent() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full h-[56px] p-[2px] bg-[#F4F6FB] border border-[#648EFC] rounded-full shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] overflow-hidden group disabled:cursor-not-allowed"
+            className="w-full h-[46px] p-[2px] bg-[#F4F6FB] border border-[#648EFC] rounded-full shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04)] overflow-hidden group disabled:cursor-not-allowed"
           >
             <div className="w-full h-full flex items-center justify-center rounded-full transition-all duration-300" style={{ backgroundImage: "linear-gradient(146deg, #0035C1 8.83%, #0575FF 86.3%)", opacity: isPending ? 0.4 : 1 }}>
-              <span className="text-white text-[16px] xl:text-[18px] font-medium tracking-[-0.18px] flex items-center gap-2">
+              <span className="text-white text-base xl:text-lg font-medium tracking-[-0.18px] flex items-center gap-2">
                 {isPending && <Loader2 className="h-5 w-5 animate-spin" />}
                 {showTwoFactor ? "Verify Code" : "Sign In"}
               </span>

@@ -179,6 +179,38 @@ export function UserAvatarMenu({ showUserText = true, align = 'right', user: use
             ))}
           </div>
 
+          {isAuthenticated && (sessionUser?.role === 'INSTRUCTOR' || sessionUser?.role === 'ADMIN' || sessionUser?.role === 'SUPER_ADMIN') && (
+            <div className="mt-2 space-y-1 border-t border-[#E3E8F4] pt-2">
+              <p className="px-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#9CA3AF]">Workspace</p>
+              <Link
+                href="/dashboard/cohorts"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#040B37] transition hover:bg-[#F4F6FB]"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-[#EEF3FF] text-xs">🎓</span>
+                Student Workspace
+              </Link>
+              <Link
+                href="/dashboard/instructor"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#040B37] transition hover:bg-[#F4F6FB]"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-[#EEF3FF] text-xs">👨‍🏫</span>
+                Instructor Workspace
+              </Link>
+              {(sessionUser?.role === 'ADMIN' || sessionUser?.role === 'SUPER_ADMIN') && (
+                <Link
+                  href="/dashboard/admin"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#040B37] transition hover:bg-[#F4F6FB]"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-[#EEF3FF] text-xs">🛡️</span>
+                  Admin Command Center
+                </Link>
+              )}
+            </div>
+          )}
+
           {isAuthenticated && (
             <div className="mt-2 border-t border-[#E3E8F4] pt-2">
               <button
