@@ -6,7 +6,7 @@ import { markOpportunityAppliedAction, updateTalentProfileAction } from '@/actio
 import { LearnerPageHeader, LearnerSectionHeader } from '@/components/dashboard/learner/LearnerPageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState, EmptyStateDescription, EmptyStateIcon, EmptyStateTitle } from '@/components/ui/EmptyState';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/ui/input';
 import { currentUser } from '@/lib/auth';
 import { getCareerHub } from '@/lib/services/career.service';
 
