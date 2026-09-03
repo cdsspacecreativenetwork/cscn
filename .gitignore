@@ -37,7 +37,6 @@ yarn-error.log*
 
 # local quality reports
 .eslint-report.json
-.reference/
 
 # vercel
 .vercel
